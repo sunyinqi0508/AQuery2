@@ -1,0 +1,15 @@
+*.log
+*.pyc
+*.tab
+out
+.idea
+.svn
+*.iml
+/mo_sql_parsing.egg-info
+/build
+/dist
+/mo-sql-parsing
+vendor/
+._*
+.DS_Store
+.eggs
