@@ -1,8 +1,14 @@
-# More SQL Parsing!
+# AQuery Compiler
 
-[![PyPI Latest Release](https://img.shields.io/pypi/v/mo-sql-parsing.svg)](https://pypi.org/project/mo-sql-parsing/)
-[![Build Status](https://app.travis-ci.com/klahnakoski/mo-sql-parsing.svg?branch=master)](https://travis-ci.com/github/klahnakoski/mo-sql-parsing)
+AQuery Compiler that compiles AQuery into [K9](https://shakti.com/).
+Frontend built on top of [mo-sql-parsing](https://github.com/klahnakoski/mo-sql-parsing).
 
+## Roadmap
+- [ ] SQL Parser -> AQuery Parser
+- [ ] -> AQuery-K9 Compiler
+- [ ] -> Optimizing Compiler
+
+# Descriptions from mo-sql-parsing:
 
 Parse SQL into JSON so we can translate it for other datastores!
 
