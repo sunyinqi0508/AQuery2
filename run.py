@@ -4,3 +4,12 @@ q = 'SELECT p.Name, v.Name FROM Production.Product p JOIN Purchasing.ProductVend
 res = parser.parse(q)
 
 print(res)
+
+while True:
+    try:
+        q = input()
+        stmts = parser.parse(q)
+        for s in stmts:
+            print(s)
+    except Exception as e:
+        print(e)

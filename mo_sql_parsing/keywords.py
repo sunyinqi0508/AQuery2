@@ -21,6 +21,7 @@ DESC = keyword("desc")
 
 # SIMPLE KEYWORDS
 AS = keyword("as").suppress()
+ASSUMING = keyword("assuming")
 ALL = keyword("all")
 BY = keyword("by").suppress()
 CAST = keyword("cast")
@@ -162,6 +163,7 @@ RESERVED = MatchFirst([
     AND,
     AS,
     ASC,
+    ASSUMING, 
     BETWEEN,
     BY,
     CASE,

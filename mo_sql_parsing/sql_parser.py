@@ -407,9 +407,11 @@ def parser(literal_string, ident, sqlserver=False):
             )
             + RB,
         )
+        assumption = (ASSUMING + (ASC|DESC)("assumption"))
 
         table_source << Group(
             ((LB + query + RB) | stack | call_function | var_name)("value")
+            + Optional(assumption)
             + Optional(flag("with ordinality"))
             + Optional(tablesample)
             + alias
