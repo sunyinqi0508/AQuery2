@@ -4,8 +4,8 @@ AQuery Compiler that compiles AQuery into [K9](https://shakti.com/).
 Frontend built on top of [mo-sql-parsing](https://github.com/klahnakoski/mo-sql-parsing).
 
 ## Roadmap
-- [ ] SQL Parser -> AQuery Parser
-- [ ] -> AQuery-K9 Compiler
+- [x] SQL Parser -> AQuery Parser
+-  -> AQuery-K9 Compiler
 - [ ] -> Optimizing Compiler
 
 # Descriptions from mo-sql-parsing:

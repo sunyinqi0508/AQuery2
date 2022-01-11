@@ -620,11 +620,18 @@ def parser(literal_string, ident, sqlserver=False):
             + Optional(assign("where", expr))
         ) / to_json_call
 
-        return (
-            inline_kblock
-            | udf
-            | query
+        sql_stmts = delimited_list( (
+            query
             | (insert | update | delete)
             | (create_table | create_view | create_cache | create_index)
             | (drop_table | drop_view | drop_index)
-        ).finalize()
+        )("stmts"), ";")
+
+        other_stmt = (
+            inline_kblock
+            | udf
+        ) ("stmts")
+        
+        stmts = ZeroOrMore(sql_stmts|other_stmt)
+        
+        return stmts.finalize()
