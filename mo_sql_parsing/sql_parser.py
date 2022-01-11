@@ -7,7 +7,9 @@
 # Contact: Kyle Lahnakoski (kyle@lahnakoski.com)
 #
 
-
+from operator import add
+from textwrap import indent
+from mo_parsing import whitespaces
 from mo_parsing.helpers import restOfLine
 from mo_parsing.infix import delimited_list
 from mo_parsing.whitespaces import NO_WHITESPACE, Whitespace
@@ -76,7 +78,8 @@ def parser(literal_string, ident, sqlserver=False):
         engine.add_ignore(Literal("/*") + SkipTo("*/", include=True))
 
         var_name = ~RESERVED + ident
-
+        
+        inline_kblock = (L_INLINE + SkipTo(R_INLINE, include=True))("k9")
         # EXPRESSIONS
         expr = Forward()
         column_type, column_definition, column_def_references = get_column_type(
@@ -341,6 +344,22 @@ def parser(literal_string, ident, sqlserver=False):
                 + Group(var_name("name") + AS + over_clause("value"))("join")
             )
         ) / to_join_call
+        
+        fassign = Group(var_name("var") + Suppress(FASSIGN) + expr("expr") + Suppress(";"))("assignment")
+        fassigns = fassign + ZeroOrMore(fassign, Whitespace(white=" \t"))
+
+        fbody = (Optional(fassigns) + expr("ret"))
+
+        udf = (
+            FUNCTION 
+            + var_name("fname") 
+            + LB 
+            + Optional(delimited_list(var_name)("params")) 
+            + RB 
+            + LBRACE
+            + fbody
+            + RBRACE
+        )
 
         selection = (
             (SELECT + DISTINCT + ON + LB)
@@ -407,11 +426,13 @@ def parser(literal_string, ident, sqlserver=False):
             )
             + RB,
         )
-        assumption = (ASSUMING + (ASC|DESC)("assumption"))
+
+        assumption = Group((ASC|DESC) ("ord") + var_name("attrib"))
+        assumptions = (ASSUMING + Group(delimited_list(assumption))("assumptions"))
 
         table_source << Group(
             ((LB + query + RB) | stack | call_function | var_name)("value")
-            + Optional(assumption)
+            + Optional(assumptions)
             + Optional(flag("with ordinality"))
             + Optional(tablesample)
             + alias
@@ -600,7 +621,9 @@ def parser(literal_string, ident, sqlserver=False):
         ) / to_json_call
 
         return (
-            query
+            inline_kblock
+            | udf
+            | query
             | (insert | update | delete)
             | (create_table | create_view | create_cache | create_index)
             | (drop_table | drop_view | drop_index)

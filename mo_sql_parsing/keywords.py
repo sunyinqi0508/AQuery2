@@ -33,6 +33,7 @@ EXCEPT = keyword("except")
 FETCH = keyword("fetch").suppress()
 FROM = keyword("from").suppress()
 FULL = keyword("full")
+FUNCTION = keyword("function").suppress()
 GROUP = keyword("group").suppress()
 HAVING = keyword("having").suppress()
 INNER = keyword("inner")
@@ -109,6 +110,7 @@ INDF = (
     # https://prestodb.io/docs/current/functions/comparison.html#is-distinct-from-and-is-not-distinct-from
     keyword("is not distinct from").set_parser_name("ne!")
 )
+FASSIGN = Literal(":=").set_parser_name("fassign") # Assignment in UDFs
 NEQ = (Literal("!=") | Literal("<>")).set_parser_name("neq")
 LAMBDA = Literal("->").set_parser_name("lambda")
 
@@ -181,6 +183,7 @@ RESERVED = MatchFirst([
     FOREIGN,
     FROM,
     FULL,
+    FUNCTION,
     GROUP_BY,
     GROUP,
     HAVING,
@@ -224,7 +227,10 @@ RESERVED = MatchFirst([
     WITH,
     WITHIN,
 ])
-
+L_INLINE = Literal("<k>").suppress()
+R_INLINE = Literal("</k>").suppress()
+LBRACE = Literal("{").suppress()
+RBRACE = Literal("}").suppress()
 LB = Literal("(").suppress()
 RB = Literal(")").suppress()
 EQ = Char("=").suppress()
@@ -282,6 +288,7 @@ precedence = {
     "lambda": 12,
     "join": 18,
     "list": 18,
+    "function": 30,
     "select": 30,
     "from": 30,
     "window": 35,
