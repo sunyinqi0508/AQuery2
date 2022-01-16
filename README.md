@@ -40,7 +40,7 @@ November 2021 - There are [over 800 tests](https://app.travis-ci.com/github/klah
 
 ## Parsing SQL
 
-    >>> from mo_sql_parsing import parse
+    >>> from aquery_parser import parse
     >>> parse("select count(1) from jobs")
     {'select': {'value': {'count': 1}}, 'from': 'jobs'}
     
@@ -65,7 +65,7 @@ SQLServer uses square brackets to delimit identifiers. For example
     
 which conflicts with BigQuery array constructor (eg `[1, 2, 3, 4]`). You may use the SqlServer flavour with 
     
-    from mo_sql_parsing import parse_sqlserver as parse
+    from aquery_parser import parse_sqlserver as parse
 
 
 #### NULL is None
@@ -83,7 +83,7 @@ The default behaviour of the parser is to output function calls in `simple_op` f
 
 You can have the parser emit function calls in `normal_op` format
 
-    >>> from mo_sql_parsing import parse, normal_op
+    >>> from aquery_parser import parse, normal_op
     >>> parse("select trim(' ' from b+c)", calls=normal_op)
     
 which produces calls in a normalized format
@@ -111,7 +111,7 @@ MySQL uses both double quotes and single quotes to declare literal strings.  Thi
 
 You may also generate SQL from the a given JSON document. This is done by the formatter, which is in Alpha state (Oct2021).
 
-    >>> from mo_sql_parsing import format
+    >>> from aquery_parser import format
     >>> format({"from":"test", "select":["a.b", "c"]})
     'SELECT a.b, c FROM test'
 

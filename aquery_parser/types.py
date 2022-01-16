@@ -12,7 +12,7 @@
 from mo_parsing import Forward, Group, Optional, MatchFirst, Literal, ZeroOrMore, export
 from mo_parsing.infix import delimited_list, RIGHT_ASSOC, LEFT_ASSOC
 
-from mo_sql_parsing.keywords import (
+from aquery_parser.keywords import (
     RB,
     LB,
     NEG,
@@ -24,7 +24,7 @@ from mo_sql_parsing.keywords import (
     LT,
     GT,
 )
-from mo_sql_parsing.utils import (
+from aquery_parser.utils import (
     keyword,
     to_json_call,
     int_num,
@@ -220,4 +220,4 @@ def get_column_type(expr, var_name, literal_string):
     return column_type, column_definition, column_def_references
 
 
-export("mo_sql_parsing.utils", unary_ops)
+export("aquery_parser.utils", unary_ops)

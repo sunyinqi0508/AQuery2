@@ -7,17 +7,14 @@
 # Contact: Kyle Lahnakoski (kyle@lahnakoski.com)
 #
 
-from operator import add
-from textwrap import indent
-from mo_parsing import whitespaces
 from mo_parsing.helpers import restOfLine
 from mo_parsing.infix import delimited_list
 from mo_parsing.whitespaces import NO_WHITESPACE, Whitespace
 
-from mo_sql_parsing.keywords import *
-from mo_sql_parsing.types import get_column_type, time_functions
-from mo_sql_parsing.utils import *
-from mo_sql_parsing.windows import window
+from aquery_parser.keywords import *
+from aquery_parser.types import get_column_type, time_functions
+from aquery_parser.utils import *
+from aquery_parser.windows import window
 
 
 def no_dashes(tokens, start, string):
@@ -29,14 +26,14 @@ def no_dashes(tokens, start, string):
             string,
             """Ambiguity: Use backticks (``) around identifiers with dashes, or add space around subtraction operator.""",
         )
-
-
+ 
+ 
 digit = Char("0123456789")
 simple_ident = (
     Char(FIRST_IDENT_CHAR)
-    + (Regex("(?<=[^ 0-9])\\-(?=[^ 0-9])") | Char(IDENT_CHAR))[...]
+    + Char(IDENT_CHAR)[...] # let's not support dashes in var_names.
 )
-simple_ident = Regex(simple_ident.__regex__()[1]) / no_dashes
+simple_ident = Regex(simple_ident.__regex__()[1]) 
 
 
 def common_parser():
@@ -536,7 +533,7 @@ def parser(literal_string, ident, sqlserver=False):
                 | assign("default charset", EQ + var_name)
             )
             + Optional(AS.suppress() + infix_notation(query, [])("query"))
-        )("create table")
+        )("create_table")
 
         create_view = (
             keyword("create")
@@ -547,7 +544,7 @@ def parser(literal_string, ident, sqlserver=False):
             + var_name("name")
             + AS
             + query("query")
-        )("create view")
+        )("create_view")
 
         #  CREATE INDEX a ON u USING btree (e);
         create_index = (

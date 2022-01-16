@@ -12,8 +12,8 @@ from __future__ import absolute_import, division, unicode_literals
 import json
 from threading import Lock
 
-from mo_sql_parsing.sql_parser import scrub
-from mo_sql_parsing.utils import ansi_string, simple_op, normal_op
+from aquery_parser.sql_parser import scrub
+from aquery_parser.utils import ansi_string, simple_op, normal_op
 
 parse_locker = Lock()  # ENSURE ONLY ONE PARSING AT A TIME
 common_parser = None
@@ -81,11 +81,6 @@ def _parse(parser, sql, null, calls):
         o[n] = null
     return output
 
-
-def format(json, **kwargs):
-    from mo_sql_parsing.formatting import Formatter
-
-    return Formatter(**kwargs).dispatch(json)
 
 
 _ = json.dumps

@@ -10,7 +10,7 @@
 # SQL CONSTANTS
 from mo_parsing import *
 
-from mo_sql_parsing.utils import SQL_NULL, keyword
+from aquery_parser.utils import SQL_NULL, keyword
 
 NULL = keyword("null") / (lambda: SQL_NULL)
 TRUE = keyword("true") / (lambda: True)
