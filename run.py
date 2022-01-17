@@ -16,8 +16,14 @@ print(res)
 while test_parser:
     try:
         q = input()
-        if q == 'break':
-            break
+        if q == 'exec':
+            cxt = engine.initialize()
+            for s in stmts['stmts']:
+                engine.generate(s, cxt)
+            print(cxt.k9code)
+            with open('out.k', 'wb') as outfile:
+                outfile.write(cxt.k9code)
+            continue
         trimed = ws.sub(' ', q.lower()).split(' ') 
         if trimed[0] == 'file':
             fn = 'q.sql' if len(trimed) <= 1 or len(trimed[1]) == 0 \
@@ -32,6 +38,3 @@ while test_parser:
     except Exception as e:
         print(type(e), e)
 
-cxt = engine.initialize()
-for s in stmts['stmts']:
-    engine.generate(s, cxt)

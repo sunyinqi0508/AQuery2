@@ -5,7 +5,10 @@ Frontend built on top of [mo-sql-parsing](https://github.com/klahnakoski/mo-sql-
 
 ## Roadmap
 - [x] SQL Parser -> AQuery Parser
+  - [ ] Data acquisition/output from/to csv file (By Jan. 21)
 -  -> AQuery-K9 Compiler
+   -   Simple query (By Jan. 21)
+   -  [ ] Nested queries (Jan. 28)
 - [ ] -> Optimizing Compiler
 
 # Descriptions from mo-sql-parsing:

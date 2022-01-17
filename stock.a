@@ -17,6 +17,9 @@ INSERT INTO stocks VALUES(14,5)
 INSERT INTO stocks VALUES(15,2)
 INSERT INTO stocks VALUES(16,5)
 
-SELECT max(price-mins(price))
+SELECT max(price-min(timestamp)) FROM stocks 
+
+
+/*SELECT max(price-mins(price))
 FROM stocks
-     ASSUMING ASC timestamp
+     ASSUMING ASC timestamp*/
