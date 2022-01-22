@@ -4,12 +4,23 @@ from engine.ast import ast_node
 class expr(ast_node):
     name='expr'
     builtin_func_maps = {
-            'max': 'max',
-            'min': 'min', 
+        'max': 'max',
+        'min': 'min', 
+        'avg':'avg',
+        'sum':'sum',
 
-        }
-    binary_ops = {'sub':'-', 'plus':'+'}
-    unary_ops = []
+    }
+    binary_ops = {
+        'sub':'-', 
+        'add':'+', 
+        'mul':'*', 
+        'div':'%',
+
+    }
+    unary_ops = {
+        'neg' : '-',
+        
+    }
     def __init__(self, parent, node):
         from engine.projection import projection
         if type(parent) in [projection, expr]:
@@ -29,18 +40,19 @@ class expr(ast_node):
                     # if type(val) in [dict, str]:
                     self.k9expr += expr(self, val).k9expr
 
-                    self.k9expr+=')'
+                    self.k9expr += ')'
                 elif key in self.binary_ops:
                     l = expr(self, val[0]).k9expr
                     r = expr(self, val[1]).k9expr
                     self.k9expr += f'({l}{self.binary_ops[key]}{r})'
                     
-                    print(f'binary{key}')
                 elif key in self.unary_ops:
-                    print(f'unary{key}')
+                    self.k9expr += f'({expr(self, val).k9expr}{self.unary_ops[key]})'
                 else:
-                    print(key)
+                    print(f'Undefined expr: {key}{val}')
         elif type(node) is str:
             self.k9expr = self.datasource.parse_tablenames(node)
+        else:
+            self.k9expr = f'{node}'
     def __str__(self):
         return self.k9expr

@@ -16,18 +16,6 @@ from aquery_parser.types import get_column_type, time_functions
 from aquery_parser.utils import *
 from aquery_parser.windows import window
 
-
-def no_dashes(tokens, start, string):
-    if "-" in tokens[0]:
-        index = tokens[0].find("-")
-        raise ParseException(
-            tokens.type,
-            start + index + 1,  # +1 TO ENSURE THIS MESSAGE HAS PRIORITY
-            string,
-            """Ambiguity: Use backticks (``) around identifiers with dashes, or add space around subtraction operator.""",
-        )
- 
- 
 digit = Char("0123456789")
 simple_ident = (
     Char(FIRST_IDENT_CHAR)

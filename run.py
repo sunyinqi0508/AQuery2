@@ -1,3 +1,4 @@
+from multiprocessing.sharedctypes import Value
 import re
 import aquery_parser as parser
 import engine
@@ -18,11 +19,18 @@ while test_parser:
         q = input()
         if q == 'exec':
             cxt = engine.initialize()
-            for s in stmts['stmts']:
-                engine.generate(s, cxt)
+            stmts_stmts = stmts['stmts']
+            if type(stmts_stmts) is list:
+                for s in stmts_stmts:
+                    engine.generate(s, cxt)
+            else:
+                engine.generate(stmts_stmts, cxt)
             print(cxt.k9code)
             with open('out.k', 'wb') as outfile:
-                outfile.write(cxt.k9code)
+                outfile.write(cxt.k9code.encode('utf-8'))
+            continue
+        elif q == 'print':
+            print(stmts)
             continue
         trimed = ws.sub(' ', q.lower()).split(' ') 
         if trimed[0] == 'file':
@@ -35,6 +43,6 @@ while test_parser:
             continue
         stmts = parser.parse(q)
         print(stmts)
-    except Exception as e:
+    except ValueError as e:
         print(type(e), e)
 

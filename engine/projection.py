@@ -47,7 +47,9 @@ class projection(ast_node):
             
             if self.datasource is None:
                 raise ValueError('spawn error: from clause')
-    
+        if 'where' in node:
+            # apply filter
+            pass
 
 
     def consume(self, node):

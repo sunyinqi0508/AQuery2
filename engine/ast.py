@@ -1,6 +1,12 @@
 from typing import List
-import uuid
 
+# replace column info with this later.
+class ColRef:
+    def __init__(self, k9name, type, cobj, cnt):
+        self.k9name = k9name
+        self.type = type
+        self.cobj = cobj
+        self.cnt = cnt
 
 class TableInfo:
     def __init__(self, table_name, cols, cxt:'Context'):
