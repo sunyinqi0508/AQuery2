@@ -18,8 +18,10 @@ INSERT INTO stocks VALUES(15,2)
 INSERT INTO stocks VALUES(16,5)
 
 SELECT max(price-min(timestamp)) FROM stocks 
+ 
+SELECT price, timestamp FROM stocks where price -timestamp > 1 and not (price*timestamp<100)
 
 
-/*SELECT max(price-mins(price))
+SELECT max(price-mins(price))
 FROM stocks
-     ASSUMING ASC timestamp*/
+     ASSUMING ASC timestamp

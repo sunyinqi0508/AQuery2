@@ -1,7 +1,7 @@
-from multiprocessing.sharedctypes import Value
 import re
 import aquery_parser as parser
 import engine
+import subprocess
 
 test_parser = True
 
@@ -27,7 +27,11 @@ while test_parser:
                 engine.generate(stmts_stmts, cxt)
             print(cxt.k9code)
             with open('out.k', 'wb') as outfile:
-                outfile.write(cxt.k9code.encode('utf-8'))
+                outfile.write((cxt.k9code+'\n\\\\').encode('utf-8'))
+            subprocess.call(['bash.exe', '-c',"./k out.k"])
+            continue
+        elif q == 'k':
+            subprocess.call(['bash.exe', '-c',"./k"])
             continue
         elif q == 'print':
             print(stmts)

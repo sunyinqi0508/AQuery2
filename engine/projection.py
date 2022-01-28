@@ -1,6 +1,7 @@
 from engine.ast import TableInfo, ast_node, Context, include
 from engine.join import join
 from engine.expr import expr
+from engine.scan import filter
 from engine.utils import base62uuid
 
 class projection(ast_node):
@@ -15,7 +16,7 @@ class projection(ast_node):
 
     def produce(self, node):
         p = node['select']
-        self.projections = p if type(projection) == list else [p]
+        self.projections = p if type(p) is list else [p]
         print(node)
 
     def spawn(self, node):
@@ -47,27 +48,37 @@ class projection(ast_node):
             
             if self.datasource is None:
                 raise ValueError('spawn error: from clause')
+           
+        if self.datasource is not None:
+            self.datasource_changed = True
+            self.prev_datasource = self.context.datasource
+            self.context.datasource = self.datasource            
         if 'where' in node:
-            # apply filter
-            pass
+            self.datasource = filter(self, node['where'], True).output
+            self.context.datasource = self.datasource            
 
 
-    def consume(self, node):
-        disp_varname = 'disptmp' + base62uuid()
+    def consume(self, _):
+        disp_varname = 'd'+base62uuid(7)
         self.emit_no_ln(f'{disp_varname}:(')
-        for proj in self.projections:
+        for i, proj in enumerate(self.projections):
             if type(proj) is dict:
                 if 'value' in proj:
                     e = proj['value']
-                    
                     if type(e) is str:
-                        self.emit_no_ln(f"{self.datasource.parse_tablenames(proj['value'])};")
+                        self.emit_no_ln(f"{self.datasource.parse_tablenames(proj['value'])}")
                     elif type(e) is dict:
-                        self.emit_no_ln(f"{expr(self, e).k9expr};")
+                        self.emit_no_ln(f"{expr(self, e).k9expr}")
+                    self.emit_no_ln(';'if i < len(self.projections)-1 else '')
 
         self.emit(')')
         if self.disp:
-            self.emit(disp_varname)
+            if len(self.projections) > 1:
+                self.emit(f'+{disp_varname}')
+            else:
+                self.emit(f'+,(,{disp_varname})')
+        if self.datasource_changed:
+            self.context.datasource = self.prev_datasource
 
 
 import sys
