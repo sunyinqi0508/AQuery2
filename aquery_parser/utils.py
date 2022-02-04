@@ -522,6 +522,7 @@ def to_union_call(tokens):
     output["limit"] = tokens["limit"]
     output["offset"] = tokens["offset"]
     output["fetch"] = tokens["fetch"]
+    output["outfile"] = tokens["outfile"]
     return output
 
 

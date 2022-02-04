@@ -4,13 +4,15 @@ from engine.utils import base62uuid
 
 # replace column info with this later.
 class ColRef:
-    def __init__(self, k9name, type, cobj, cnt, table):
+    def __init__(self, k9name, _ty, cobj, cnt, table, name, id):
         self.k9name = k9name
-        self.type = type
+        self.type = _ty
         self.cobj = cobj
         self.cnt = cnt
         self.table = table
-        self.__arr__ = (k9name, type, cobj, cnt, table)
+        self.name = name
+        self.id = id
+        self.__arr__ = (k9name, _ty, cobj, cnt, table, name, id)
         
     def __getitem__(self, key):
         return self.__arr__[key]
@@ -28,6 +30,7 @@ class TableInfo:
         self.columns = []
         self.cxt = cxt
         self.views = set()
+        self.rec = None 
         for c in cols:
             self.add_col(c)
 
@@ -48,7 +51,7 @@ class TableInfo:
         #     root.cnt += 1
 
         # column: (k9name, type, original col_object, dup_count)
-        col_object =  ColRef(k9name, (list(c['type'].keys()))[0], c, 1, self)
+        col_object =  ColRef(k9name, (list(c['type'].keys()))[0], c, 1, self,c['name'], len(self.columns))
 
         self.cxt.k9cols_byname[k9name] = col_object
         self.columns_byname[c['name']] = col_object
@@ -62,7 +65,11 @@ class TableInfo:
         return len(self.columns)
 
     def get_k9colname(self, col_name):
-        return self.columns_byname[col_name].k9name
+        col = self.columns_byname[col_name]
+        if type(self.rec) is list:
+            self.rec.append(col)
+        return col.k9name
+        
     def add_alias(self, alias):
         # TODO: Exception when alias already defined.
         # TODO: Scoping of alias should be constrainted in the query.
@@ -158,5 +165,5 @@ class ast_node:
 def include(objs):
     import inspect
     for _, cls in inspect.getmembers(objs):
-        if inspect.isclass(cls) and issubclass(cls, ast_node):
+        if inspect.isclass(cls) and issubclass(cls, ast_node) and not cls.name.startswith('_'):
             ast_node.types[cls.name] = cls

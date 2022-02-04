@@ -3,6 +3,13 @@ import aquery_parser as parser
 import engine
 import subprocess
 
+import sys
+if sys.platform != 'win32':
+    import readline
+    
+# else:
+#     import pyreadline3
+
 test_parser = True
 
 # code to test parser
@@ -37,8 +44,8 @@ while test_parser:
             print(stmts)
             continue
         trimed = ws.sub(' ', q.lower()).split(' ') 
-        if trimed[0] == 'file':
-            fn = 'q.sql' if len(trimed) <= 1 or len(trimed[1]) == 0 \
+        if trimed[0].startswith('f'):
+            fn = 'stock.a' if len(trimed) <= 1 or len(trimed[1]) == 0 \
                             else trimed[1]
                 
             with open(fn, 'r') as file:
@@ -47,6 +54,6 @@ while test_parser:
             continue
         stmts = parser.parse(q)
         print(stmts)
-    except ValueError as e:
+    except (ValueError) as e:
         print(type(e), e)
 

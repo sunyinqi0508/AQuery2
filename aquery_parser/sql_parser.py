@@ -29,7 +29,7 @@ def common_parser():
         ansi_ident | mysql_backtick_ident | simple_ident, separator=".", combine=True,
     )).set_parser_name("identifier")
 
-    return parser(ansi_string, combined_ident)
+    return parser(ansi_string | mysql_doublequote_string, combined_ident)
 
 
 def mysql_parser():
@@ -436,6 +436,19 @@ def parser(literal_string, ident, sqlserver=False):
             & Optional(assign("limit", expr))
         )
 
+        outfile = Optional( 
+            (
+                INTO
+                + keyword("outfile").suppress()
+                + literal_string ("loc") 
+                + Optional (
+                    keyword("fields")
+                    + keyword("terminated") 
+                    + keyword("by") 
+                    + literal_string ("term")
+                ) 
+            )("outfile")
+        )
         ordered_sql = (
             (
                 (unordered_sql | (LB + query + RB))
@@ -448,6 +461,7 @@ def parser(literal_string, ident, sqlserver=False):
             )("union")
             + Optional(ORDER_BY + delimited_list(Group(sort_column))("orderby"))
             + limit
+            + outfile
         ).set_parser_name("ordered sql") / to_union_call
 
         with_expr = delimited_list(Group(
@@ -605,9 +619,27 @@ def parser(literal_string, ident, sqlserver=False):
             + Optional(assign("where", expr))
         ) / to_json_call
 
+        load = (
+            keyword("load")("op") 
+            + keyword("data").suppress() 
+            + keyword("infile")("loc")  
+            + literal_string ("file")
+            + INTO
+            + keyword("table").suppress()
+            + var_name ("table")
+            + Optional(
+                  keyword("fields").suppress()
+                  + keyword("terminated").suppress()
+                  + keyword("by").suppress() 
+                  + literal_string ("term")
+            )
+        ) ("load")
+
+
+
         sql_stmts = delimited_list( (
             query
-            | (insert | update | delete)
+            | (insert | update | delete | load)
             | (create_table | create_view | create_cache | create_index)
             | (drop_table | drop_view | drop_index)
         )("stmts"), ";")
@@ -617,6 +649,10 @@ def parser(literal_string, ident, sqlserver=False):
             | udf
         ) ("stmts")
         
-        stmts = ZeroOrMore(sql_stmts|other_stmt)
+        stmts = ZeroOrMore(
+            sql_stmts
+            |other_stmt
+            | keyword(";").suppress() # empty stmt
+        )
         
         return stmts.finalize()

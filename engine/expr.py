@@ -6,10 +6,12 @@ class expr(ast_node):
     builtin_func_maps = {
         'max': 'max',
         'min': 'min', 
-        'avg':'avg',
-        'sum':'sum',
-        'mins': 'mins',
-        'maxs': 'maxs'
+        'avg': 'avg',
+        'sum': 'sum',
+        'mins': ['mins', 'minsw'],
+        'maxs': ['maxs', 'maxsw'],
+        'avgs': ['avgs', 'avgsw'],
+        'sums': ['sums', 'sumsw'],
     }
     binary_ops = {
         'sub':'-', 
@@ -21,6 +23,10 @@ class expr(ast_node):
         'or':'|',
         'gt':'>',
         'lt':'<',
+    }
+    compound_ops = {
+        'ge' : [2, lambda x: f'~({x[0]}<{x[1]})'],
+        'le' : [2, lambda x: f'~({x[0]}>{x[1]})'],
     }
     unary_ops = {
         'neg' : '-',
@@ -45,19 +51,32 @@ class expr(ast_node):
         if type(node) is dict:
             for key, val in node.items():
                 if key in self.func_maps:
-                    self.k9expr += f"{self.func_maps[key]}(" 
                     # if type(val) in [dict, str]:
-                    self.k9expr += expr(self, val).k9expr
-                    self.k9expr += ')'
+                    if type(val) is list and len(val) > 1:
+                        k9func = self.func_maps[key]
+                        k9func = k9func[len(val) - 1] if type(k9func) is list else k9func
+                        self.k9expr += f"{k9func}[" 
+                        for i, p in enumerate(val):
+                            self.k9expr += expr(self, p).k9expr + (';'if i<len(val)-1 else '')
+                    else:
+                        self.k9expr += f"{self.func_maps[key]}[" 
+                        self.k9expr += expr(self, val).k9expr
+                    self.k9expr += ']'
                 elif key in self.binary_ops:
                     l = expr(self, val[0]).k9expr
                     r = expr(self, val[1]).k9expr
                     self.k9expr += f'({l}{self.binary_ops[key]}{r})'
-                    
+                elif key in self.compound_ops:
+                    x = []
+                    if type(val) is list:
+                        for v in val:
+                            x.append(expr(self, v).k9expr)
+                    self.k9expr = self.compound_ops[key][1](x)
                 elif key in self.unary_ops:
                     self.k9expr += f'({expr(self, val).k9expr}{self.unary_ops[key]})'
                 else:
                     print(f'Undefined expr: {key}{val}')
+                    
         elif type(node) is str:
             p = self.parent
             while type(p) is expr and not p.isvector:

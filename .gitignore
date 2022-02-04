@@ -18,3 +18,6 @@ out.k
 k
 *.so
 *.pdf
+test*.c*
+*.csv
+*.out

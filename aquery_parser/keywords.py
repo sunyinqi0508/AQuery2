@@ -72,6 +72,7 @@ REFERENCES = keyword("references").suppress()
 RECURSIVE = keyword("recursive").suppress()
 VALUES = keyword("values").suppress()
 WINDOW = keyword("window")
+INTO = keyword("into").suppress()
 
 PRIMARY_KEY = Group(PRIMARY + KEY).set_parser_name("primary_key")
 FOREIGN_KEY = Group(FOREIGN + KEY).set_parser_name("foreign_key")
@@ -226,6 +227,7 @@ RESERVED = MatchFirst([
     WINDOW,
     WITH,
     WITHIN,
+    INTO,
 ])
 L_INLINE = Literal("<k>").suppress()
 R_INLINE = Literal("</k>").suppress()
