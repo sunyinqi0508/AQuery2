@@ -21,3 +21,7 @@ k
 test*.c*
 *.csv
 *.out
+*.asm
+!mmw.so
+*.k
+!header.k

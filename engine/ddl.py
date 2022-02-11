@@ -37,15 +37,18 @@ class load(ast_node):
     name="load"
     def produce(self, node):
         node = node[self.name]
-        tablename = 'l'+base62uuid(7)
-        keys = 'k'+base62uuid(7)
-        self.emit(f"{tablename}:`csv ? 1:\"{node['file']['literal']}\"")
-        self.emit(f"{keys}:!{tablename}")
         table:TableInfo = self.context.tables_byname[node['table']]
-        
+        n_keys = len(table.columns)
+        keys = ''
+        for _ in n_keys:
+            keys+='`tk'+base62uuid(6)
+        tablename = 'l'+base62uuid(7)        
+
+        self.emit(f"{tablename}:[{keys}!+(`csv ? 1:\"{node['file']['literal']}\")][{keys}]")
+
         for i, c in enumerate(table.columns):
             c:ColRef
-            self.emit(f'{c.k9name}:{tablename}[({keys})[{i}]]')
+            self.emit(f'{c.k9name}:{tablename}[{i}]')
             
 class outfile(ast_node):
     name="_outfile"

@@ -5,6 +5,8 @@ from engine.expr import expr
 from engine.scan import filter
 from engine.utils import base62uuid, enlist, base62alp
 from engine.ddl import outfile
+import copy
+
 class projection(ast_node):
     name='select'
     def __init__(self, parent:ast_node, node, context:Context = None, outname = None, disp = True):
@@ -62,6 +64,8 @@ class projection(ast_node):
 
         if 'groupby' in node:
             self.group_node = groupby(self, node['groupby'])
+            self.datasource = copy(self.datasource) # shallow copy
+            self.datasource.groupinfo = self.group_node
         else:
             self.group_node = None
             

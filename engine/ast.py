@@ -4,7 +4,7 @@ from engine.utils import base62uuid
 
 # replace column info with this later.
 class ColRef:
-    def __init__(self, k9name, _ty, cobj, cnt, table, name, id):
+    def __init__(self, k9name, _ty, cobj, cnt, table, name, id, order = None, compound = False):
         self.k9name = k9name
         self.type = _ty
         self.cobj = cobj
@@ -12,6 +12,9 @@ class ColRef:
         self.table = table
         self.name = name
         self.id = id
+        self.order = order # True -> asc, False -> dsc; None -> unordered
+        self.compound = compound # compound field (list as a field) 
+        self.views = []
         self.__arr__ = (k9name, _ty, cobj, cnt, table, name, id)
         
     def __getitem__(self, key):
@@ -31,6 +34,7 @@ class TableInfo:
         self.cxt = cxt
         self.views = set()
         self.rec = None 
+        self.groupinfo = None
         for c in cols:
             self.add_col(c)
 
@@ -44,13 +48,6 @@ class TableInfo:
         if type(c) is ColRef:
             c = c.cobj
         k9name = 'c' + base62uuid(7)
-        # k9name = self.table_name + c['name']
-        # if k9name in self.cxt.k9cols_byname: # duplicate names?
-        #     root = self.cxt.k9cols_byname[k9name] 
-        #     k9name = k9name + root.cnt
-        #     root.cnt += 1
-
-        # column: (k9name, type, original col_object, dup_count)
         col_object =  ColRef(k9name, (list(c['type'].keys()))[0], c, 1, self,c['name'], len(self.columns))
 
         self.cxt.k9cols_byname[k9name] = col_object

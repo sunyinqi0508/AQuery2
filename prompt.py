@@ -7,9 +7,6 @@ import sys
 if sys.platform != 'win32':
     import readline
     
-# else:
-#     import pyreadline3
-
 test_parser = True
 
 # code to test parser

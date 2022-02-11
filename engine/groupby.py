@@ -12,7 +12,7 @@ class groupby(ast_node):
         if type(node) is not list:
             node = [node]
         g_contents = '('
-        
+        first_col = ''
         for i, g in enumerate(node):
             v = g['value']
             e = expr(self, v).k9expr
@@ -21,7 +21,8 @@ class groupby(ast_node):
                 tmpcol = 't' + base62uuid(7)
                 self.emit(f'{tmpcol}:{e}')
                 e = tmpcol
-
+            if i == 0:
+                first_col = e
             g_contents += e + (';'if i < len(node)-1 else '')
             
         self.emit(f'{self.group}:'+g_contents+')')
@@ -29,8 +30,8 @@ class groupby(ast_node):
         if len(node) <= 1:
             self.emit(f'{self.group}:={self.group}')
         else:
-            self.emit(f'{self.group}:groupby[{self.group}[0];+{self.group}]')
-    
+            self.emit(f'{self.group}:groupby[+({self.group},(,!(#({first_col}))))]')
+        
     def consume(self, _):
         self.referenced = self.datasource.rec
         self.datasource.rec = None
