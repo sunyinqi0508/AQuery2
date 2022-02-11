@@ -26,13 +26,30 @@ class groupby(ast_node):
             g_contents += e + (';'if i < len(node)-1 else '')
             
         self.emit(f'{self.group}:'+g_contents+')')
-        
-        if len(node) <= 1:
+        self.n_grps = len(node)
+        if self.n_grps <= 1:
             self.emit(f'{self.group}:={self.group}')
         else:
-            self.emit(f'{self.group}:groupby[+({self.group},(,!(#({first_col}))))]')
+            self.emit(f'{self.group}:groupby[({self.group},(,!(#({first_col}))))]')
         
     def consume(self, _):
         self.referenced = self.datasource.rec
         self.datasource.rec = None
         return super().consume(_)
+
+    def finalize(self, ret, out):
+        self.groupby_function = 'fgrp'+base62uuid(4)
+        grp = self.group
+        if self.n_grps <= 1:
+            k9fn = "{[range] start:*range;"+ ret + "}"
+            self.emit(f'{out}:(({k9fn}\'{grp})[!{grp}])')
+            self.parent.inv = False
+        else:
+            k9fn = "{[ids;grps;ll;dim;x] " + \
+                    "start:$[x=ll;ll;grps[x+1][dim-1]];" + \
+                    "end: grps[x][dim-1];" + \
+                    "range:(end-start)#(((start-ll))#ids);" + \
+                    ret + '}'
+            self.emit(f'{self.groupby_function}:{k9fn}')
+            self.emit(f'{out}:+({self.groupby_function}' + \
+                f'[{grp}[1];{grp}[0];(#{grp}[0])-1;#({grp}[0][0])]\'!((#({grp}[0]))-1))')

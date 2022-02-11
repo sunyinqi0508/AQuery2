@@ -6,7 +6,10 @@ import subprocess
 import sys
 if sys.platform != 'win32':
     import readline
-    
+    basecmd = ['bash', '-c', 'k']
+else:
+    basecmd = ['bash.exe', '-c', './k']
+
 test_parser = True
 
 # code to test parser
@@ -18,11 +21,14 @@ res = parser.parse(q)
 
 print(res)
 
+keep = False
+cxt = None
 while test_parser:
     try:
         q = input()
         if q == 'exec':
-            cxt = engine.initialize()
+            if not keep or cxt is None:
+                cxt = engine.initialize()
             stmts_stmts = stmts['stmts']
             if type(stmts_stmts) is list:
                 for s in stmts_stmts:
@@ -32,13 +38,16 @@ while test_parser:
             print(cxt.k9code)
             with open('out.k', 'wb') as outfile:
                 outfile.write((cxt.k9code+'\n\\\\').encode('utf-8'))
-            subprocess.call(['bash.exe', '-c',"./k out.k"])
+            subprocess.call(basecmd[:-1] + [basecmd[-1] + ' out.k'])
             continue
         elif q == 'k':
-            subprocess.call(['bash.exe', '-c',"./k"])
+            subprocess.call(basecmd)
             continue
         elif q == 'print':
             print(stmts)
+            continue
+        elif q == 'keep':
+            keep = not keep
             continue
         trimed = ws.sub(' ', q.lower()).split(' ') 
         if trimed[0].startswith('f'):

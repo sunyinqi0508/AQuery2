@@ -12,6 +12,7 @@ class projection(ast_node):
     def __init__(self, parent:ast_node, node, context:Context = None, outname = None, disp = True):
         self.disp = disp
         self.outname = outname
+        self.group_node = None
         ast_node.__init__(self, parent, node, context)
     def init(self, _):
         if self.outname is None:
@@ -64,36 +65,19 @@ class projection(ast_node):
 
         if 'groupby' in node:
             self.group_node = groupby(self, node['groupby'])
-            self.datasource = copy(self.datasource) # shallow copy
+            self.datasource = copy.copy(self.datasource) # shallow copy
             self.datasource.groupinfo = self.group_node
         else:
             self.group_node = None
             
     def consume(self, node):
+        self.inv = True
         disp_varname = 'd'+base62uuid(7)
-        pcolrefs = []
-        if type(self.group_node) is groupby:
-            grp_table = self.group_node.group
-            grp_refs = self.group_node.referenced
-            for i, proj in enumerate(self.projections):
-                self.datasource.rec = []
-                cname = ''
-                if type(proj) is dict:
-                    if 'value' in proj:
-                        e = proj['value']
-                        if type(e) is str:
-                            cname = self.datasource.parse_tablenames(proj['value'])
-                        elif type(e) is dict:
-                            cname = expr(self, e).k9expr
-                            cname = ''.join([a if a in base62alp else '' for a in cname])
-                pcolrefs.append(self.datasource.rec)
-                self.datasource.rec = None
-            keys = 'k'+base62uuid(7)
-            self.emit(f'{keys}:!{grp_table}')
-            fn = 'fn' + base62uuid(6)
-            # self.emit
-        
-        self.emit_no_ln(f'{disp_varname}:(')
+        has_groupby = False
+        if self.group_node is not None:
+            # There is group by;
+            has_groupby = True
+        k9expr = f'(' 
         flatten = False
         cols = []
         self.out_table = TableInfo('out_'+base62uuid(4), [], self.context)
@@ -102,27 +86,40 @@ class projection(ast_node):
             
         for i, proj in enumerate(self.projections):
             cname = ''
+            compound = False
+            self.datasource.rec = []
             if type(proj) is dict:
                 if 'value' in proj:
                     e = proj['value']
                     if type(e) is str:
                         cname = self.datasource.parse_tablenames(proj['value'])
-                        self.emit_no_ln(f"{cname}")
+                        k9expr += (f"{cname}")
                     elif type(e) is dict:
-                        cname = expr(self, e).k9expr
-                        self.emit_no_ln(f"{cname}")
-                        cname = ''.join([a if a in base62alp else '' for a in cname])
-                    self.emit_no_ln(';'if i < len(self.projections)-1 else '')
-            cols.append(ColRef(f'(+{disp_varname})[{i}]', 'generic', self.out_table, 0, None, cname, i))
-        self.emit(')')
+                        p_expr = expr(self, e)
+                        cname = p_expr.k9expr
+                        compound = True
+                        k9expr += f"{cname}"
+                    cname = ''.join([a if a in base62alp else '' for a in cname])
+                    k9expr += ';'if i < len(self.projections)-1 else ''
+
+            compound = compound and has_groupby and self.datasource.rec not in self.group_node.referenced
+            
+            cols.append(ColRef(f'(+{disp_varname})[{i}]', 'generic', self.out_table, 0, None, cname, i, compound=compound))
+        k9expr += ')'
+        if has_groupby:
+            self.group_node.finalize(k9expr, disp_varname)
+        else:
+            self.emit(f'{disp_varname}:{k9expr}')
+        
+        self.datasource.group_node = None
         if flatten:
             self.emit_no_ln(f'{disp_varname}:' if flatten else '')
             
         if flatten or self.disp:
             if len(self.projections) > 1:
-                self.emit(f"+{disp_varname}")
+                self.emit(f"{'+' if self.inv else ''}{disp_varname}")
             else:
-                self.emit(f'+,(,{disp_varname})')
+                self.emit(f'$[(#{disp_varname})>1;+,({disp_varname});+,(,{disp_varname})]')
             if flatten:
                 self.emit(f'{disp_varname}')
         if flatten:

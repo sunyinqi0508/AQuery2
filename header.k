@@ -50,11 +50,15 @@ groupby:{[L]
 lststr:{[L](+({[x;y] ($x,$y)}/L))[0]}
 delist:{[L] $[(@L)in(`LL`LC`LG`L);delist[(,/L)];L]}
 cntlist:{[L;i] $[(@L)in(`LL`LC`LG`L);cntlist[(,/L);i+1];i+1]}
+flatRO:{[x]x[0],/:x[1]}
+flatLO:{[x]x[0],\:x[1]}
+flatBOTH:{[x],/(x[0],/:\:x[1])}
+
 
 sumswkrl:{[L;w;x;y] ((x-L[y-w])+L[y])}
-sumsw:{[L;w] $[(#L)=0;L;(sumswkrl[L;w])\@[!#L;0;L[0]]]}
+sumsw:{[w;L] $[(#L)=0;L;(sumswkrl[L;w])\@[!#L;0;L[file 0]]]}
 avgswkrl:{[L;w;x;y] (x-(L[y-w]-L[y])%w)}
-avgsw:{[L;w] $[(#L)=0;L;(avgswkrl[L;w])\@[!#L;0;L[0]]]}
+avgsw:{[w;L] $[(#L)=0;L;(avgswkrl[L;w])\@[!#L;0;L[0]]]}
 
 / minsw:{[w;L] ({[L;w;x] min(L[$[x>w;(!w) + ((x-w)+1);!(x+1)]])}[L;w])'!#L}
 import`mmw

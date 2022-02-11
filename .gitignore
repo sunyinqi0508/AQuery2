@@ -20,6 +20,9 @@ k
 *.pdf
 test*.c*
 *.csv
+!test.csv
+!moving_avg.csv
+!nyctx100.csv
 *.out
 *.asm
 !mmw.so

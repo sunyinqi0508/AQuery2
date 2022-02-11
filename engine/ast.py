@@ -1,5 +1,7 @@
 from typing import List
 
+from pyparsing import col
+
 from engine.utils import base62uuid
 
 # replace column info with this later.
@@ -22,6 +24,9 @@ class ColRef:
 
     def __setitem__(self, key, value):
         self.__arr__[key] = value
+
+    def __str__(self):
+        return self.k9name
 
 class TableInfo:
     
@@ -61,11 +66,13 @@ class TableInfo:
     def n_cols(self):
         return len(self.columns)
 
-    def get_k9colname(self, col_name):
+    def get_col(self, col_name):
         col = self.columns_byname[col_name]
         if type(self.rec) is list:
             self.rec.append(col)
-        return col.k9name
+        return col
+    def get_k9colname(self, col_name):
+        return self.get_col(col_name).k9name
         
     def add_alias(self, alias):
         # TODO: Exception when alias already defined.
@@ -75,14 +82,20 @@ class TableInfo:
         
     def parse_tablenames(self, colExpr):
         parsedColExpr = colExpr.split('.')
+        ret = None
         if len(parsedColExpr) <= 1:
-            return self.get_k9colname(colExpr)
+            ret = self.get_col(colExpr)
         else: 
             datasource = self.cxt.tables_byname[parsedColExpr[0]]
             if datasource is None:
                 raise ValueError(f'Table name/alias not defined{parsedColExpr[0]}')
             else:
-                return datasource.get_k9colname(parsedColExpr[1])
+                ret = datasource.get_col(parsedColExpr[1])
+        if self.groupinfo is not None and ret:
+            ret = f"{ret.k9name}[{'start' if ret in self.groupinfo.referenced else 'range'}]"
+        else:
+            ret = ret.k9name
+        return ret
 
 class View:
     def __init__(self, context, table = None, tmp = True):

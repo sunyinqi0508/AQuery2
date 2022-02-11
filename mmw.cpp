@@ -1,17 +1,12 @@
-
-#include <cstring>
-#include <cstdlib>
 #include <cstdint>
 #include <deque>
 
-using std::size_t;
 using std::uint32_t;
 
 template<class T, bool minmax>
 void running(void *array, uint32_t len, uint32_t w){
-	using std::deque;
 	T* arr = static_cast<T*> (array);
-	deque<std::pair<T, uint32_t>> cache;
+	std::deque<std::pair<T, uint32_t>> cache;
 	for(int i = 0; i < len; ++i){
 		if(!cache.empty() && cache.front().second == i-w) cache.pop_front();
 		if constexpr(minmax)

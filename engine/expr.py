@@ -32,6 +32,9 @@ class expr(ast_node):
         'neg' : '-',
         'not' : '~'
     }
+    coumpound_generating_ops = ['mod', 'mins', 'maxs', 'sums'] + \
+       list( binary_ops.keys()) + list(compound_ops.keys()) + list(unary_ops.keys() )
+
     def __init__(self, parent, node):
         ast_node.__init__(self, parent, node, None)
 
@@ -39,6 +42,7 @@ class expr(ast_node):
         from engine.projection import projection
         parent = self.parent
         self.isvector = parent.isvector if type(parent) is expr else False
+        self.is_compound = parent.is_compound if type(parent) is expr else False
         if type(parent) in [projection, expr]:
             self.datasource = parent.datasource
         else:
@@ -59,7 +63,9 @@ class expr(ast_node):
                         for i, p in enumerate(val):
                             self.k9expr += expr(self, p).k9expr + (';'if i<len(val)-1 else '')
                     else:
-                        self.k9expr += f"{self.func_maps[key]}[" 
+                        funcname = self.func_maps[key]
+                        funcname = funcname[0] if type(funcname) is list else funcname
+                        self.k9expr += f"{funcname}[" 
                         self.k9expr += expr(self, val).k9expr
                     self.k9expr += ']'
                 elif key in self.binary_ops:
@@ -76,7 +82,14 @@ class expr(ast_node):
                     self.k9expr += f'({expr(self, val).k9expr}{self.unary_ops[key]})'
                 else:
                     print(f'Undefined expr: {key}{val}')
-                    
+
+                if key in self.coumpound_generating_ops and not self.is_compound:
+                    self.is_compound = True
+                    p = self.parent
+                    while type(p) is expr and not p.is_compound:
+                        p.is_compound = True
+                        p = p.parent
+
         elif type(node) is str:
             p = self.parent
             while type(p) is expr and not p.isvector:
