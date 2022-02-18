@@ -412,7 +412,7 @@ def parser(literal_string, ident, sqlserver=False):
             + RB,
         )
 
-        assumption = Group((ASC|DESC) ("ord") + var_name("attrib"))
+        assumption = Group((ASC|DESC) ("sort") + var_name("value"))
         assumptions = (ASSUMING + Group(delimited_list(assumption))("assumptions"))
 
         table_source << Group(

@@ -1,7 +1,9 @@
+from attr import has
 from engine.ast import ColRef, TableInfo, ast_node, Context, include
 from engine.groupby import groupby
 from engine.join import join
 from engine.expr import expr
+from engine.orderby import orderby
 from engine.scan import filter
 from engine.utils import base62uuid, enlist, base62alp
 from engine.ddl import outfile
@@ -44,10 +46,7 @@ class projection(ast_node):
                         self.datasource = self.context.tables_byname[value]
                 if 'assumptions' in from_clause:
                     for assumption in enlist(from_clause['assumptions']):
-                        ord = assumption['ord'] == 'asc'
-                        attrib = assumption['attrib']
-                        ord = '^' if ord else '|^'
-                    # TODO: generate view of table by order
+                        orderby(self, assumption)
 
             elif type(from_clause) is str:
                 self.datasource = self.context.tables_byname[from_clause]
@@ -92,8 +91,8 @@ class projection(ast_node):
                 if 'value' in proj:
                     e = proj['value']
                     if type(e) is str:
-                        cname = self.datasource.parse_tablenames(proj['value'])
-                        k9expr += (f"{cname}")
+                        cname = e # TODO: deal w/ alias
+                        k9expr += (f"{self.datasource.parse_tablenames(proj['value'])}")
                     elif type(e) is dict:
                         p_expr = expr(self, e)
                         cname = p_expr.k9expr
@@ -104,27 +103,41 @@ class projection(ast_node):
 
             compound = compound and has_groupby and self.datasource.rec not in self.group_node.referenced
             
-            cols.append(ColRef(f'(+{disp_varname})[{i}]', 'generic', self.out_table, 0, None, cname, i, compound=compound))
+            cols.append(ColRef(f'{disp_varname}[{i}]', 'generic', self.out_table, 0, None, cname, i, compound=compound))
+        self.out_table.add_cols(cols, False)
+        
         k9expr += ')'
         if has_groupby:
             self.group_node.finalize(k9expr, disp_varname)
         else:
             self.emit(f'{disp_varname}:{k9expr}')
-        
         self.datasource.group_node = None
-        if flatten:
-            self.emit_no_ln(f'{disp_varname}:' if flatten else '')
+
+        has_orderby = 'orderby' in node
+
+        if has_orderby:
+            self.datasource = self.out_table
+            self.context.datasource = self.out_table # discard current ds
+            orderby_node = orderby(self, node['orderby'])
+            self.context.datasource.materialize_orderbys()
+            self.emit_no_ln(f"{f'{disp_varname}:+' if flatten else ''}(")
             
-        if flatten or self.disp:
+        if self.disp or has_orderby:
             if len(self.projections) > 1:
-                self.emit(f"{'+' if self.inv else ''}{disp_varname}")
+                self.emit_no_ln(f"{'+' if self.inv else ''}{disp_varname}")
             else:
-                self.emit(f'$[(#{disp_varname})>1;+,({disp_varname});+,(,{disp_varname})]')
+                self.emit_no_ln(f'$[(#{disp_varname})>1;+,({disp_varname});+,(,{disp_varname})]')
             if flatten:
-                self.emit(f'{disp_varname}')
+                self.emit_no_ln(f'{disp_varname}')
+        if has_orderby:
+            self.emit(f')[{orderby_node.view}]')
+        else:
+            self.context.emit_flush()
         if flatten:
-            self.out_table.columns = cols
+            if len(self.projections) > 1 and not self.inv:
+                self.emit(f"{disp_varname}:+{disp_varname}")
             outfile(self, node['outfile'])
+
         if self.datasource_changed:
             self.context.datasource = self.prev_datasource
 

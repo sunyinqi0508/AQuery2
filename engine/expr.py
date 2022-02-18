@@ -14,6 +14,7 @@ class expr(ast_node):
         'avgs': ['avgs', 'avgsw'],
         'sums': ['sums', 'sumsw'],
     }
+    
     binary_ops = {
         'sub':'-',  
         'add':'+', 
@@ -24,18 +25,23 @@ class expr(ast_node):
         'gt':'>',
         'lt':'<',
     }
+
     compound_ops = {
         'ge' : [2, lambda x: f'~({x[0]}<{x[1]})'],
         'le' : [2, lambda x: f'~({x[0]}>{x[1]})'],
+        'count' : [1, lambda x: f'#({x[0]})']
     }
+
     unary_ops = {
         'neg' : '-',
         'not' : '~'
     }
+    
     coumpound_generating_ops = ['mod', 'mins', 'maxs', 'sums'] + \
        list( binary_ops.keys()) + list(compound_ops.keys()) + list(unary_ops.keys() )
 
-    def __init__(self, parent, node):
+    def __init__(self, parent, node, materialize_cols = True):
+        self.materialize_cols = materialize_cols
         ast_node.__init__(self, parent, node, None)
 
     def init(self, _):
@@ -95,7 +101,7 @@ class expr(ast_node):
             while type(p) is expr and not p.isvector:
                 p.isvector = True
                 p = p.parent
-            self.k9expr = self.datasource.parse_tablenames(node)
+            self.k9expr = self.datasource.parse_tablenames(node, self.materialize_cols)
         elif type(node) is bool:
             self.k9expr = '1' if node else '0'
         else:

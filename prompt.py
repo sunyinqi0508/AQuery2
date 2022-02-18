@@ -6,9 +6,9 @@ import subprocess
 import sys
 if sys.platform != 'win32':
     import readline
-    basecmd = ['bash', '-c', 'k']
+    basecmd = ['bash', '-c', 'rlwrap k']
 else:
-    basecmd = ['bash.exe', '-c', './k']
+    basecmd = ['bash.exe', '-c', 'rlwrap ./k']
 
 test_parser = True
 

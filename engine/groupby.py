@@ -46,10 +46,11 @@ class groupby(ast_node):
             self.parent.inv = False
         else:
             k9fn = "{[ids;grps;ll;dim;x] " + \
-                    "start:$[x=ll;ll;grps[x+1][dim-1]];" + \
-                    "end: grps[x][dim-1];" + \
-                    "range:(end-start)#(((start-ll))#ids);" + \
+                    "start:grps[x][dim];" + \
+                    "end:$[x=0;ll;grps[x-1][dim]];" + \
+                    "range:(end-start)#((start-ll)#ids);" + \
+                    "start:ids[start];" + \
                     ret + '}'
             self.emit(f'{self.groupby_function}:{k9fn}')
             self.emit(f'{out}:+({self.groupby_function}' + \
-                f'[{grp}[1];{grp}[0];(#{grp}[0])-1;#({grp}[0][0])]\'!((#({grp}[0]))-1))')
+                f'[{grp}[1];{grp}[0];(#{grp}[0])+1;(#({grp}[0][0]))-1]\'!(#({grp}[0])))')

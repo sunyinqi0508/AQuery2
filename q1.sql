@@ -7,3 +7,4 @@ FIELDS TERMINATED BY ","
 SELECT sum(c), b, d
 FROM test
 group by a,b,d
+order by d DESC, b ASC
