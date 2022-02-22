@@ -29,3 +29,7 @@ test*.c*
 *.k
 !header.k
 !join.k
+**/.vs
+**/x64
+*.user
+*.filters

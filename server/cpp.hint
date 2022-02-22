@@ -1,0 +1,6 @@
+// Hint files help the Visual Studio IDE interpret Visual C++ identifiers
+// such as names of functions and macros.
+// For more information see https://go.microsoft.com/fwlink/?linkid=865984
+#define Ops(o) template<typename T> vector_type<typename types::Coercion<_Ty, T>::type> operator##o(const vector_type<T>& r) { [[likely]] if (r.size == size) { return add(r); } else if (r.size == 1 || size == 1) { const bool lr = size == 1; const uint32_t& _size = lr ? r.size : size; const auto& _container = lr ? r.container : container; const auto& scalar = *(lr ? container : r.container); vector_type<typename types::Coercion<_Ty, T>::type> ret(_size); for (int i = 0; i < _size; ++i) ret[i] = _container[i] o scalar; return ret; } }
+#define Op(o, x) template<typename T> vector_type<typename types::Coercion<_Ty, T>::type> inline x(const vector_type<T>& r) { vector_type<typename types::Coercion<_Ty, T>::type> ret(size); for (int i = 0; i < size; ++i) ret[i] = container[i] o r[i]; return ret; }
+#define _Make_Ops(M) M(+, add) M(-, minus) M(*, multi) M(/, div) M(%, mod) M(&, and) M(|, or) M(^, xor) 
