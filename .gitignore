@@ -34,4 +34,7 @@ test*.c*
 *.user
 *.filters
 *.tmp
-server.bin
+*.bin
+*.shm
+server/packages/**
+*.ipynb
