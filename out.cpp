@@ -1,0 +1,46 @@
+#include "./server/libaquery.h"
+extern "C" int dllmain(Context* cxt){ 
+auto stocks = new TableInfo("stocks", 2);
+cxt->tables.insert({"stocks", stocks});
+stocks->colrefs[0].ty = types::AINT;
+stocks->colrefs[1].ty = types::AINT;
+auto& stocks_timestamp = *(ColRef<int> *)(&stocks->colrefs[0]);
+auto& stocks_price = *(ColRef<int> *)(&stocks->colrefs[1]);
+stocks_timestamp.emplace_back(1);
+stocks_price.emplace_back(15);
+stocks_timestamp.emplace_back(2);
+stocks_price.emplace_back(19);
+stocks_timestamp.emplace_back(3);
+stocks_price.emplace_back(16);
+stocks_timestamp.emplace_back(4);
+stocks_price.emplace_back(17);
+stocks_timestamp.emplace_back(5);
+stocks_price.emplace_back(15);
+stocks_timestamp.emplace_back(6);
+stocks_price.emplace_back(13);
+stocks_timestamp.emplace_back(7);
+stocks_price.emplace_back(5);
+stocks_timestamp.emplace_back(8);
+stocks_price.emplace_back(8);
+stocks_timestamp.emplace_back(9);
+stocks_price.emplace_back(7);
+stocks_timestamp.emplace_back(10);
+stocks_price.emplace_back(13);
+stocks_timestamp.emplace_back(11);
+stocks_price.emplace_back(11);
+stocks_timestamp.emplace_back(12);
+stocks_price.emplace_back(14);
+stocks_timestamp.emplace_back(13);
+stocks_price.emplace_back(10);
+stocks_timestamp.emplace_back(14);
+stocks_price.emplace_back(5);
+stocks_timestamp.emplace_back(15);
+stocks_price.emplace_back(2);
+stocks_timestamp.emplace_back(16);
+stocks_price.emplace_back(5);
+auto d2PxTIVW = (max((stocks_price-min(stocks_timestamp))));
+print(d2PxTIVW);
+auto d2dVVnjL = (max((stocks_price-mins(stocks_price))));
+print(d2dVVnjL);
+return 0;
+}

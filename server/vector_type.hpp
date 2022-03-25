@@ -14,7 +14,8 @@
 #include <initializer_list>
 #include <vector>
 #include <stdarg.h>
-
+#include <limits>
+#include <deque>
 #include "types.h"
 
 #pragma pack(push, 1)
@@ -45,12 +46,12 @@ public:
 	}
 	constexpr vector_type(std::initializer_list<_Ty> _l) {
 		size = capacity = _l.size();
-		_Ty* container = this->container = (_Ty*)malloc(sizeof(_Ty) * _l.size());
+		_Ty* _container = this->container = (_Ty*)malloc(sizeof(_Ty) * _l.size());
 		for (const auto& l : _l) {
-			*(container++) = l;
+			*(_container++) = l;
 		}
 	}
-	constexpr vector_type() noexcept = default;
+	constexpr vector_type() noexcept {};
 	constexpr vector_type(vector_type<_Ty>& vt) noexcept {
 		_copy(vt);
 	}
@@ -67,7 +68,7 @@ public:
 	}
 	void emplace_back(_Ty _val) {
 		if (size >= capacity) { // geometric growth
-			capacity += 1 + capacity >> 1;
+			capacity += 1 + (capacity >> 1);
 			_Ty* n_container = (_Ty*)malloc(capacity * sizeof(_Ty));
 			memcpy(n_container, container, sizeof(_Ty) * size);
 			free(container);
@@ -216,5 +217,65 @@ public:
 	_Make_Ops(Ops)
 	_Make_Ops(Opseq)
 };
+
+
+template <>
+class vector_type<void> {
+public:
+	void* container;
+	uint32_t size, capacity;
+	typedef void* iterator_t;
+
+	vector_type(uint32_t size) : size(size), capacity(size) {
+		container = (void*)malloc(size);
+	}
+	template<typename _Ty>
+	constexpr vector_type(std::initializer_list<_Ty> _l) {
+		size = capacity = _l.size();
+		this->container = malloc(sizeof(_Ty) * _l.size());
+		_Ty* _container = (_Ty*)this->container;
+		for (const auto& l : _l) {
+			*(_container++) = l;
+		}
+	}
+	constexpr vector_type() : size(0), capacity(0), container(0) {};
+	void *get(uint32_t i, types::Type_t atype){
+		
+		return static_cast<void*>(static_cast<char*>(container) + (i * types::AType_sizes[atype]));
+	}
+};
 #pragma pack(pop)
+
+
+
+
+// TODO: Specializations for dt/str/none
+template<class T>
+types::GetLongType<T> sum(const vector_type<T> &v) {
+	types::GetLongType<T> ret = 0;
+	for (const auto& _v : v) 
+		ret += _v;
+	return ret;
+}
+template<class T>
+types::GetFPType<T> avg(const vector_type<T> &v) {
+	return static_cast<types::GetFPType<T>>(
+		sum<T>(v)/static_cast<long double>(v.size));
+}
+template <class T>
+T max(const vector_type<T>& v) {
+	T max_v = std::numeric_limits<T>::min();
+	for (const auto& _v : v)
+		max_v = max_v > _v ? max_v : _v;
+	return max_v;
+}
+template <class T>
+T min(const vector_type<T>& v) {
+	T min_v = std::numeric_limits<T>::max();
+	for (const auto& _v : v)
+		min_v = min_v < _v ? min_v : _v;
+	return min_v;
+}
+
+
 #endif

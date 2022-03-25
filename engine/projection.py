@@ -1,4 +1,3 @@
-from attr import has
 from engine.ast import ColRef, TableInfo, ast_node, Context, include
 from engine.groupby import groupby
 from engine.join import join
@@ -76,7 +75,7 @@ class projection(ast_node):
         if self.group_node is not None:
             # There is group by;
             has_groupby = True
-        k9expr = f'(' 
+        cexpr = f'(' 
         flatten = False
         cols = []
         self.out_table = TableInfo('out_'+base62uuid(4), [], self.context)
@@ -92,25 +91,25 @@ class projection(ast_node):
                     e = proj['value']
                     if type(e) is str:
                         cname = e # TODO: deal w/ alias
-                        k9expr += (f"{self.datasource.parse_tablenames(proj['value'])}")
+                        cexpr += (f"{self.datasource.parse_tablenames(proj['value'])}")
                     elif type(e) is dict:
                         p_expr = expr(self, e)
-                        cname = p_expr.k9expr
+                        cname = p_expr.cexpr
                         compound = True
-                        k9expr += f"{cname}"
+                        cexpr += f"{cname}"
                     cname = ''.join([a if a in base62alp else '' for a in cname])
-                    k9expr += ';'if i < len(self.projections)-1 else ''
+                    cexpr += ';'if i < len(self.projections)-1 else ''
 
             compound = compound and has_groupby and self.datasource.rec not in self.group_node.referenced
             
             cols.append(ColRef(f'{disp_varname}[{i}]', 'generic', self.out_table, 0, None, cname, i, compound=compound))
         self.out_table.add_cols(cols, False)
         
-        k9expr += ')'
+        cexpr += ')'
         if has_groupby:
-            self.group_node.finalize(k9expr, disp_varname)
+            self.group_node.finalize(cexpr, disp_varname)
         else:
-            self.emit(f'{disp_varname}:{k9expr}')
+            self.emit(f'auto {disp_varname} = {cexpr};')
         self.datasource.group_node = None
 
         has_orderby = 'orderby' in node
@@ -126,7 +125,7 @@ class projection(ast_node):
             if len(self.projections) > 1:
                 self.emit_no_ln(f"{'+' if self.inv else ''}{disp_varname}")
             else:
-                self.emit_no_ln(f'$[(#{disp_varname})>1;+,({disp_varname});+,(,{disp_varname})]')
+                self.emit_no_ln(f'print({disp_varname});')
             if flatten:
                 self.emit_no_ln(f'{disp_varname}')
         if has_orderby:

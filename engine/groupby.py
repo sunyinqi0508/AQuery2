@@ -15,7 +15,7 @@ class groupby(ast_node):
         first_col = ''
         for i, g in enumerate(node):
             v = g['value']
-            e = expr(self, v).k9expr
+            e = expr(self, v).cexpr
             # if v is compound expr, create tmp cols
             if type(v) is not str:
                 tmpcol = 't' + base62uuid(7)
@@ -41,16 +41,16 @@ class groupby(ast_node):
         self.groupby_function = 'fgrp'+base62uuid(4)
         grp = self.group
         if self.n_grps <= 1:
-            k9fn = "{[range] start:*range;"+ ret + "}"
-            self.emit(f'{out}:(({k9fn}\'{grp})[!{grp}])')
+            cfn = "{[range] start:*range;"+ ret + "}"
+            self.emit(f'{out}:(({cfn}\'{grp})[!{grp}])')
             self.parent.inv = False
         else:
-            k9fn = "{[ids;grps;ll;dim;x] " + \
+            cfn = "{[ids;grps;ll;dim;x] " + \
                     "start:grps[x][dim];" + \
                     "end:$[x=0;ll;grps[x-1][dim]];" + \
                     "range:(end-start)#((start-ll)#ids);" + \
                     "start:ids[start];" + \
                     ret + '}'
-            self.emit(f'{self.groupby_function}:{k9fn}')
+            self.emit(f'{self.groupby_function}:{cfn}')
             self.emit(f'{out}:+({self.groupby_function}' + \
                 f'[{grp}[1];{grp}[0];(#{grp}[0])+1;(#({grp}[0][0]))-1]\'!(#({grp}[0])))')

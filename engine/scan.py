@@ -27,12 +27,12 @@ class filter(ast_node):
             if type(self.value) is View: # cond filtered on tables.
                 self.emit(f'{self.value.name}:&{self.value.name}')
                 for o, c in zip(self.output.columns,self.value.table.columns):
-                    self.emit(f'{o.k9name}:{c.k9name}[{self.value.name}]')
+                    self.emit(f'{o.cname}:{c.cname}[{self.value.name}]')
             elif self.value is not None: # cond is scalar
                 tmpVar = 't'+base62uuid(7)
                 self.emit(f'{tmpVar}:{self.value}')
                 for o, c in zip(self.output.columns, self.datasource.columns):
-                    self.emit(f'{o.k9name}:$[{tmpVar};{c.k9name};()]')
+                    self.emit(f'{o.cname}:$[{tmpVar};{c.cname};()]')
                 
     def consume(self, node):
         # TODO: optimizations after converting expr to cnf
@@ -86,7 +86,7 @@ class filter(ast_node):
                     elif type(v) is View:
                         if len(v.table.columns) > 0:
                             all_rows = View(self.context, v.table)
-                            self.emit(f'{all_rows.name}:(#{v.table.columns[0].k9name})#1')
+                            self.emit(f'{all_rows.name}:(#{v.table.columns[0].cname})#1')
                             self.emit(f'{v.name}:{all_rows.name}-{v.name}')
                             self.value = v
                     else:
@@ -97,10 +97,10 @@ class filter(ast_node):
                     if e.isvector:
                         v = View(self.context, self.datasource)
                         v.construct()
-                        self.emit(f'{v.name}:{e.k9expr}')
+                        self.emit(f'{v.name}:{e.cexpr}')
                         self.value = v
                     else:
-                        self.value = e.k9expr
+                        self.value = e.cexpr
             self.__materialize__()        
 
         print(node)

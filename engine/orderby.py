@@ -1,7 +1,6 @@
 from engine.ast import ColRef, TableInfo, View, ast_node, Context
 from engine.utils import base62uuid, seps
 from engine.expr import expr
-import k
 
 class order_item:
     def __init__(self, name, node, order = True):
@@ -12,7 +11,7 @@ class order_item:
         
     def materialize(self):
         if not self.materialized:
-            self.name = expr(self.node, self.name, False).k9expr
+            self.name = expr(self.node, self.name, False).cexpr
             self.materialized = True
         return ('' if self.order else '-') + f'({self.name})'
         

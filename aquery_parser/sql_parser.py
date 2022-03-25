@@ -64,7 +64,7 @@ def parser(literal_string, ident, sqlserver=False):
 
         var_name = ~RESERVED + ident
         
-        inline_kblock = (L_INLINE + SkipTo(R_INLINE, include=True))("k9")
+        inline_kblock = (L_INLINE + SkipTo(R_INLINE, include=True))("c")
         # EXPRESSIONS
         expr = Forward()
         column_type, column_definition, column_def_references = get_column_type(

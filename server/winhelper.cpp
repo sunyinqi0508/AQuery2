@@ -16,3 +16,21 @@ int dlclose(void* handle)
 {
 	return FreeLibrary(static_cast<HMODULE>(handle));
 }
+
+SharedMemory::SharedMemory(const char* fname)
+{
+    this->hFileMap = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, 2, fname);
+    if (this->hFileMap)
+        this->pData = MapViewOfFile(this->hFileMap, FILE_MAP_ALL_ACCESS, 0, 0, 2);
+    else
+        this->pData = NULL;
+}
+
+void SharedMemory::FreeMemoryMap()
+{
+    if (this->hFileMap) 
+        if (this->pData)
+            UnmapViewOfFile(this->pData);
+        if (this->hFileMap)
+            CloseHandle(this->hFileMap);
+}

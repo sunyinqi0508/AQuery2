@@ -33,3 +33,5 @@ test*.c*
 **/x64
 *.user
 *.filters
+*.tmp
+server.bin

@@ -54,7 +54,7 @@ class expr(ast_node):
         else:
             self.datasource = self.context.datasource
         self.udf_map = parent.context.udf_map
-        self.k9expr = ''
+        self.cexpr = ''
         self.func_maps = {**self.udf_map, **self.builtin_func_maps}
 
     def produce(self, node):
@@ -63,29 +63,29 @@ class expr(ast_node):
                 if key in self.func_maps:
                     # if type(val) in [dict, str]:
                     if type(val) is list and len(val) > 1:
-                        k9func = self.func_maps[key]
-                        k9func = k9func[len(val) - 1] if type(k9func) is list else k9func
-                        self.k9expr += f"{k9func}[" 
+                        cfunc = self.func_maps[key]
+                        cfunc = cfunc[len(val) - 1] if type(cfunc) is list else cfunc
+                        self.cexpr += f"{cfunc}(" 
                         for i, p in enumerate(val):
-                            self.k9expr += expr(self, p).k9expr + (';'if i<len(val)-1 else '')
+                            self.cexpr += expr(self, p).cexpr + (';'if i<len(val)-1 else '')
                     else:
                         funcname = self.func_maps[key]
                         funcname = funcname[0] if type(funcname) is list else funcname
-                        self.k9expr += f"{funcname}[" 
-                        self.k9expr += expr(self, val).k9expr
-                    self.k9expr += ']'
+                        self.cexpr += f"{funcname}(" 
+                        self.cexpr += expr(self, val).cexpr
+                    self.cexpr += ')'
                 elif key in self.binary_ops:
-                    l = expr(self, val[0]).k9expr
-                    r = expr(self, val[1]).k9expr
-                    self.k9expr += f'({l}{self.binary_ops[key]}{r})'
+                    l = expr(self, val[0]).cexpr
+                    r = expr(self, val[1]).cexpr
+                    self.cexpr += f'({l}{self.binary_ops[key]}{r})'
                 elif key in self.compound_ops:
                     x = []
                     if type(val) is list:
                         for v in val:
-                            x.append(expr(self, v).k9expr)
-                    self.k9expr = self.compound_ops[key][1](x)
+                            x.append(expr(self, v).cexpr)
+                    self.cexpr = self.compound_ops[key][1](x)
                 elif key in self.unary_ops:
-                    self.k9expr += f'({expr(self, val).k9expr}{self.unary_ops[key]})'
+                    self.cexpr += f'({expr(self, val).cexpr}{self.unary_ops[key]})'
                 else:
                     print(f'Undefined expr: {key}{val}')
 
@@ -101,10 +101,10 @@ class expr(ast_node):
             while type(p) is expr and not p.isvector:
                 p.isvector = True
                 p = p.parent
-            self.k9expr = self.datasource.parse_tablenames(node, self.materialize_cols)
+            self.cexpr = self.datasource.parse_tablenames(node, self.materialize_cols)
         elif type(node) is bool:
-            self.k9expr = '1' if node else '0'
+            self.cexpr = '1' if node else '0'
         else:
-            self.k9expr = f'{node}'
+            self.cexpr = f'{node}'
     def __str__(self):
-        return self.k9expr
+        return self.cexpr

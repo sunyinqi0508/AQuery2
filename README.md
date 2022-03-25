@@ -1,12 +1,12 @@
 # AQuery Compiler
 
-AQuery Compiler that compiles AQuery into [K9](https://shakti.com/).
+AQuery Compiler that compiles AQuery into [c](https://shakti.com/).
 Frontend built on top of [mo-sql-parsing](https://github.com/klahnakoski/mo-sql-parsing).
 
 ## Roadmap
 - [x] SQL Parser -> AQuery Parser
   - [ ] Data acquisition/output from/to csv file (By Jan. 21)
--  -> AQuery-K9 Compiler
+-  -> AQuery-c Compiler
    -   Simple query (By Jan. 21)
    -  [ ] Nested queries (Jan. 28)
 - [ ] -> Optimizing Compiler

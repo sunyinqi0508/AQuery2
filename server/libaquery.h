@@ -2,8 +2,9 @@
 #define _AQUERY_H
 
 #include "table.h"
-
-class Context{
-
+#include <unordered_map>
+struct Context{
+    std::unordered_map<const char*, void*> tables;
+    std::unordered_map<const char*, uColRef *> cols;
 };
 #endif
