@@ -1,5 +1,7 @@
-from engine.ast import ast_node
-
+from engine.ast import ast_node, ColRef
+start_expr = 'f"'
+index_expr = '{\'\' if x is None and y is None else f\'[{x}]\'}'
+end_expr = '"'
 
 class expr(ast_node):
     name='expr'
@@ -8,7 +10,7 @@ class expr(ast_node):
         'min': 'min', 
         'avg': 'avg',
         'sum': 'sum',
-        'mod':'mod',
+        'count' : 'count',
         'mins': ['mins', 'minsw'],
         'maxs': ['maxs', 'maxsw'],
         'avgs': ['avgs', 'avgsw'],
@@ -19,29 +21,32 @@ class expr(ast_node):
         'sub':'-',  
         'add':'+', 
         'mul':'*', 
-        'div':'%',
+        'div':'/',
+        'mod':'%',
         'and':'&',
         'or':'|',
+        'xor' : '^',
         'gt':'>',
         'lt':'<',
+        'le':'<=',
+        'gt':'>='
     }
 
     compound_ops = {
-        'ge' : [2, lambda x: f'~({x[0]}<{x[1]})'],
-        'le' : [2, lambda x: f'~({x[0]}>{x[1]})'],
-        'count' : [1, lambda x: f'#({x[0]})']
     }
 
     unary_ops = {
         'neg' : '-',
-        'not' : '~'
+        'not' : '!'
     }
     
     coumpound_generating_ops = ['mod', 'mins', 'maxs', 'sums'] + \
        list( binary_ops.keys()) + list(compound_ops.keys()) + list(unary_ops.keys() )
 
-    def __init__(self, parent, node, materialize_cols = True):
+    def __init__(self, parent, node, materialize_cols = True, abs_col = False):
         self.materialize_cols = materialize_cols
+        self.raw_col = None
+        self.__abs = abs_col
         ast_node.__init__(self, parent, node, None)
 
     def init(self, _):
@@ -54,7 +59,8 @@ class expr(ast_node):
         else:
             self.datasource = self.context.datasource
         self.udf_map = parent.context.udf_map
-        self.cexpr = ''
+        self._expr = ''
+        self.cexpr = None
         self.func_maps = {**self.udf_map, **self.builtin_func_maps}
 
     def produce(self, node):
@@ -62,30 +68,31 @@ class expr(ast_node):
             for key, val in node.items():
                 if key in self.func_maps:
                     # if type(val) in [dict, str]:
+                    self.context.headers.add('"./server/aggregations.h"')
                     if type(val) is list and len(val) > 1:
                         cfunc = self.func_maps[key]
                         cfunc = cfunc[len(val) - 1] if type(cfunc) is list else cfunc
-                        self.cexpr += f"{cfunc}(" 
+                        self._expr += f"{cfunc}(" 
                         for i, p in enumerate(val):
-                            self.cexpr += expr(self, p).cexpr + (';'if i<len(val)-1 else '')
+                            self._expr += expr(self, p)._expr + (','if i<len(val)-1 else '')
                     else:
                         funcname = self.func_maps[key]
                         funcname = funcname[0] if type(funcname) is list else funcname
-                        self.cexpr += f"{funcname}(" 
-                        self.cexpr += expr(self, val).cexpr
-                    self.cexpr += ')'
+                        self._expr += f"{funcname}(" 
+                        self._expr += expr(self, val)._expr
+                    self._expr += ')'
                 elif key in self.binary_ops:
-                    l = expr(self, val[0]).cexpr
-                    r = expr(self, val[1]).cexpr
-                    self.cexpr += f'({l}{self.binary_ops[key]}{r})'
+                    l = expr(self, val[0])._expr
+                    r = expr(self, val[1])._expr
+                    self._expr += f'({l}{self.binary_ops[key]}{r})'
                 elif key in self.compound_ops:
                     x = []
                     if type(val) is list:
                         for v in val:
-                            x.append(expr(self, v).cexpr)
-                    self.cexpr = self.compound_ops[key][1](x)
+                            x.append(expr(self, v)._expr)
+                    self._expr = self.compound_ops[key][1](x)
                 elif key in self.unary_ops:
-                    self.cexpr += f'({expr(self, val).cexpr}{self.unary_ops[key]})'
+                    self._expr += f'({expr(self, val)._expr}{self.unary_ops[key]})'
                 else:
                     print(f'Undefined expr: {key}{val}')
 
@@ -101,10 +108,18 @@ class expr(ast_node):
             while type(p) is expr and not p.isvector:
                 p.isvector = True
                 p = p.parent
-            self.cexpr = self.datasource.parse_tablenames(node, self.materialize_cols)
+                
+            self._expr, self.raw_col = self.datasource.parse_tablenames(node, self.materialize_cols, True)
+            self.raw_col = self.raw_col if type(self.raw_col) is ColRef else None
+            if self.__abs and self.raw_col:
+                self._expr = self.raw_col.reference() + index_expr
         elif type(node) is bool:
-            self.cexpr = '1' if node else '0'
+            self._expr = '1' if node else '0'
         else:
-            self.cexpr = f'{node}'
+            self._expr = f'{node}'
+    def toCExpr(_expr):
+        return lambda x = None, y = None : eval(start_expr + _expr + end_expr)
+    def consume(self, _):
+        self.cexpr = expr.toCExpr(self._expr)
     def __str__(self):
         return self.cexpr

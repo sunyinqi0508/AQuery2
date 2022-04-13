@@ -41,7 +41,7 @@ public:
 	_Ty* container;
 	uint32_t size, capacity;
 	typedef _Ty* iterator_t;
-	vector_type(uint32_t size) : size(size), capacity(size) {
+	vector_type(const uint32_t& size) : size(size), capacity(size) {
 		container = (_Ty*)malloc(size * sizeof(_Ty));
 	}
 	constexpr vector_type(std::initializer_list<_Ty> _l) {
@@ -51,12 +51,21 @@ public:
 			*(_container++) = l;
 		}
 	}
-	constexpr vector_type() noexcept {};
+	constexpr vector_type() noexcept : size(0), capacity(0), container(0) {};
 	constexpr vector_type(vector_type<_Ty>& vt) noexcept {
 		_copy(vt);
 	}
 	constexpr vector_type(vector_type<_Ty>&& vt) noexcept {
 		_move(std::move(vt));
+	}
+	vector_type<_Ty> operator =(const _Ty& vt) {
+		if (!container) { 
+			container = (_Ty*)malloc(sizeof(_Ty)); 
+			capacity = 1; 
+		}
+		size = 1;
+		container[0] = vt;
+		return *this;
 	}
 	vector_type<_Ty> operator =(vector_type<_Ty>& vt) {
 		_copy(vt);
@@ -102,7 +111,7 @@ public:
 		return curr;
 	}
 
-	_Ty& operator[](const std::size_t _i) const {
+	_Ty& operator[](const uint32_t _i) const {
 		return container[_i];
 	}
 
@@ -240,42 +249,11 @@ public:
 	}
 	constexpr vector_type() : size(0), capacity(0), container(0) {};
 	void *get(uint32_t i, types::Type_t atype){
-		
 		return static_cast<void*>(static_cast<char*>(container) + (i * types::AType_sizes[atype]));
 	}
+	void operator[](const uint32_t& i) {
+		
+	}
 };
-#pragma pack(pop)
-
-
-
-
-// TODO: Specializations for dt/str/none
-template<class T>
-types::GetLongType<T> sum(const vector_type<T> &v) {
-	types::GetLongType<T> ret = 0;
-	for (const auto& _v : v) 
-		ret += _v;
-	return ret;
-}
-template<class T>
-types::GetFPType<T> avg(const vector_type<T> &v) {
-	return static_cast<types::GetFPType<T>>(
-		sum<T>(v)/static_cast<long double>(v.size));
-}
-template <class T>
-T max(const vector_type<T>& v) {
-	T max_v = std::numeric_limits<T>::min();
-	for (const auto& _v : v)
-		max_v = max_v > _v ? max_v : _v;
-	return max_v;
-}
-template <class T>
-T min(const vector_type<T>& v) {
-	T min_v = std::numeric_limits<T>::max();
-	for (const auto& _v : v)
-		min_v = min_v < _v ? min_v : _v;
-	return min_v;
-}
-
 
 #endif

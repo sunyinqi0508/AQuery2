@@ -1,3 +1,4 @@
+from concurrent.futures import thread
 import re
 import time
 import aquery_parser as parser
@@ -8,12 +9,35 @@ import sys
 import os
 from engine.utils import base62uuid
 import atexit
+try:
+    os.remove('server.bin') 
+except Exception as e:
+    print(type(e), e)
 
+subprocess.call(['make', 'server.bin'])
+cleanup = True
 def rm():
-    files = os.listdir('.')
-    for f in files:
-        if f.endswith('.shm'):
-            os.remove(f)
+    if cleanup:
+        mm.seek(0,os.SEEK_SET)
+        mm.write(b'\x00\x00')
+        mm.flush()
+        time.sleep(.001)
+        server.kill()
+        files = os.listdir('.')
+        for f in files:
+            if f.endswith('.shm'):
+                os.remove(f)
+        mm.close()
+        cleanup = False
+
+def proc_alive(pid):
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return False
+    else:
+        return True
+    
 atexit.register(rm)
     
 shm = base62uuid()
@@ -35,7 +59,8 @@ else:
     mm = mmap.mmap(0, 2, shm)
     mm.write(b'\x01\x00')
     mm.flush()
-subprocess.Popen(["./server.bin", shm])
+server = subprocess.Popen(["./server.bin", shm])
+
 test_parser = True
 
 # code to test parser
@@ -64,6 +89,8 @@ keep = False
 cxt = None
 while test_parser:
     try:
+        if not proc_alive(server.pid):
+            server = subprocess.Popen(["./server.bin", shm])
         q = input()
         if q == 'exec':
             if not keep or cxt is None:
@@ -90,11 +117,13 @@ while test_parser:
         elif q == 'keep':
             keep = not keep
             continue
+        elif q=='format' or q == 'fmt':
+            subprocess.call(['clang-format', 'out.cpp'])
         elif q == 'exit':
             break
         elif q == 'r':
             if subprocess.call(['make', 'snippet']) == 0:
-                mm.seek(0,os.SEEK_SET)
+                mm.seek(0,os.SEEK_SET)  
                 mm.write(b'\x01\x01')
             continue
         trimed = ws.sub(' ', q.lower()).split(' ') 
@@ -108,9 +137,8 @@ while test_parser:
             continue
         stmts = parser.parse(q)
         print(stmts)
-    except (ValueError) as e:
+    except (ValueError, FileNotFoundError) as e:
+        rm()
         print(type(e), e)
 
-mm.close()
-handle.close()
-os.remove(shm)
+rm()

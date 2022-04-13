@@ -1,11 +1,41 @@
 from xmlrpc.client import Boolean
-from engine.ast import ColRef, TableInfo, View, ast_node
+from engine.ast import ColRef, TableInfo, View, ast_node, Context
 from engine.utils import base62uuid
 from engine.expr import expr
 
 class scan(ast_node):
     name = 'scan'
-    
+    def __init__(self, parent: "ast_node", node, size = None, context: Context = None):
+        self.type = type
+        self.size = size
+        super().__init__(parent, node, context)
+    def init(self, _):
+        self.datasource = self.context.datasource
+        self.start = ''
+        self.body = ''
+        self.end = '}'
+        self.filter = None
+        scan_vars = set(s.it_var for s in self.context.scans)
+        self.it_ver = 'i' + base62uuid(2)
+        while(self.it_ver in scan_vars):
+            self.it_ver = 'i' + base62uuid(6)
+        self.parent.context.scans.append(self)
+    def produce(self, node):
+        if type(node) is ColRef:
+            if self.size is None:
+                self.start += f'for (auto& {self.it_ver} : {node.reference()}) {{\n'
+            else:
+                self.start += f"for (uint32_t {self.it_ver} = 0; {self.it_ver} < {node.reference()}.size; ++{self.it_ver}){{\\n"
+        elif type(node) is str:
+            self.start+= f'for(auto& {self.it_ver} : {node}) {{\n'
+        else:
+            self.start += f"for (uint32_t {self.it_ver} = 0; {self.it_ver} < {self.size}; ++{self.it_ver}){{\n"
+            
+    def add(self, stmt):
+        self.body+=stmt + '\n'
+    def finalize(self):
+        self.context.remove_scan(self, self.start + self.body + self.end)
+        
 class filter(ast_node):
     name = 'filter'
     def __init__(self, parent: "ast_node", node, materialize = False, context = None):

@@ -1,10 +1,11 @@
+from operator import index
 from engine.utils import base62uuid
-
+from copy import copy
 # replace column info with this later.
 class ColRef:
     def __init__(self, cname, _ty, cobj, cnt, table:'TableInfo', name, id, compound = False):
-        self.cname = cname
-        self.cxt_name = None
+        self.cname = cname # column object location
+        self.cxt_name = None # column object in context
         self.type = _ty
         self.cobj = cobj
         self.cnt = cnt
@@ -28,6 +29,7 @@ class ColRef:
                 base_name = f'{base_name}_{counter}'
             self.cxt_name = base_name
             cxt.columns_in_context[self] = base_name
+            # TODO: change this to cname;
             cxt.emit(f'auto& {base_name} = *(ColRef<{self.type}> *)(&{self.table.cxt_name}->colrefs[{self.id}]);')
         elif self.cxt_name is None:
             self.cxt_name = cxt.columns_in_context[self]
@@ -44,7 +46,9 @@ class ColRef:
         self.__arr__[key] = value
 
     def __str__(self):
-        return self.cname
+        return self.reference()
+    def __repr__(self):
+        return self.reference()
 
 class TableInfo:
     
@@ -87,6 +91,7 @@ class TableInfo:
             
             self.cxt.emit(f'auto& {base_name} = *(TableInfo{type_tags} *)(cxt->tables[{self.table_name}]);')
     def refer_all(self):
+        self.reference()
         for c in self.columns:
             c.reference()
     def add_cols(self, cols, new = True):
@@ -95,12 +100,13 @@ class TableInfo:
     def add_col(self, c, new = True, i = 0):
         _ty = c['type']
         if new:
-            cname =f'{self.table_name}->colrefs[{i}].scast<int>()'
+            cname =f'get<{i}>({self.table_name})'
             _ty = _ty if type(c) is ColRef else list(_ty.keys())[0]
             col_object =  ColRef(cname, _ty, c, 1, self,c['name'], len(self.columns))
         else:
             col_object = c
             cname = c.cname
+            c.table = self
         self.cxt.ccols_byname[cname] = col_object
         self.columns_byname[c['name']] = col_object
         self.columns.append(col_object)
@@ -156,7 +162,7 @@ class TableInfo:
         self.cxt.tables_byname[alias] = self
         self.alias.add(alias)
         
-    def parse_tablenames(self, colExpr, materialize = True):
+    def parse_tablenames(self, colExpr, materialize = True, raw = False):
         self.get_col = self.get_col if materialize else self.get_col_d
 
         parsedColExpr = colExpr.split('.')
@@ -168,13 +174,12 @@ class TableInfo:
             if datasource is None:
                 raise ValueError(f'Table name/alias not defined{parsedColExpr[0]}')
             else:
-                ret = datasource.get_col(parsedColExpr[1])
-        if self.groupinfo is not None and ret:
-            ret = f"{ret.reference()}[{'start' if ret in self.groupinfo.referenced else 'range'}]"
-        else:
-            ret = ret.reference()
-        return ret
-
+                ret = datasource.parse_tablenames(parsedColExpr[1], raw)
+        from engine.expr import index_expr
+        string = ret.reference() + index_expr
+        if self.groupinfo is not None and ret and ret in self.groupinfo.raw_groups:
+            string = f'get<{self.groupinfo.raw_groups.index(ret)}>({{y}})'
+        return string, ret if raw else string
 class View:
     def __init__(self, context, table = None, tmp = True):
         self.table: TableInfo = table
@@ -187,7 +192,11 @@ class View:
         self.context.emit(f'{self.name}:()')
             
 class Context:
-    function_head = 'extern \"C\" int dllmain(Context* cxt){ \n'
+    function_head = '''
+    extern "C" int __DLLEXPORT__ dllmain(Context* cxt) { 
+        using namespace std;
+        using namespace types;
+    '''
     def __init__(self): 
         self.tables:List[TableInfo] = []
         self.tables_byname = dict()
@@ -208,7 +217,8 @@ class Context:
         # and will be deactivated when the `from' is out of scope
         self.datasource = None
         self.ds_stack = []
-
+        self.scans = []
+        self.removing_scan = False
     def add_table(self, table_name, cols):
         tbl = TableInfo(table_name, cols, self)
         self.tables.append(tbl)
@@ -257,6 +267,10 @@ class Context:
             return ds
         else:
             return None
+    def remove_scan(self, scan, str_scan):
+        self.emit(str_scan)
+        self.scans.remove(scan)
+        
     def finalize(self):
         if not self.finalized:
             headers = ''
@@ -282,8 +296,6 @@ class ast_node:
         self.context = parent.context if context is None else context
         self.parent = parent
         self.datasource = None
-        for h in self.header:
-            self.context.headers.add(h)
         self.init(node)
         self.produce(node)
         self.spawn(node)

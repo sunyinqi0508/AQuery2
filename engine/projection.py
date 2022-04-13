@@ -5,7 +5,7 @@ from engine.expr import expr
 from engine.orderby import orderby
 from engine.scan import filter
 from engine.utils import base62uuid, enlist, base62alp
-from engine.ddl import outfile
+from engine.ddl import create_table, outfile
 import copy
 
 class projection(ast_node):
@@ -75,7 +75,7 @@ class projection(ast_node):
         if self.group_node is not None:
             # There is group by;
             has_groupby = True
-        cexpr = f'(' 
+        cexprs = []
         flatten = False
         cols = []
         self.out_table = TableInfo('out_'+base62uuid(4), [], self.context)
@@ -89,27 +89,23 @@ class projection(ast_node):
             if type(proj) is dict:
                 if 'value' in proj:
                     e = proj['value']
-                    if type(e) is str:
-                        cname = e # TODO: deal w/ alias
-                        cexpr += (f"{self.datasource.parse_tablenames(proj['value'])}")
-                    elif type(e) is dict:
-                        p_expr = expr(self, e)
-                        cname = p_expr.cexpr
-                        compound = True
-                        cexpr += f"{cname}"
-                    cname = ''.join([a if a in base62alp else '' for a in cname])
-                    cexpr += ';'if i < len(self.projections)-1 else ''
+                    sname = expr(self, e)._expr
+                    fname = expr.toCExpr(sname)
+                    absname = expr(self, e, abs_col=True)._expr
+                    compound = True
+                    cexprs.append(fname)
+                    cname = ''.join([a if a in base62alp else '' for a in fname()])
 
             compound = compound and has_groupby and self.datasource.rec not in self.group_node.referenced
             
-            cols.append(ColRef(f'{disp_varname}[{i}]', 'generic', self.out_table, 0, None, cname, i, compound=compound))
+            cols.append(ColRef(cname, expr.toCExpr(f'decays<decltype({absname})>')(0), self.out_table, 0, None, cname, i, compound=compound))
         self.out_table.add_cols(cols, False)
         
-        cexpr += ')'
         if has_groupby:
-            self.group_node.finalize(cexpr, disp_varname)
+            create_table(self, self.out_table)
+            self.group_node.finalize(cexprs, self.out_table)
         else:
-            self.emit(f'auto {disp_varname} = {cexpr};')
+            create_table(self, self.out_table, cexpr = cexprs)
         self.datasource.group_node = None
 
         has_orderby = 'orderby' in node
@@ -122,12 +118,8 @@ class projection(ast_node):
             self.emit_no_ln(f"{f'{disp_varname}:+' if flatten else ''}(")
             
         if self.disp or has_orderby:
-            if len(self.projections) > 1:
-                self.emit_no_ln(f"{'+' if self.inv else ''}{disp_varname}")
-            else:
-                self.emit_no_ln(f'print({disp_varname});')
-            if flatten:
-                self.emit_no_ln(f'{disp_varname}')
+            self.emit(f'print(*{self.out_table.cxt_name});')
+            
         if has_orderby:
             self.emit(f')[{orderby_node.view}]')
         else:

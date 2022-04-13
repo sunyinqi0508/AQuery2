@@ -9,7 +9,7 @@ void* dlopen(const char* lib, int)
 
 void* dlsym(void* handle, const char* proc)
 {
-	return GetProcAddress(static_cast<HMODULE>(handle), proc);
+	return reinterpret_cast<void*>(GetProcAddress(static_cast<HMODULE>(handle), proc));
 }
 
 int dlclose(void* handle)

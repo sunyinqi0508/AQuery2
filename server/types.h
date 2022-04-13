@@ -4,7 +4,8 @@
 #include <functional>
 #include <cstdint>
 #include <type_traits>
-#include <string> 	
+#include <string>
+
 #ifdef _MSC_VER
 #define __restrict__ __restrict
 #endif
@@ -72,13 +73,51 @@ namespace types {
 	};
 #define __Eq(x) (sizeof(T) == sizeof(x))
 	template<class T>
-	struct GetFPType {
+	struct GetFPTypeImpl {
 		using type = Cond(__Eq(float), float, Cond(__Eq(double), double, long double));
 	};
 	template<class T>
-	struct GetLongType
-	{
+	using GetFPType = typename GetFPTypeImpl<T>::type;
+	template<class T>
+	struct GetLongTypeImpl {
 		using type = Cond(_U(T), unsigned long long, Cond(Fp(T), long double, long long));
 	};
+	template<class T>
+	using GetLongType = typename GetLongTypeImpl<T>::type;
 }
+
+#define getT(i, t) std::tuple_element_t<i, std::tuple<t...>>
+template <template<typename ...> class T, typename ...Types>
+struct applyTemplates {
+	using type = T<Types...>;
+};
+
+template <class lT, template <typename ...> class rT>
+struct transTypes_s;
+template <template<typename ...> class lT, typename ...T, template<typename ...> class rT>
+struct transTypes_s<lT<T...>, rT> {
+	using type = rT<T...>;
+};
+
+// static_assert(std::is_same<transTypes<std::tuple<int, float>, std::unordered_map>, std::unordered_map<int, float>>::value);
+template <class lT, template <typename ...> class rT>
+using transTypes = typename transTypes_s<lT, rT>::type;
+
+template <class ...Types>
+struct record_types {};
+
+template <class ...Types>
+using record = std::tuple<Types...>;
+
+template <class T>
+struct decayS {
+	using type = typename std::decay<T>::type;
+};
+template<template<typename ...> class T, typename ...Types>
+struct decayS <T<Types...>>{
+	using type = T<typename std::decay<Types>::type ...>;
+};
+template <class T>
+using decays = typename decayS<T>::type;
+
 #endif // !_TYPES_H

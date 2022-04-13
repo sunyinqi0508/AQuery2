@@ -1,21 +1,35 @@
 # code-gen for data decl languages
 
-from engine.ast import ColRef, TableInfo, ast_node, include
+from engine.ast import ColRef, TableInfo, ast_node, Context, include
 from engine.utils import base62uuid
+
 class create_table(ast_node):
     name = 'create_table'
+    def __init__(self, parent: "ast_node", node, context: Context = None, cexpr = None):
+        self.cexpr = cexpr
+        super().__init__(parent, node, context)
     def produce(self, node):
-        ct = node[self.name]
-        tbl = self.context.add_table(ct['name'], ct['columns'])
+        if type(node) is not TableInfo:
+            ct = node[self.name]
+            tbl = self.context.add_table(ct['name'], ct['columns'])
+        else:
+            tbl = node
+            
+        col_type_str = ','.join([c.type for c in tbl.columns])
         # create tables in c
-        self.emit(f"auto {tbl.table_name} = new TableInfo(\"{tbl.table_name}\", {tbl.n_cols});")
+        self.emit(f"auto {tbl.table_name} = new TableInfo<{col_type_str}>(\"{tbl.table_name}\", {tbl.n_cols});")
         self.emit("cxt->tables.insert({\"" + tbl.table_name + f"\", {tbl.table_name}"+"});")
         self.context.tables_in_context[tbl] = tbl.table_name
         tbl.cxt_name = tbl.table_name
-        for i, c in enumerate(ct['columns']):
-            # TODO: more self awareness
-            self.emit(f"{tbl.table_name}->colrefs[{i}].ty = types::AINT;")
-            
+        tbl.refer_all()
+        if self.cexpr is None:
+            for c in tbl.columns:
+                self.emit(f"{c.cxt_name}.init();")
+        else:
+            for i, c in enumerate(tbl.columns):
+                self.emit(f"{c.cxt_name}.init();")
+                self.emit(f"{c.cxt_name} = {self.cexpr[i]()};")
+
 class insert(ast_node):
     name = 'insert'
     def produce(self, node):
@@ -42,18 +56,25 @@ class c(ast_node):
 class load(ast_node):
     name="load"
     def produce(self, node):
+        self.context.headers.add('"csv.h"')
         node = node[self.name]
         table:TableInfo = self.context.tables_byname[node['table']]
-        n_keys = len(table.columns)
-        keys = ''
-        for _ in range(n_keys):
-            keys+='`tk'+base62uuid(6)
-        tablename = 'l'+base62uuid(7)        
-
-        self.emit(f"{tablename}:({keys}!(+(`csv ? 1:\"{node['file']['literal']}\")))[{keys}]")
-
+        table.refer_all()
+        csv_reader_name = 'csv_reader_' + base62uuid(6)
+        col_types = [c.type for c in table.columns]
+        col_tmp_names = ['tmp_'+base62uuid(8) for _ in range(len(table.columns))]
+        # col_type_str = ",".join(col_types)
+        col_names = ','.join([f'"{c.name}"' for c in table.columns])
+        
+        self.emit(f'io::CSVReader<{len(col_types)}> {csv_reader_name}("{node["file"]["literal"]}");')
+        self.emit(f'{csv_reader_name}.read_header(io::ignore_extra_column, {col_names});')
+        for t, n in zip(col_types, col_tmp_names):
+            self.emit(f'{t} {n};')
+        self.emit(f'while({csv_reader_name}.read_row({",".join(col_tmp_names)})) {{ \n')
         for i, c in enumerate(table.columns):
-            self.emit(f'{c.cname}:{tablename}[{i}]')
+            self.emit(f'{c.cxt_name}.emplace_back({col_tmp_names[i]});')
+        self.emit('}')
+        
             
 class outfile(ast_node):
     name="_outfile"
