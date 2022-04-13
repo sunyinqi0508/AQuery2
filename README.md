@@ -1,6 +1,6 @@
-# AQuery Compiler
+# AQuery++
 
-AQuery Compiler that compiles AQuery into C++11.
+AQuery++ Compiler that compiles AQuery into C++11.
 Frontend built on top of [mo-sql-parsing](https://github.com/klahnakoski/mo-sql-parsing).
 
 ## Roadmap

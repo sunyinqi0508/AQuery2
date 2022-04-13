@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
     printf("running: %s\n", running? "true":"false");
     printf("ready: %s\n", ready? "true":"false");
     while (running) {
-        std::this_thread::sleep_for(100us);
+        std::this_thread::sleep_for(1ms);
         if(ready){
             printf("running: %s\n", running? "true":"false");
             printf("ready: %s\n", ready? "true":"false");

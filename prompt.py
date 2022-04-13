@@ -16,28 +16,29 @@ except Exception as e:
 
 subprocess.call(['make', 'server.bin'])
 cleanup = True
+
 def rm():
+    global cleanup
     if cleanup:
         mm.seek(0,os.SEEK_SET)
         mm.write(b'\x00\x00')
         mm.flush()
-        time.sleep(.001)
-        server.kill()
+    
+        try:
+            time.sleep(.001)
+            server.kill()
+            time.sleep(.001)
+            server.terminate()
+        except OSError:
+            pass
+    
         files = os.listdir('.')
         for f in files:
             if f.endswith('.shm'):
                 os.remove(f)
         mm.close()
         cleanup = False
-
-def proc_alive(pid):
-    try:
-        os.kill(pid, 0)
-    except OSError:
-        return False
-    else:
-        return True
-    
+   
 atexit.register(rm)
     
 shm = base62uuid()
@@ -72,7 +73,6 @@ res = parser.parse(q)
 
 print(res)
 
-
 # else:f
 #     if subprocess.call(['make', 'snippet']) == 0:
 #         mm.seek(0)
@@ -89,7 +89,7 @@ keep = False
 cxt = None
 while test_parser:
     try:
-        if not proc_alive(server.pid):
+        if server.poll() is not None:
             server = subprocess.Popen(["./server.bin", shm])
         q = input()
         if q == 'exec':

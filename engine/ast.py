@@ -111,9 +111,6 @@ class TableInfo:
         self.columns_byname[c['name']] = col_object
         self.columns.append(col_object)
         
-    def construct(self):
-        for c in self.columns:
-            self.cxt.emit(f'{c.cname}:()')
     @property
     def n_cols(self):
         return len(self.columns)

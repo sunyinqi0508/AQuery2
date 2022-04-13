@@ -1,5 +1,5 @@
-#include "./server/libaquery.h"
 #include "./server/aggregations.h"
+#include "./server/libaquery.h"
 
     extern "C" int __DLLEXPORT__ dllmain(Context* cxt) { 
         using namespace std;
@@ -42,19 +42,19 @@ stocks_timestamp.emplace_back(15);
 stocks_price.emplace_back(2);
 stocks_timestamp.emplace_back(16);
 stocks_price.emplace_back(5);
-auto out_6gPn = new TableInfo<decays<decltype(max((stocks_price[0]-min(stocks_timestamp[0]))))>>("out_6gPn", 1);
-cxt->tables.insert({"out_6gPn", out_6gPn});
-auto& out_6gPn_maxstockspriceminstockstimestamp = *(ColRef<decays<decltype(max((stocks_price[0]-min(stocks_timestamp[0]))))>> *)(&out_6gPn->colrefs[0]);
-out_6gPn_maxstockspriceminstockstimestamp.init();
-out_6gPn_maxstockspriceminstockstimestamp = max((stocks_price-min(stocks_timestamp)));
-print(*out_6gPn);
+auto out_ZPYh = new TableInfo<decays<decltype(max((stocks_price[0]-min(stocks_timestamp[0]))))>>("out_ZPYh", 1);
+cxt->tables.insert({"out_ZPYh", out_ZPYh});
+auto& out_ZPYh_maxstockspriceminstockstimestamp = *(ColRef<decays<decltype(max((stocks_price[0]-min(stocks_timestamp[0]))))>> *)(&out_ZPYh->colrefs[0]);
+out_ZPYh_maxstockspriceminstockstimestamp.init();
+out_ZPYh_maxstockspriceminstockstimestamp = max((stocks_price-min(stocks_timestamp)));
+print(*out_ZPYh);
 
-auto out_7a2d = new TableInfo<decays<decltype(max((stocks_price[0]-mins(stocks_price[0]))))>>("out_7a2d", 1);
-cxt->tables.insert({"out_7a2d", out_7a2d});
-auto& out_7a2d_maxstockspriceminsstocksprice = *(ColRef<decays<decltype(max((stocks_price[0]-mins(stocks_price[0]))))>> *)(&out_7a2d->colrefs[0]);
-out_7a2d_maxstockspriceminsstocksprice.init();
-out_7a2d_maxstockspriceminsstocksprice = max((stocks_price-mins(stocks_price)));
-print(*out_7a2d);
+auto out_1ac3 = new TableInfo<decays<decltype(max((stocks_price[0]-mins(stocks_price[0]))))>>("out_1ac3", 1);
+cxt->tables.insert({"out_1ac3", out_1ac3});
+auto& out_1ac3_maxstockspriceminsstocksprice = *(ColRef<decays<decltype(max((stocks_price[0]-mins(stocks_price[0]))))>> *)(&out_1ac3->colrefs[0]);
+out_1ac3_maxstockspriceminsstocksprice.init();
+out_1ac3_maxstockspriceminsstocksprice = max((stocks_price-mins(stocks_price)));
+print(*out_1ac3);
 
 return 0;
 }
