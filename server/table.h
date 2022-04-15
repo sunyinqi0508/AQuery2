@@ -103,6 +103,39 @@ struct TableInfo {
 	template <size_t ...Idxs>
 	using getRecordType = typename GetTypes<Idxs...>::type;
 	TableInfo(const char* name, uint32_t n_cols);
+	//template<size_t ...Idxs = Types...>
+	//struct Iterator_t {
+	//	uint32_t val;
+	//	const TableInfo* info;
+	//	constexpr Iterator_t(const uint32_t* val, const TableInfo* info) noexcept : val(val), info(info) {}
+	//	getRecordType<Idxs...> operator*() {
+	//		return getRecordType<Idxs...>(info->colrefs[Idxs].operator[](*val)...);
+	//	}
+	//	bool operator != (const Iterator_t& rhs) { return rhs.val != val; }
+	//	Iterator_t& operator++ () {
+	//		++val;
+	//		return *this;
+	//	}
+	//	Iterator_t operator++ (int) {
+	//		Iterator_t tmp = *this;
+	//		++val;
+	//		return tmp;
+	//	}
+	//};
+	//template<size_t ...Idxs = Types...>
+	//Iterator_t<Idxs...> begin() const {
+	//	
+	//}
+	//template<size_t ...Idxs = Types...>
+	//Iterator_t<Idxs...> end() const {
+	//	
+	//}
+	//
+	//template<int ...Cols, bool ...ord>
+	//order_by() {
+	//	vector_type<uint32_t> order(colrefs[0].size);
+	//	std::sort(this->begin<Cols>)
+	//}
 };
 
 template <size_t _Index, class... _Types>

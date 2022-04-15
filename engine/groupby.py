@@ -40,7 +40,7 @@ class groupby(ast_node):
         self.emit(f'unordered_map<{self.group_type}, vector_type<uint32_t>, '
             f'transTypes<{self.group_type}, hasher>> {self.group};')
         self.n_grps = len(node)
-        self.scanner = scan(self, None, expr.toCExpr(first_col)()+'.size')
+        self.scanner = scan(self, self.datasource, expr.toCExpr(first_col)()+'.size')
         self.scanner.add(f'{self.group}[forward_as_tuple({g_contents(self.scanner.it_ver)})].emplace_back({self.scanner.it_ver});')
 
         

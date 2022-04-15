@@ -110,7 +110,10 @@ class TableInfo:
         self.cxt.ccols_byname[cname] = col_object
         self.columns_byname[c['name']] = col_object
         self.columns.append(col_object)
-        
+    def get_size(self):
+        size_tmp = 'tmp_sz_'+base62uuid(6)
+        self.cxt.emit(f'const auto& {size_tmp} = {self.columns[0].reference()}.size;')
+        return size_tmp
     @property
     def n_cols(self):
         return len(self.columns)

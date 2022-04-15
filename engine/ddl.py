@@ -1,6 +1,7 @@
 # code-gen for data decl languages
 
 from engine.ast import ColRef, TableInfo, ast_node, Context, include
+from engine.scan import scan
 from engine.utils import base62uuid
 
 class create_table(ast_node):
@@ -26,9 +27,15 @@ class create_table(ast_node):
             for c in tbl.columns:
                 self.emit(f"{c.cxt_name}.init();")
         else:
-            for i, c in enumerate(tbl.columns):
-                self.emit(f"{c.cxt_name}.init();")
-                self.emit(f"{c.cxt_name} = {self.cexpr[i]()};")
+            if len(self.context.scans) == 0:
+                for i, c in enumerate(tbl.columns):
+                    self.emit(f"{c.cxt_name}.init();")
+                    self.emit(f"{c.cxt_name} = {self.cexpr[i]()};")
+            else:
+                scanner:scan = self.context.scans[-1]
+                for i, c in enumerate(tbl.columns):
+                    scanner.add(f"{c.cxt_name}.init();", "init")
+                    scanner.add(f"{c.cxt_name} = {self.cexpr[i](scanner.it_ver)};")
 
 class insert(ast_node):
     name = 'insert'

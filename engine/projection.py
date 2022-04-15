@@ -14,6 +14,7 @@ class projection(ast_node):
         self.disp = disp
         self.outname = outname
         self.group_node = None
+        self.where = None
         ast_node.__init__(self, parent, node, context)
     def init(self, _):
         if self.outname is None:
@@ -58,8 +59,9 @@ class projection(ast_node):
             self.prev_datasource = self.context.datasource
             self.context.datasource = self.datasource            
         if 'where' in node:
-            self.datasource = filter(self, node['where'], True).output
-            self.context.datasource = self.datasource            
+            self.where = filter(self, node['where'], True)
+            # self.datasource = filter(self, node['where'], True).output
+            #self.context.datasource = self.datasource            
 
         if 'groupby' in node:
             self.group_node = groupby(self, node['groupby'])
@@ -107,7 +109,10 @@ class projection(ast_node):
         else:
             create_table(self, self.out_table, cexpr = cexprs)
         self.datasource.group_node = None
-
+        
+        if self.where is not None:
+            self.where.finalize()
+        
         has_orderby = 'orderby' in node
 
         if has_orderby:

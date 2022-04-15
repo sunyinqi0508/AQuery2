@@ -1,6 +1,8 @@
 from concurrent.futures import thread
 import re
 import time
+
+from mo_parsing import ParseException
 import aquery_parser as parser
 import engine
 import subprocess
@@ -137,7 +139,7 @@ while test_parser:
             continue
         stmts = parser.parse(q)
         print(stmts)
-    except (ValueError, FileNotFoundError) as e:
+    except (ValueError, FileNotFoundError, ParseException) as e:
         rm()
         print(type(e), e)
 

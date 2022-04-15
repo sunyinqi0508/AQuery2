@@ -23,8 +23,8 @@ class expr(ast_node):
         'mul':'*', 
         'div':'/',
         'mod':'%',
-        'and':'&',
-        'or':'|',
+        'and':'&&',
+        'or':'||',
         'xor' : '^',
         'gt':'>',
         'lt':'<',
@@ -92,7 +92,7 @@ class expr(ast_node):
                             x.append(expr(self, v)._expr)
                     self._expr = self.compound_ops[key][1](x)
                 elif key in self.unary_ops:
-                    self._expr += f'({expr(self, val)._expr}{self.unary_ops[key]})'
+                    self._expr += f'{self.unary_ops[key]}({expr(self, val)._expr})'
                 else:
                     print(f'Undefined expr: {key}{val}')
 
