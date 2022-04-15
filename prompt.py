@@ -1,6 +1,8 @@
 from concurrent.futures import thread
 import re
 import time
+
+from mo_parsing import ParseException
 import aquery_parser as parser
 import engine
 import subprocess
@@ -90,6 +92,8 @@ cxt = None
 while test_parser:
     try:
         if server.poll() is not None:
+            mm.seek(0,os.SEEK_SET)
+            mm.write(b'\x01\x00')
             server = subprocess.Popen(["./server.bin", shm])
         q = input()
         if q == 'exec':
@@ -126,6 +130,15 @@ while test_parser:
                 mm.seek(0,os.SEEK_SET)  
                 mm.write(b'\x01\x01')
             continue
+        elif q.startswith('save'):
+            filename = re.split(' |\t', q)
+            if (len(filename) > 1):
+                filename = filename[1]
+            else:
+                filename = f'out_{base62uuid(4)}.cpp'
+            with open(filename, 'wb') as outfile:
+                outfile.write((cxt.finalize()).encode('utf-8'))
+            continue
         trimed = ws.sub(' ', q.lower()).split(' ') 
         if trimed[0].startswith('f'):
             fn = 'stock.a' if len(trimed) <= 1 or len(trimed[1]) == 0 \
@@ -137,7 +150,7 @@ while test_parser:
             continue
         stmts = parser.parse(q)
         print(stmts)
-    except (ValueError, FileNotFoundError) as e:
+    except (ValueError, FileNotFoundError, ParseException) as e:
         rm()
         print(type(e), e)
 

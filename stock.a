@@ -17,16 +17,16 @@ INSERT INTO stocks VALUES(14,5)
 INSERT INTO stocks VALUES(15,2)
 INSERT INTO stocks VALUES(16,5)
 
+/*<k> "q1" </k>*/
 SELECT max(price-min(timestamp)) FROM stocks
 
-/*<k> "q1" </k>
-*/
+/*<k> "q2" </k>*/
 SELECT max(price-mins(price)) FROM stocks
-/*
-<k> "q2" </k>
-SELECT price, timestamp FROM stocks where price -timestamp > 1 and not (price*timestamp<100);
-<k> "q3"</k>
+
+/*<k> "q3"</k>*/
+SELECT price, timestamp FROM stocks where price - timestamp > 1 and not (price*timestamp<100)
+
+/*<k> "q4"</k>*/
 SELECT max(price-mins(price))
 FROM stocks
-     ASSUMING ASC timestamp
-*/
+     ASSUMING DESC timestamp

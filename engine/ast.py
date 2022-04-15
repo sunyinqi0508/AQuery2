@@ -15,6 +15,9 @@ class ColRef:
         self.order_pending = None # order_pending
         self.compound = compound # compound field (list as a field) 
         self.views = []
+        self.aux_columns = [] # columns for temperary calculations 
+        # e.g. order by, group by, filter by expressions
+        
         self.__arr__ = (cname, _ty, cobj, cnt, table, name, id)
     
     def reference(self):
@@ -89,7 +92,8 @@ class TableInfo:
                 type_tags = type_tags[:-1]
             type_tags += '>'
             
-            self.cxt.emit(f'auto& {base_name} = *(TableInfo{type_tags} *)(cxt->tables[{self.table_name}]);')
+            self.cxt.emit(f'auto& {base_name} = *(TableInfo{type_tags} *)(cxt->tables["{self.table_name}"]);')
+        return self.cxt_name
     def refer_all(self):
         self.reference()
         for c in self.columns:
@@ -110,7 +114,10 @@ class TableInfo:
         self.cxt.ccols_byname[cname] = col_object
         self.columns_byname[c['name']] = col_object
         self.columns.append(col_object)
-        
+    def get_size(self):
+        size_tmp = 'tmp_sz_'+base62uuid(6)
+        self.cxt.emit(f'const auto& {size_tmp} = {self.columns[0].reference()}.size;')
+        return size_tmp
     @property
     def n_cols(self):
         return len(self.columns)
@@ -136,8 +143,8 @@ class TableInfo:
 
     def get_col_d(self, col_name):
         col = self.columns_byname[col_name]
-        if type(self.rec) is list:
-            self.rec.append(col)
+        if type(self.rec) is set:
+            self.rec.add(col)
         return col
 
     def get_ccolname_d(self, col_name):
@@ -160,12 +167,12 @@ class TableInfo:
         self.alias.add(alias)
         
     def parse_tablenames(self, colExpr, materialize = True, raw = False):
-        self.get_col = self.get_col if materialize else self.get_col_d
+        # get_col = self.get_col if materialize else self.get_col_d
 
         parsedColExpr = colExpr.split('.')
         ret = None
         if len(parsedColExpr) <= 1:
-            ret = self.get_col(colExpr)
+            ret = self.get_col_d(colExpr)
         else: 
             datasource = self.cxt.tables_byname[parsedColExpr[0]]
             if datasource is None:
@@ -177,6 +184,7 @@ class TableInfo:
         if self.groupinfo is not None and ret and ret in self.groupinfo.raw_groups:
             string = f'get<{self.groupinfo.raw_groups.index(ret)}>({{y}})'
         return string, ret if raw else string
+
 class View:
     def __init__(self, context, table = None, tmp = True):
         self.table: TableInfo = table
@@ -193,6 +201,7 @@ class Context:
     extern "C" int __DLLEXPORT__ dllmain(Context* cxt) { 
         using namespace std;
         using namespace types;
+        
     '''
     def __init__(self): 
         self.tables:List[TableInfo] = []

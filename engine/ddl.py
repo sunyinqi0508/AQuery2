@@ -1,14 +1,17 @@
 # code-gen for data decl languages
 
+from engine.orderby import orderby
 from engine.ast import ColRef, TableInfo, ast_node, Context, include
+from engine.scan import scan
 from engine.utils import base62uuid
 
 class create_table(ast_node):
     name = 'create_table'
-    def __init__(self, parent: "ast_node", node, context: Context = None, cexpr = None):
-        self.cexpr = cexpr
+    def __init__(self, parent: "ast_node", node, context: Context = None, cexprs = None, lineage = False):
+        self.cexprs = cexprs
+        self.lineage = lineage
         super().__init__(parent, node, context)
-    def produce(self, node):
+    def produce(self, node): 
         if type(node) is not TableInfo:
             ct = node[self.name]
             tbl = self.context.add_table(ct['name'], ct['columns'])
@@ -22,14 +25,38 @@ class create_table(ast_node):
         self.context.tables_in_context[tbl] = tbl.table_name
         tbl.cxt_name = tbl.table_name
         tbl.refer_all()
-        if self.cexpr is None:
+        # create an empty new table
+        if self.cexprs is None:
             for c in tbl.columns:
                 self.emit(f"{c.cxt_name}.init();")
+        # create an output table
         else:
-            for i, c in enumerate(tbl.columns):
-                self.emit(f"{c.cxt_name}.init();")
-                self.emit(f"{c.cxt_name} = {self.cexpr[i]()};")
-
+            # 1 to 1 lineage.
+            if len(self.context.scans) == 0:
+                if self.lineage:
+                    order = 'order_' + base62uuid(6)
+                    self.emit(f'auto {order} = {self.parent.datasource.cxt_name}->order_by<{orderby(self.parent, self.parent.assumptions).result()}>();')
+                    self.lineage = '*' + order
+                else:
+                    self.lineage = None
+                for i, c in enumerate(tbl.columns):
+                    self.emit(f"{c.cxt_name}.init();")
+                    self.emit(f"{c.cxt_name} = {self.cexprs[i](self.lineage)};")
+                self.lineage = None
+                self.parent.assumptions = None
+            else:
+                scanner:scan = self.context.scans[-1]
+                if self.lineage:
+                    lineage_var = 'lineage_' + base62uuid(6)
+                    counter_var = 'counter_' + base62uuid(6)
+                    scanner.add(f'auto {lineage_var} = {self.datasource.cxt_name}->bind({tbl.cxt_name});', "init")
+                    scanner.add(f'auto {counter_var} = 0;', "init")
+                    scanner.add(f"{lineage_var}.emplace_back({counter_var}++);", "front")
+                    self.lineage = f"{lineage_var}.rid"
+                for i, c in enumerate(tbl.columns):
+                    scanner.add(f"{c.cxt_name}.init();", "init")
+                    scanner.add(f"{c.cxt_name} = {self.cexprs[i](scanner.it_ver)};")
+                    
 class insert(ast_node):
     name = 'insert'
     def produce(self, node):
@@ -81,32 +108,21 @@ class outfile(ast_node):
     def produce(self, node):
         out_table:TableInfo = self.parent.out_table
         filename = node['loc']['literal'] if 'loc' in node else node['literal']
-        self.emit_no_ln(f"\"{filename}\"1:`csv@(+(")
-        l_compound = False
-        l_cols = ''
-        l_keys = ''
-        ending = lambda x: x[:-1] if len(x) > 0 and x[-1]==';' else x
-        for i, c in enumerate(out_table.columns):
-            c:ColRef
-            l_keys += '`' + c.name
-            if c.compound:
-                if l_compound:
-                    l_cols=f'flatBOTH\'+(({ending(l_cols)});{c.cname})'
-                else:
-                    l_compound = True
-                    if i >= 1:
-                        l_cols = f'flatRO\'+(({ending(l_cols)});{c.cname})'
-                    else:
-                        l_cols = c.cname + ';'
-            elif l_compound:
-                l_cols = f'flatLO\'+(({ending(l_cols)});{c.cname})'
-            else:
-                l_cols += f"{c.cname};"
-        if not l_compound:
-            self.emit_no_ln(l_keys + '!(' + ending(l_cols) + ')')
-        else:
-            self.emit_no_ln(f'{l_keys}!+,/({ending(l_cols)})')
-        self.emit('))')
-            
+        sep = ',' if 'term' not in node else node['term']['literal']
+        file_pointer = 'fp_' + base62uuid(6)
+        self.emit(f'FILE* {file_pointer} = fopen("{filename}", "w");')
+        self.emit(f'{out_table.cxt_name}->printall("{sep}", "\\n", nullptr, {file_pointer});')
+        self.emit(f'fclose({file_pointer});')
+        # self.context.headers.add('fstream')
+        # cout_backup_buffer = 'stdout_' + base62uuid(4)
+        # ofstream = 'ofstream_' + base62uuid(6)
+        # self.emit(f'auto {cout_backup_buffer} = cout.rdbuf();')
+        # self.emit(f'auto {ofstream} = ofstream("{filename}");')
+        # self.emit(f'cout.rdbuf({ofstream}.rdbuf());')
+        # TODO: ADD STMTS.
+        # self.emit(f'cout.rdbuf({cout_backup_buffer});')
+        # self.emit(f'{ofstream}.close();')
+        
+        
 import sys
 include(sys.modules[__name__])

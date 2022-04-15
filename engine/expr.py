@@ -11,10 +11,10 @@ class expr(ast_node):
         'avg': 'avg',
         'sum': 'sum',
         'count' : 'count',
-        'mins': ['mins', 'minsw'],
-        'maxs': ['maxs', 'maxsw'],
-        'avgs': ['avgs', 'avgsw'],
-        'sums': ['sums', 'sumsw'],
+        'mins': ['mins', 'minw'],
+        'maxs': ['maxs', 'maxw'],
+        'avgs': ['avgs', 'avgw'],
+        'sums': ['sums', 'sumw'],
     }
     
     binary_ops = {
@@ -23,8 +23,8 @@ class expr(ast_node):
         'mul':'*', 
         'div':'/',
         'mod':'%',
-        'and':'&',
-        'or':'|',
+        'and':'&&',
+        'or':'||',
         'xor' : '^',
         'gt':'>',
         'lt':'<',
@@ -40,13 +40,16 @@ class expr(ast_node):
         'not' : '!'
     }
     
-    coumpound_generating_ops = ['mod', 'mins', 'maxs', 'sums'] + \
+    coumpound_generating_ops = ['avgs', 'mins', 'maxs', 'sums'] + \
        list( binary_ops.keys()) + list(compound_ops.keys()) + list(unary_ops.keys() )
 
     def __init__(self, parent, node, materialize_cols = True, abs_col = False):
         self.materialize_cols = materialize_cols
         self.raw_col = None
         self.__abs = abs_col
+        self.inside_agg = False
+        if(type(parent) is expr):
+            self.inside_agg = parent.inside_agg
         ast_node.__init__(self, parent, node, None)
 
     def init(self, _):
@@ -67,7 +70,8 @@ class expr(ast_node):
         if type(node) is dict:
             for key, val in node.items():
                 if key in self.func_maps:
-                    # if type(val) in [dict, str]:
+                    # TODO: distinguish between UDF agg functions and other UDF functions.
+                    self.inside_agg = True
                     self.context.headers.add('"./server/aggregations.h"')
                     if type(val) is list and len(val) > 1:
                         cfunc = self.func_maps[key]
@@ -81,6 +85,7 @@ class expr(ast_node):
                         self._expr += f"{funcname}(" 
                         self._expr += expr(self, val)._expr
                     self._expr += ')'
+                    self.inside_agg = False
                 elif key in self.binary_ops:
                     l = expr(self, val[0])._expr
                     r = expr(self, val[1])._expr
@@ -92,7 +97,7 @@ class expr(ast_node):
                             x.append(expr(self, v)._expr)
                     self._expr = self.compound_ops[key][1](x)
                 elif key in self.unary_ops:
-                    self._expr += f'({expr(self, val)._expr}{self.unary_ops[key]})'
+                    self._expr += f'{self.unary_ops[key]}({expr(self, val)._expr})'
                 else:
                     print(f'Undefined expr: {key}{val}')
 
@@ -112,7 +117,7 @@ class expr(ast_node):
             self._expr, self.raw_col = self.datasource.parse_tablenames(node, self.materialize_cols, True)
             self.raw_col = self.raw_col if type(self.raw_col) is ColRef else None
             if self.__abs and self.raw_col:
-                self._expr = self.raw_col.reference() + index_expr
+                self._expr = self.raw_col.reference() + ("" if self.inside_agg else index_expr)
         elif type(node) is bool:
             self._expr = '1' if node else '0'
         else:
