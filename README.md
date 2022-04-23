@@ -1,6 +1,6 @@
 # AQuery++
 
-AQuery++ Compiler that compiles AQuery into C++11.
+AQuery++ Compiler that compiles AQuery into C++17.
 Frontend built on top of [mo-sql-parsing](https://github.com/klahnakoski/mo-sql-parsing).
 
 ## Roadmap
@@ -8,13 +8,20 @@ Frontend built on top of [mo-sql-parsing](https://github.com/klahnakoski/mo-sql-
 - [ ] AQuery-C++ Compiler (Back End)
    -  [x] Schema and Data Model 
    -  [x] Data acquisition/output from/to csv file
-   -  [ ] Single table queries
+   -  [x] Single table queries
       -  [x] Projections and Single Table Aggregations 
       -  [x] Group by Aggregations
       -  [x] Filters
-      -  [ ] Order by
-      -  [ ] Assumption
+      -  [x] Order by
+      -  [x] Assumption
+      -  [x] Flatten
    -  [ ] Multi-table 
       -  [ ] Join
    -  [ ] Subqueries 
 - [ ] -> Optimizing Compiler
+
+## Introduction
+
+## Requirements
+
+## Usage
