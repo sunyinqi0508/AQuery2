@@ -22,7 +22,7 @@
 template <typename _Ty>
 class vector_type {
 public:
-	void inline _copy(vector_type<_Ty>& vt) {
+	void inline _copy(const vector_type<_Ty>& vt) {
 		this->size = vt.size;
 		this->capacity = vt.capacity;
 		this->container = (_Ty*)malloc(size * sizeof(_Ty));
@@ -30,6 +30,8 @@ public:
 		memcpy(container, vt.container, sizeof(_Ty) * size);
 	}
 	void inline _move(vector_type<_Ty>&& vt) {
+		if (capacity > 0) free(container);
+		
 		this->size = vt.size;
 		this->capacity = vt.capacity;
 		this->container = vt.container;
@@ -52,7 +54,7 @@ public:
 		}
 	}
 	constexpr vector_type() noexcept : size(0), capacity(0), container(0) {};
-	constexpr vector_type(vector_type<_Ty>& vt) noexcept {
+	constexpr vector_type(const vector_type<_Ty>& vt) noexcept {
 		_copy(vt);
 	}
 	constexpr vector_type(vector_type<_Ty>&& vt) noexcept {
@@ -67,7 +69,7 @@ public:
 		container[0] = vt;
 		return *this;
 	}
-	vector_type<_Ty> operator =(vector_type<_Ty>& vt) {
+	vector_type<_Ty> operator =(const vector_type<_Ty>& vt) {
 		_copy(vt);
 		return *this;
 	}

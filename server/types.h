@@ -118,6 +118,16 @@ struct decayS <T<Types...>>{
 	using type = T<typename std::decay<Types>::type ...>;
 };
 template <class T>
-using decays = typename decayS<T>::type;
+using decays = typename decayS<typename std::decay<T>::type>::type;
+template <class T>
+using decay_inner = typename decayS<T>::type;
+
+template <int n, bool v = 1, bool ...vals>
+auto fill_integer_array() {
+	if constexpr (n == 0)
+		return std::integer_sequence<bool, vals...>{};
+	else
+		return fill_integer_array<n - 1, v, v, vals...>();
+};
 
 #endif // !_TYPES_H

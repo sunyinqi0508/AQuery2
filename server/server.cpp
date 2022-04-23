@@ -75,6 +75,7 @@ int main(int argc, char** argv) {
     shm.FreeMemoryMap();
     return 0;
 }
+#include "utils.h"
 int _main()
 {
 
@@ -83,6 +84,7 @@ int _main()
     //t.emplace_back(2);
     //print(t);
     //return 0;
+    puts(cpp_17 ?"true":"false");
     void* handle = dlopen("dll.so", RTLD_LAZY);
     printf("handle: %x\n", handle);
     Context* cxt = new Context();
@@ -96,7 +98,8 @@ int _main()
         }
         dlclose(handle);
     }
-
+    static_assert(std::is_same_v<decltype(fill_integer_array<5, 1>()), std::integer_sequence<bool, 1,1,1,1,1>>, "");
     return 0;
+    
 }
 

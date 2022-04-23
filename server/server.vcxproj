@@ -168,6 +168,7 @@
     <ClInclude Include="gc.hpp" />
     <ClInclude Include="hasher.h" />
     <ClInclude Include="libaquery.h" />
+    <ClInclude Include="priority_vector.hpp" />
     <ClInclude Include="table.h" />
     <ClInclude Include="types.h" />
     <ClInclude Include="utils.h" />
@@ -175,10 +176,4 @@
     <ClInclude Include="winhelper.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets" />
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-  </Target>
 </Project>

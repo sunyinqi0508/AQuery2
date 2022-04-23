@@ -16,43 +16,26 @@ class order_item:
         return ('' if self.order else '-') + f'({self.name})'
         
     def __str__(self):
-        return self.materialize()
+        return self.name
     def __repr__(self):
         return self.__str__()
 
-class orders:
-    def __init__(self, node, datasource):
-        self.order_items = []
-        self.materialized = False
-        self.view = None
-        self.node = node 
-        self.datasource = datasource
-        self.n_attrs = -1
-
-    def materialize(self):
-        if not self.materialized:
-            self.view = View(self.node.context, self.datasource, False)
-            keys = ';'.join([f'{o}' for o in self.order_items])
-            self.n_attrs = len(self.order_items)
-            self.node.emit(f"{self.view.name}: > +`j (({',' if self.n_attrs == 1 else ''}{keys}))")
-            self.materialized = True
-
-    def append(self, o):
-        self.order_items.append(o)
-
 class orderby(ast_node):
     name = '_orderby'
-    
+    def __init__(self, parent: "ast_node", node, context: Context = None):
+        self.col_list = []
+        super().__init__(parent, node, context)
     def init(self, _):
         self.datasource = self.parent.datasource
-        self.order = orders(self, self.datasource)
+        self.order = []
         self.view = ''
     def produce(self, node):
         if type(node) is not list:
             node = [node]
         for n in node:
             order =  not ('sort' in n and n['sort'] == 'desc')
+            col_id = self.datasource.columns_byname[n['value']].id
+            self.col_list.append(col_id if order else -col_id-1)
             self.order.append(order_item(n['value'], self, order))
-
-    def consume(self, _):
-        self.datasource.order.append(self.order)
+    def finialize(self, references):
+        self.order = [ o for o in self.order if o.name in references ]

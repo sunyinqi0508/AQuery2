@@ -40,7 +40,7 @@ class expr(ast_node):
         'not' : '!'
     }
     
-    coumpound_generating_ops = ['mod', 'mins', 'maxs', 'sums'] + \
+    coumpound_generating_ops = ['avgs', 'mins', 'maxs', 'sums'] + \
        list( binary_ops.keys()) + list(compound_ops.keys()) + list(unary_ops.keys() )
 
     def __init__(self, parent, node, materialize_cols = True, abs_col = False):

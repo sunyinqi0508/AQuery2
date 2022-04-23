@@ -1,8 +1,8 @@
 #include "csv.h"
-#include <unordered_map>
-#include "./server/libaquery.h"
 #include "./server/hasher.h"
+#include <unordered_map>
 #include "./server/aggregations.h"
+#include "./server/libaquery.h"
 
     extern "C" int __DLLEXPORT__ dllmain(Context* cxt) { 
         using namespace std;
@@ -17,40 +17,45 @@ test_a.init();
 test_b.init();
 test_c.init();
 test_d.init();
-io::CSVReader<4> csv_reader_6qlGpe("test.csv");
-csv_reader_6qlGpe.read_header(io::ignore_extra_column, "a","b","c","d");
-int tmp_39gHMkie;
-int tmp_190h2sZs;
-int tmp_4a8dDzSN;
-int tmp_3LAKxSmM;
-while(csv_reader_6qlGpe.read_row(tmp_39gHMkie,tmp_190h2sZs,tmp_4a8dDzSN,tmp_3LAKxSmM)) { 
+io::CSVReader<4> csv_reader_53LkPG("test.csv");
+csv_reader_53LkPG.read_header(io::ignore_extra_column, "a","b","c","d");
+int tmp_43xeYChp;
+int tmp_3Vnt4fLK;
+int tmp_1HKZwQBO;
+int tmp_6IwJuIpg;
+while(csv_reader_53LkPG.read_row(tmp_43xeYChp,tmp_3Vnt4fLK,tmp_1HKZwQBO,tmp_6IwJuIpg)) { 
 
-test_a.emplace_back(tmp_39gHMkie);
-test_b.emplace_back(tmp_190h2sZs);
-test_c.emplace_back(tmp_4a8dDzSN);
-test_d.emplace_back(tmp_3LAKxSmM);
+test_a.emplace_back(tmp_43xeYChp);
+test_b.emplace_back(tmp_3Vnt4fLK);
+test_c.emplace_back(tmp_1HKZwQBO);
+test_d.emplace_back(tmp_6IwJuIpg);
 }
-typedef record<decltype(test_a[0]),decltype(test_b[0]),decltype(test_d[0])> record_type2Te4GFo;
-unordered_map<record_type2Te4GFo, vector_type<uint32_t>, transTypes<record_type2Te4GFo, hasher>> g79JNXM8;
-for (uint32_t i5x = 0; i5x < test_a.size; ++i5x){
-g79JNXM8[forward_as_tuple(test_a[i5x],test_b[i5x],test_d[i5x])].emplace_back(i5x);
+typedef record<decltype(test_a[0]),decltype(test_b[0]),decltype(test_d[0])> record_type1CmZCvh;
+unordered_map<record_type1CmZCvh, vector_type<uint32_t>, transTypes<record_type1CmZCvh, hasher>> g6nov6MR;
+for (uint32_t i4I = 0; i4I < test_a.size; ++i4I){
+g6nov6MR[forward_as_tuple(test_a[i4I],test_b[i4I],test_d[i4I])].emplace_back(i4I);
 }
-auto out_5NL7 = new TableInfo<decays<decltype(sum(test_c[0]))>,decays<decltype(test_b[0])>,decays<decltype(test_d[0])>>("out_5NL7", 3);
-cxt->tables.insert({"out_5NL7", out_5NL7});
-auto& out_5NL7_sumtestc = *(ColRef<decays<decltype(sum(test_c[0]))>> *)(&out_5NL7->colrefs[0]);
-auto& out_5NL7_get1None = *(ColRef<decays<decltype(test_b[0])>> *)(&out_5NL7->colrefs[1]);
-auto& out_5NL7_get2None = *(ColRef<decays<decltype(test_d[0])>> *)(&out_5NL7->colrefs[2]);
-out_5NL7_sumtestc.init();
-out_5NL7_get1None.init();
-out_5NL7_get2None.init();
-for(auto& i4l : g79JNXM8) {
-auto &key_ADPihOU = i4l.first;
-auto &val_7LsrkDP = i4l.second;
-out_5NL7_sumtestc.emplace_back(sum(test_c[val_7LsrkDP]));
-out_5NL7_get1None.emplace_back(get<1>(key_ADPihOU));
-out_5NL7_get2None.emplace_back(get<2>(key_ADPihOU));
+auto out_684r = new TableInfo<decays<decltype(sum(test_c[0]))>,decays<decltype(test_b[0])>,decays<decltype(test_d[0])>>("out_684r", 3);
+cxt->tables.insert({"out_684r", out_684r});
+auto& out_684r_sumtestc = *(ColRef<decays<decltype(sum(test_c[0]))>> *)(&out_684r->colrefs[0]);
+auto& out_684r_b = *(ColRef<decays<decltype(test_b[0])>> *)(&out_684r->colrefs[1]);
+auto& out_684r_d = *(ColRef<decays<decltype(test_d[0])>> *)(&out_684r->colrefs[2]);
+out_684r_sumtestc.init();
+out_684r_b.init();
+out_684r_d.init();
+for(auto& i3d : g6nov6MR) {
+auto &key_1TaM8D7 = i3d.first;
+auto &val_129np3x = i3d.second;
+out_684r_sumtestc.emplace_back(sum(test_c[val_129np3x]));
+out_684r_b.emplace_back(get<1>(key_1TaM8D7));
+out_684r_d.emplace_back(get<2>(key_1TaM8D7));
 }
-print(*out_5NL7);
-
+auto d2X3bP6l =out_684r->order_by_view<-3,1>();
+puts("a");
+print(*(out_684r->order_by<-3,1>()));
+puts("b");
+print(out_684r->order_by_view<-3,1>());
+puts("e");
+print(*out_684r);
 return 0;
 }

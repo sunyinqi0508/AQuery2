@@ -88,6 +88,15 @@ class outfile(ast_node):
     def produce(self, node):
         out_table:TableInfo = self.parent.out_table
         filename = node['loc']['literal'] if 'loc' in node else node['literal']
+        sep = ',' if 'term' not in node else node['term']['literal']
+        self.context.headers.add('fstream')
+        cout_backup_buffer = 'stdout_' + base62uuid(4)
+        ofstream = 'ofstream_' + base62uuid(6)
+        
+        self.emit(f'auto {cout_backup_buffer} = cout.rdbuf();')
+        self.emit(f'auto {ofstream} = ofstream("{filename}");')
+        self.emit(f'cout.rdbuf({ofstream}.rdbuf());')
+        
         self.emit_no_ln(f"\"{filename}\"1:`csv@(+(")
         l_compound = False
         l_cols = ''
@@ -114,6 +123,10 @@ class outfile(ast_node):
         else:
             self.emit_no_ln(f'{l_keys}!+,/({ending(l_cols)})')
         self.emit('))')
-            
+        
+        self.emit(f'cout.rdbuf({cout_backup_buffer});')
+        self.emit(f'{ofstream}.close();')
+        
+        
 import sys
 include(sys.modules[__name__])

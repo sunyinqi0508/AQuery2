@@ -14,6 +14,7 @@ class projection(ast_node):
         self.disp = disp
         self.outname = outname
         self.group_node = None
+        self.assumption = None
         self.where = None
         ast_node.__init__(self, parent, node, context)
     def init(self, _):
@@ -45,9 +46,8 @@ class projection(ast_node):
                     elif type(value) is str:
                         self.datasource = self.context.tables_byname[value]
                 if 'assumptions' in from_clause:
-                    for assumption in enlist(from_clause['assumptions']):
-                        orderby(self, assumption)
-
+                    self.assumption = orderby(self, enlist(from_clause['assumptions']))
+                    
             elif type(from_clause) is str:
                 self.datasource = self.context.tables_byname[from_clause]
             
@@ -83,7 +83,8 @@ class projection(ast_node):
         self.out_table = TableInfo('out_'+base62uuid(4), [], self.context)
         if 'outfile' in node:
             flatten = True
-            
+        
+        new_names = []
         for i, proj in enumerate(self.projections):
             cname = ''
             compound = False
@@ -92,12 +93,14 @@ class projection(ast_node):
                 if 'value' in proj:
                     e = proj['value']
                     sname = expr(self, e)._expr
-                    fname = expr.toCExpr(sname)
-                    absname = expr(self, e, abs_col=True)._expr
+                    fname = expr.toCExpr(sname) # fastest access method at innermost context
+                    absname = expr(self, e, abs_col=True)._expr # absolute name at function scope
                     compound = True
                     cexprs.append(fname)
-                    cname = ''.join([a if a in base62alp else '' for a in fname()])
-
+                    cname = e if type(e) is str else ''.join([a if a in base62alp else '' for a in expr.toCExpr(absname)()])
+                if 'name' in proj: # renaming column by AS keyword
+                    cname = proj['name']
+                    new_names.append(cname)
             compound = compound and has_groupby and self.datasource.rec not in self.group_node.referenced
             
             cols.append(ColRef(cname, expr.toCExpr(f'decays<decltype({absname})>')(0), self.out_table, 0, None, cname, i, compound=compound))
@@ -114,21 +117,17 @@ class projection(ast_node):
             self.where.finalize()
         
         has_orderby = 'orderby' in node
-
         if has_orderby:
             self.datasource = self.out_table
             self.context.datasource = self.out_table # discard current ds
             orderby_node = orderby(self, node['orderby'])
-            self.context.datasource.materialize_orderbys()
-            self.emit_no_ln(f"{f'{disp_varname}:+' if flatten else ''}(")
-            
-        if self.disp or has_orderby:
-            self.emit(f'print(*{self.out_table.cxt_name});')
-            
-        if has_orderby:
-            self.emit(f')[{orderby_node.view}]')
+            self.emit(f'auto {disp_varname} ={self.out_table.reference()}->order_by_view<{",".join([f"{c}" for c in orderby_node.col_list])}>();')
         else:
-            self.context.emit_flush()
+            disp_varname = f'*{self.out_table.cxt_name}'
+        if self.disp:
+            self.emit(f'print({disp_varname});')
+            
+
         if flatten:
             if len(self.projections) > 1 and not self.inv:
                 self.emit(f"{disp_varname}:+{disp_varname}")

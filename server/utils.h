@@ -1,18 +1,16 @@
 #pragma once
 #include <string>
 #include <ctime>
-
-template<int cnt, int begin = 0, int interval = 1>
-struct const_range {
-	int arr[cnt];
-	constexpr const_range() {
-		for (int i = begin, n = 0; n < cnt; ++n, i += interval)
-			arr[n] = i;
-	}
-	const int* begin() const {
-		return arr;
-	}
-	const int* end() const {
-		return arr + cnt;
-	}
-};
+#if ((defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) || __cplusplus >= 201703L)
+constexpr static bool cpp_17 = true;
+#else
+constexpr static bool cpp_17 = false;
+#endif
+template <class T>
+inline const char* str(const T& v) {
+	return "";
+}
+template <>
+inline const char* str(const bool& v) {
+	return v ? "true" : "false";
+}

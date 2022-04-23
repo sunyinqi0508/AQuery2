@@ -15,6 +15,9 @@ class ColRef:
         self.order_pending = None # order_pending
         self.compound = compound # compound field (list as a field) 
         self.views = []
+        self.aux_columns = [] # columns for temperary calculations 
+        # e.g. order by, group by, filter by expressions
+        
         self.__arr__ = (cname, _ty, cobj, cnt, table, name, id)
     
     def reference(self):
@@ -90,6 +93,7 @@ class TableInfo:
             type_tags += '>'
             
             self.cxt.emit(f'auto& {base_name} = *(TableInfo{type_tags} *)(cxt->tables[{self.table_name}]);')
+        return self.cxt_name
     def refer_all(self):
         self.reference()
         for c in self.columns:
