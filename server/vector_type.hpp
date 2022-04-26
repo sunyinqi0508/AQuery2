@@ -22,7 +22,11 @@
 template <typename _Ty>
 class vector_type {
 public:
+	typedef vector_type<_Ty> Decayed_t;
 	void inline _copy(const vector_type<_Ty>& vt) {
+		// quick init while using malloc
+		//if (capacity > 0) free(container);
+		
 		this->size = vt.size;
 		this->capacity = vt.capacity;
 		this->container = (_Ty*)malloc(size * sizeof(_Ty));
@@ -54,10 +58,10 @@ public:
 		}
 	}
 	constexpr vector_type() noexcept : size(0), capacity(0), container(0) {};
-	constexpr vector_type(const vector_type<_Ty>& vt) noexcept {
+	constexpr vector_type(const vector_type<_Ty>& vt) noexcept : capacity(0) {
 		_copy(vt);
 	}
-	constexpr vector_type(vector_type<_Ty>&& vt) noexcept {
+	constexpr vector_type(vector_type<_Ty>&& vt) noexcept : capacity(0) {
 		_move(std::move(vt));
 	}
 	vector_type<_Ty> operator =(const _Ty& vt) {
@@ -179,6 +183,7 @@ public:
 		}
 		size = this->size + dist;
 	}
+	void out(uint32_t n = 4, const char* sep = " ") const;
 	~vector_type() {
 		if (capacity > 0) free(container);
 		container = 0; size = capacity = 0;
@@ -250,7 +255,7 @@ public:
 		}
 	}
 	constexpr vector_type() : size(0), capacity(0), container(0) {};
-	void *get(uint32_t i, types::Type_t atype){
+	void* get(uint32_t i, types::Type_t atype){
 		return static_cast<void*>(static_cast<char*>(container) + (i * types::AType_sizes[atype]));
 	}
 	void operator[](const uint32_t& i) {

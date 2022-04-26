@@ -167,6 +167,7 @@
     <ClInclude Include="aggregations.h" />
     <ClInclude Include="gc.hpp" />
     <ClInclude Include="hasher.h" />
+    <ClInclude Include="io.h" />
     <ClInclude Include="libaquery.h" />
     <ClInclude Include="priority_vector.hpp" />
     <ClInclude Include="table.h" />

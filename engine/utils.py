@@ -17,3 +17,9 @@ def enlist(l):
 
 def seps(s, i, l):
     return s if i < len(l) - 1 else ''
+
+def has_other(a, b):
+    for ai in a:
+        if ai not in b:
+            return True
+    return False

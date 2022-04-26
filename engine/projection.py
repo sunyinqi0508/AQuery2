@@ -4,7 +4,7 @@ from engine.join import join
 from engine.expr import expr
 from engine.orderby import orderby
 from engine.scan import filter
-from engine.utils import base62uuid, enlist, base62alp
+from engine.utils import base62uuid, enlist, base62alp, has_other
 from engine.ddl import create_table, outfile
 import copy
 
@@ -88,26 +88,39 @@ class projection(ast_node):
         for i, proj in enumerate(self.projections):
             cname = ''
             compound = False
-            self.datasource.rec = []
+            self.datasource.rec = set()
             if type(proj) is dict:
                 if 'value' in proj:
                     e = proj['value']
                     sname = expr(self, e)._expr
                     fname = expr.toCExpr(sname) # fastest access method at innermost context
                     absname = expr(self, e, abs_col=True)._expr # absolute name at function scope
-                    compound = True
+                    compound = True # compound column
                     cexprs.append(fname)
                     cname = e if type(e) is str else ''.join([a if a in base62alp else '' for a in expr.toCExpr(absname)()])
                 if 'name' in proj: # renaming column by AS keyword
                     cname = proj['name']
                     new_names.append(cname)
-            compound = compound and has_groupby and self.datasource.rec not in self.group_node.referenced
+            elif type(proj) is str:
+                col = self.datasource.get_col_d(proj)
+                if type(col) is ColRef:
+                    col.reference()
+                    
+            compound = compound and has_groupby and has_other(self.datasource.rec, self.group_node.referenced)
+            self.datasource.rec = None
             
-            cols.append(ColRef(cname, expr.toCExpr(f'decays<decltype({absname})>')(0), self.out_table, 0, None, cname, i, compound=compound))
+            typename = ''
+            if not compound:
+                typename = f'value_type<decays<decltype({absname})>>'
+            else :
+                typename = f'decays<decltype({absname})>'
+                
+            cols.append(ColRef(cname, expr.toCExpr(typename)(), self.out_table, 0, None, cname, i, compound=compound))
+            
         self.out_table.add_cols(cols, False)
         
         if has_groupby:
-            create_table(self, self.out_table)
+            create_table(self, self.out_table) # only initializes out_table.
             self.group_node.finalize(cexprs, self.out_table)
         else:
             create_table(self, self.out_table, cexpr = cexprs)
@@ -129,8 +142,6 @@ class projection(ast_node):
             
 
         if flatten:
-            if len(self.projections) > 1 and not self.inv:
-                self.emit(f"{disp_varname}:+{disp_varname}")
             outfile(self, node['outfile'])
 
         if self.datasource_changed:

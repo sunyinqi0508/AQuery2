@@ -6,6 +6,8 @@
 #include "types.h"
 #include "vector_type.hpp"
 #include <iostream>
+#include <string>
+#include "io.h"
 template <typename T>
 class vector_type;
 template <>
@@ -26,8 +28,10 @@ template<typename _Ty>
 class ColRef : public vector_type<_Ty>
 {
 public:
+	typedef ColRef<_Ty> Decayed_t;
 	const char* name;
 	types::Type_t ty = types::ERROR;
+	ColRef() : vector_type<_Ty>(0), name("") {}
 	ColRef(const uint32_t& size, const char* name = "") : vector_type<_Ty>(size), name(name) {}
 	ColRef(const char* name) : name(name) {}
 	void init() { ty = types::Types<_Ty>::getType();  this->size = this->capacity = 0; this->container = 0; }
@@ -37,6 +41,14 @@ public:
 	ColView<_Ty> operator [](const vector_type<uint32_t>&idxs) const {
 		return ColView<_Ty>(*this, idxs);
 	}
+
+	void out(uint32_t n = 4, const char* sep = " ") const {
+		n = n > this->size ? this->size : n;
+		std::cout << '(';
+			for (uint32_t i = 0; i < n; ++i)
+				std::cout << this->operator[](i) << sep;
+		std::cout << ')';
+	}
 	template<typename T>
 	ColRef<T> scast();
 };
@@ -44,6 +56,7 @@ public:
 template<typename _Ty>
 class ColView {
 public: 
+	typedef ColRef<_Ty> Decayed_t;
 	const vector_type<uint32_t>& idxs;
 	const ColRef<_Ty>& orig;
 	const uint32_t& size;
@@ -77,8 +90,22 @@ public:
 	Iterator_t end() const {
 		return Iterator_t(idxs.end(), orig);
 	}
+	void out(uint32_t n = 4, const char* sep = " ") const {
+		n = n > size ? size : n;
+		std::cout<<'(';
+		for (uint32_t i = 0; i < n; ++i) 
+			std::cout << this->operator[](i)<< sep;
+		std::cout << ')';
+	}
 };
-
+template <template <class...> class VT, class T>
+std::ostream& operator<<(std::ostream& os, const VT<T>& v)
+{
+	v.out();
+	return os;
+}
+template <class Type>
+struct decayed_impl<ColView, Type> { typedef ColRef<Type> type; };
 template<typename _Ty>
 template<typename T>
 inline ColRef<T> ColRef<_Ty>::scast()
@@ -103,6 +130,17 @@ template <long long _Index, class... _Types>
 constexpr inline ColRef<std::tuple_element_t<_Index, std::tuple<_Types...>>>& get(const TableView<_Types...>& table) noexcept {
 	return *(ColRef<std::tuple_element_t<_Index, std::tuple<_Types...>>> *) & (table.info.colrefs[_Index]);
 }
+template <class T>
+struct is_vector_impl : std::false_type {};
+template <class V>
+struct is_vector_impl<ColRef<V>> : std::true_type {};
+template <class V>
+struct is_vector_impl<ColView<V>> : std::true_type {};
+template <class V>
+struct is_vector_impl<vector_type<V>> : std::true_type {};
+template <class T>
+constexpr static bool is_vector_type = is_vector_impl<T>::value;
+
 template<class ...Types>
 struct TableView;
 template<class ...Types>
@@ -158,7 +196,49 @@ struct TableInfo {
 	auto order_by_view () {
 		return TableView<Types...>(order_by<cols...>(), *this);
 	}
+	template <int col, int ...rem_cols, class Fn, class ...__Types> 
+	inline void print2_impl(Fn func, const uint32_t& i, const __Types& ... args) const {
+		using this_type = typename std::tuple_element<col, tuple_type>::type;
+		const auto& this_value = get<col>(*this)[i];
+		const auto& next = [&](auto &v) {
+			if constexpr (sizeof...(rem_cols) == 0)
+				func(args..., v);
+			else
+				print2_impl<rem_cols...>(func, i, args ..., v);
+		};
+		if constexpr (is_vector_type<this_type>)
+			for (int j = 0; j < this_value.size; ++j)
+				next(this_value[j]);
+		else
+			next(this_value);
+	}
+	template <int ...cols>
+	void print2(const char* __restrict sep = ",", const char* __restrict end = "\n",
+		const vector_type<uint32_t>* __restrict view = nullptr, FILE* __restrict fp = nullptr) const {
+		std::string printf_string =
+			generate_printf_string<typename std::tuple_element<cols, tuple_type>::type ...>(sep, end);
+		const auto& prt_loop = [&fp, &view, &printf_string, *this](const auto& f) {
+			if(view)
+				for (int i = 0; i < view->size; ++i)
+					print2_impl<cols...>(f, (*view)[i], printf_string.c_str());
+			else
+				for (int i = 0; i < colrefs[0].size; ++i)
+					print2_impl<cols...>(f, i, printf_string.c_str());
+		};
+		if (fp)
+			prt_loop([&fp](auto... args) { fprintf(fp, args...); });
+		else
+			prt_loop(printf);
+	}
+	template <int ...vals> struct applier {
+	inline constexpr static void apply(const TableInfo<Types...>& t, const char* __restrict sep = ",", const char* __restrict end = "\n",
+		const vector_type<uint32_t>* __restrict view = nullptr, FILE* __restrict fp = nullptr)
+	{ t.template print2<vals ...>(sep, end, view, fp); }};
 	
+	inline void printall(const char* __restrict sep = ",", const char* __restrict end = "\n",
+		const vector_type<uint32_t>* __restrict view = nullptr, FILE* __restrict fp = nullptr) {
+		applyIntegerSequence<sizeof...(Types), applier>::apply(*this, sep, end, view, fp);
+	}
 };
 
 
@@ -189,6 +269,9 @@ template <class T>
 constexpr static inline bool is_vector(const T&) {
 	return false;
 }
+
+
+
 template<class ...Types>
 TableInfo<Types...>::TableInfo(const char* name, uint32_t n_cols) : name(name), n_cols(n_cols) {
 	this->colrefs = (ColRef<void>*)malloc(sizeof(ColRef<void>) * n_cols);

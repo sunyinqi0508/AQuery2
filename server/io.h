@@ -2,14 +2,14 @@
 #include "types.h"
 #include <cstdio>
 #include <string>
-#include <cstdio>
-#include <string>
 template <class ...Types>
 std::string generate_printf_string(const char* sep = " ", const char* end = "\n") {
 	std::string str;
-	(void)std::initializer_list<int>{
-		(str += types::printf_str[types::Types<Types>::getType()], str += sep, 0)...
-	};
+	((str += types::printf_str[types::Types<value_type_r<Types>>::getType()], str += sep), ...);
+	const auto trim = str.size() - strlen(sep);
+	if (trim > 0)
+		str.resize(trim);
 	str += end;
 	return str;
 }
+

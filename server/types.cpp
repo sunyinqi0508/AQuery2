@@ -1,11 +1,6 @@
 #include "types.h"
 #include <string>
 #include <iostream>
-//template<typename T>
-//inline static constexpr void types::Types<T>::print(T& v)
-//{
-//	std::cout << v;
-//}
 #include <chrono>
 #include <ctime>
 namespace types {

@@ -89,43 +89,19 @@ class outfile(ast_node):
         out_table:TableInfo = self.parent.out_table
         filename = node['loc']['literal'] if 'loc' in node else node['literal']
         sep = ',' if 'term' not in node else node['term']['literal']
-        self.context.headers.add('fstream')
-        cout_backup_buffer = 'stdout_' + base62uuid(4)
-        ofstream = 'ofstream_' + base62uuid(6)
-        
-        self.emit(f'auto {cout_backup_buffer} = cout.rdbuf();')
-        self.emit(f'auto {ofstream} = ofstream("{filename}");')
-        self.emit(f'cout.rdbuf({ofstream}.rdbuf());')
-        
-        self.emit_no_ln(f"\"{filename}\"1:`csv@(+(")
-        l_compound = False
-        l_cols = ''
-        l_keys = ''
-        ending = lambda x: x[:-1] if len(x) > 0 and x[-1]==';' else x
-        for i, c in enumerate(out_table.columns):
-            c:ColRef
-            l_keys += '`' + c.name
-            if c.compound:
-                if l_compound:
-                    l_cols=f'flatBOTH\'+(({ending(l_cols)});{c.cname})'
-                else:
-                    l_compound = True
-                    if i >= 1:
-                        l_cols = f'flatRO\'+(({ending(l_cols)});{c.cname})'
-                    else:
-                        l_cols = c.cname + ';'
-            elif l_compound:
-                l_cols = f'flatLO\'+(({ending(l_cols)});{c.cname})'
-            else:
-                l_cols += f"{c.cname};"
-        if not l_compound:
-            self.emit_no_ln(l_keys + '!(' + ending(l_cols) + ')')
-        else:
-            self.emit_no_ln(f'{l_keys}!+,/({ending(l_cols)})')
-        self.emit('))')
-        
-        self.emit(f'cout.rdbuf({cout_backup_buffer});')
-        self.emit(f'{ofstream}.close();')
+        file_pointer = 'fp_' + base62uuid(6)
+        self.emit(f'FILE* {file_pointer} = fopen("{filename}", "w");')
+        self.emit(f'{out_table.cxt_name}->printall("{sep}", "\\n", nullptr, {file_pointer});')
+        self.emit(f'fclose({file_pointer});')
+        # self.context.headers.add('fstream')
+        # cout_backup_buffer = 'stdout_' + base62uuid(4)
+        # ofstream = 'ofstream_' + base62uuid(6)
+        # self.emit(f'auto {cout_backup_buffer} = cout.rdbuf();')
+        # self.emit(f'auto {ofstream} = ofstream("{filename}");')
+        # self.emit(f'cout.rdbuf({ofstream}.rdbuf());')
+        # TODO: ADD STMTS.
+        # self.emit(f'cout.rdbuf({cout_backup_buffer});')
+        # self.emit(f'{ofstream}.close();')
         
         
 import sys

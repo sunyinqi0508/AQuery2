@@ -39,10 +39,10 @@ T min(const VT<T>& v) {
 	return min_v;
 }
 template<class T, template<typename ...> class VT>
-VT<T> mins(const VT<T>& arr) {
-	const int& len = arr.size;
+decayed_t<VT,T> mins(const VT<T>& arr) {
+	const uint32_t& len = arr.size;
 	std::deque<std::pair<T, uint32_t>> cache;
-	VT<T> ret(len);
+	decayed_t<VT,T> ret(len);
 	T min = std::numeric_limits<T>::max();
 	for (int i = 0; i < len; ++i) {
 		if (arr[i] < min)
@@ -52,9 +52,9 @@ VT<T> mins(const VT<T>& arr) {
 	return ret;
 }
 template<class T, template<typename ...> class VT>
-VT<T> maxs(const VT<T>& arr) {
-	const int& len = arr.size;
-	VT<T> ret(len);
+decayed_t<VT,T> maxs(const VT<T>& arr) {
+	const uint32_t& len = arr.size;
+	decayed_t<VT,T> ret(len);
 	T max = std::numeric_limits<T>::min();
 	for (int i = 0; i < len; ++i) {
 		if (arr[i] > max)
@@ -65,9 +65,9 @@ VT<T> maxs(const VT<T>& arr) {
 }
 
 template<class T, template<typename ...> class VT>
-VT<T> minw(const VT<T>& arr, uint32_t w) {
-	const int& len = arr.size;
-	VT<T> ret(len);
+decayed_t<VT,T> minw(uint32_t w, const VT<T>& arr) {
+	const uint32_t& len = arr.size;
+	decayed_t<VT,T> ret{len};
 	std::deque<std::pair<T, uint32_t>> cache;
 	for (int i = 0; i < len; ++i) {
 		if (!cache.empty() && cache.front().second == i - w) cache.pop_front();
@@ -79,9 +79,9 @@ VT<T> minw(const VT<T>& arr, uint32_t w) {
 }
 
 template<class T, template<typename ...> class VT>
-VT<T> maxw(const VT<T>& arr, uint32_t w) {
-	const int& len = arr.size;
-	VT<T> ret(len);
+decayed_t<VT,T> maxw(uint32_t w, const VT<T>& arr) {
+	const uint32_t& len = arr.size;
+	decayed_t<VT, T> ret(len);
 	std::deque<std::pair<T, uint32_t>> cache;
 	for (int i = 0; i < len; ++i) {
 		if (!cache.empty() && cache.front().second == i - w) cache.pop_front();
@@ -91,15 +91,44 @@ VT<T> maxw(const VT<T>& arr, uint32_t w) {
 	}
 	return ret;
 }
-
+template<class T, template<typename ...> class VT>
+decayed_t<VT, types::GetLongType<T>> sumw(uint32_t w, const VT<T>& arr) {
+	const uint32_t& len = arr.size;
+	decayed_t<VT, types::GetLongType<T>> ret(len);
+	uint32_t i = 0;
+	w = w > len ? len : w;
+	if(arr.size)
+		ret[i++] = arr[0];
+	for (; i < w; ++i) 
+		ret[i] = ret[i-1] + arr[i];
+	for (; i < len; ++i) 
+		ret[i] = ret[i-1] + arr[i] - arr[i-w];
+	return ret;
+}
+template<class T, template<typename ...> class VT>
+decayed_t<VT, types::GetFPType<T>> avgw(uint32_t w, const VT<T>& arr) {
+	typedef types::GetFPType<T> FPType;
+	const uint32_t& len = arr.size;
+	decayed_t<VT, FPType> ret(len);
+	uint32_t i = 0;
+	types::GetLongType<T> s;
+	w = w > len ? len : w;
+	if(arr.size)
+		s = ret[i++] = arr[0];
+	for (; i < w; ++i) 
+		ret[i] = (s += arr[i])/(FPType)(i+1);
+	for (; i < len; ++i) 
+		ret[i] = ret[i-1] + (arr[i] - arr[i-w])/(FPType)w;
+	return ret;
+}
 template <class T> constexpr inline T max(const T& v) { return v; }
 template <class T> constexpr inline T min(const T& v) { return v; }
 template <class T> constexpr inline T avg(const T& v) { return v; }
 template <class T> constexpr inline T sum(const T& v) { return v; }
-template <class T> constexpr inline T maxw(const T& v, uint32_t) { return v; }
-template <class T> constexpr inline T minw(const T& v, uint32_t) { return v; }
-template <class T> constexpr inline T avgw(const T& v, uint32_t) { return v; }
-template <class T> constexpr inline T sumw(const T& v, uint32_t) { return v; }
+template <class T> constexpr inline T maxw(uint32_t, const T& v) { return v; }
+template <class T> constexpr inline T minw(uint32_t, const T& v) { return v; }
+template <class T> constexpr inline T avgw(uint32_t, const T& v) { return v; }
+template <class T> constexpr inline T sumw(uint32_t, const T& v) { return v; }
 template <class T> constexpr inline T maxs(const T& v) { return v; }
 template <class T> constexpr inline T mins(const T& v) { return v; }
 template <class T> constexpr inline T avgs(const T& v) { return v; }

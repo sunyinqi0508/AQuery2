@@ -20,6 +20,10 @@ Frontend built on top of [mo-sql-parsing](https://github.com/klahnakoski/mo-sql-
    -  [ ] Subqueries 
 - [ ] -> Optimizing Compiler
 
+## TODO:
+- [ ] C++ Meta-Programming: Elimilate template recursions as much as possible.
+- [ ] IPC: Better ways to communicate between Interpreter (Python) and Executer (C++).
+  - [ ] Sockets? stdin/stdout capture?
 ## Introduction
 
 ## Requirements

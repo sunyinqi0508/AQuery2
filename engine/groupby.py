@@ -12,7 +12,7 @@ class groupby(ast_node):
         self.group_type = 'record_type' + base62uuid(7)
         self.datasource = self.parent.datasource
         self.scanner = None
-        self.datasource.rec = []
+        self.datasource.rec = set()
         self.raw_groups = []
     def produce(self, node):
         

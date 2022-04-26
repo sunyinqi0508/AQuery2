@@ -143,8 +143,8 @@ class TableInfo:
 
     def get_col_d(self, col_name):
         col = self.columns_byname[col_name]
-        if type(self.rec) is list:
-            self.rec.append(col)
+        if type(self.rec) is set:
+            self.rec.add(col)
         return col
 
     def get_ccolname_d(self, col_name):
@@ -167,12 +167,12 @@ class TableInfo:
         self.alias.add(alias)
         
     def parse_tablenames(self, colExpr, materialize = True, raw = False):
-        self.get_col = self.get_col if materialize else self.get_col_d
+        # get_col = self.get_col if materialize else self.get_col_d
 
         parsedColExpr = colExpr.split('.')
         ret = None
         if len(parsedColExpr) <= 1:
-            ret = self.get_col(colExpr)
+            ret = self.get_col_d(colExpr)
         else: 
             datasource = self.cxt.tables_byname[parsedColExpr[0]]
             if datasource is None:
@@ -184,6 +184,7 @@ class TableInfo:
         if self.groupinfo is not None and ret and ret in self.groupinfo.raw_groups:
             string = f'get<{self.groupinfo.raw_groups.index(ret)}>({{y}})'
         return string, ret if raw else string
+
 class View:
     def __init__(self, context, table = None, tmp = True):
         self.table: TableInfo = table
@@ -200,6 +201,7 @@ class Context:
     extern "C" int __DLLEXPORT__ dllmain(Context* cxt) { 
         using namespace std;
         using namespace types;
+        
     '''
     def __init__(self): 
         self.tables:List[TableInfo] = []
