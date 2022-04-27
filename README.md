@@ -1,7 +1,7 @@
-# AQuery++
+# AQuery++ DB
 
-AQuery++ Compiler that compiles AQuery into C++17.
-Frontend built on top of [mo-sql-parsing](https://github.com/klahnakoski/mo-sql-parsing).
+AQuery++ Database is an In-Memory Column-Store Database that incorporates compiled query execution.
+Compiler frontend built on top of [mo-sql-parsing](https://github.com/klahnakoski/mo-sql-parsing).
 
 ## Roadmap
 - [x] SQL Parser -> AQuery Parser (Front End)

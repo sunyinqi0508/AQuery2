@@ -9,25 +9,33 @@
 #ifdef _MSC_VER
 #define __restrict__ __restrict
 #endif
+
+template <class T>
+constexpr static inline bool is_vector(const T&) {
+	return false;
+}
+template <class T>
+struct is_vector_impl : std::false_type {};
+template <class T>
+constexpr static bool is_vector_type = is_vector_impl<T>::value;
+
 namespace types {
 	enum Type_t {
 		AINT, AFLOAT, ASTR, ADOUBLE, ALDOUBLE, ALONG, ASHORT, ADATE, ATIME, ACHAR,
-		AUINT, AULONG, AUSHORT, AUCHAR, NONE, ERROR
+		AUINT, AULONG, AUSHORT, AUCHAR, VECTOR, NONE, ERROR
 	};
 	static constexpr const char* printf_str[] = { "%d", "%f", "%s", "%lf", "%llf", "%ld", "%hi", "%s", "%s", "%c",
-		"%u", "%lu", "%hu", "%hhu", "NULL" };
+		"%u", "%lu", "%hu", "%hhu", "Vector<%s>", "NULL", "ERROR" };
 	// TODO: deal with data/time <=> str/uint conversion
 	struct date_t {
 		uint32_t val;
 		date_t(const char* d) {
-
 		}
 		std::string toString() const;
 	};
 	struct time_t {
 		uint32_t val;
 		time_t(const char* d) {
-
 		}
 		std::string toString() const;
 	};
@@ -51,12 +59,14 @@ namespace types {
 		f(unsigned short, AUSHORT) \
 		f(unsigned char, AUCHAR) 
 
-		constexpr static Type_t getType() {
-#define	TypeConnect(x, y) if(typeid(T) == typeid(x)) return y; else
+		inline constexpr static Type_t getType() {
+#define	TypeConnect(x, y) if constexpr(std::is_same<x, T>::value) return y; else
 			ConnectTypes(TypeConnect)
+			if constexpr (is_vector_type<T>) 
+				return VECTOR;
+			else
 				return NONE;
 		}
-		//static constexpr inline void print(T& v);
 	};
 #define ATypeSize(t, at) sizeof(t),
 	static constexpr size_t AType_sizes[] = { ConnectTypes(ATypeSize) 1 };

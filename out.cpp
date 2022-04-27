@@ -41,6 +41,7 @@ cxt->tables.insert({"out_4DCN", out_4DCN});
 auto& out_4DCN_sumtestc = *(ColRef<decays<decltype(sum(test_c))>> *)(&out_4DCN->colrefs[0]);
 auto& out_4DCN_b = *(ColRef<value_type<decays<decltype(test_b)>>> *)(&out_4DCN->colrefs[1]);
 auto& out_4DCN_d = *(ColRef<value_type<decays<decltype(test_d)>>> *)(&out_4DCN->colrefs[2]);
+auto lineage = test->bind(out_4DCN);
 out_4DCN_sumtestc.init();
 out_4DCN_b.init();
 out_4DCN_d.init();
@@ -50,8 +51,10 @@ auto &val_7BUMR6d = i1s.second;
 out_4DCN_sumtestc.emplace_back(sum(test_c[val_7BUMR6d]));
 out_4DCN_b.emplace_back(get<1>(key_4Q0aEyH));
 out_4DCN_d.emplace_back(get<2>(key_4Q0aEyH));
+lineage.emplace_back(val_7BUMR6d[0]);
 }
-auto d6X0PMzl =out_4DCN->order_by_view<-3,1>();
+print(lineage.rid);
+auto d6X0PMzl = out_4DCN->order_by_view<-3,1>();
 print(d6X0PMzl);
 return 0;
 }

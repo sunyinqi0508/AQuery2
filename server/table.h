@@ -130,16 +130,13 @@ template <long long _Index, class... _Types>
 constexpr inline ColRef<std::tuple_element_t<_Index, std::tuple<_Types...>>>& get(const TableView<_Types...>& table) noexcept {
 	return *(ColRef<std::tuple_element_t<_Index, std::tuple<_Types...>>> *) & (table.info.colrefs[_Index]);
 }
-template <class T>
-struct is_vector_impl : std::false_type {};
+
 template <class V>
 struct is_vector_impl<ColRef<V>> : std::true_type {};
 template <class V>
 struct is_vector_impl<ColView<V>> : std::true_type {};
 template <class V>
 struct is_vector_impl<vector_type<V>> : std::true_type {};
-template <class T>
-constexpr static bool is_vector_type = is_vector_impl<T>::value;
 
 template<class ...Types>
 struct TableView;
@@ -150,6 +147,29 @@ struct TableInfo {
 	uint32_t n_cols;
 	typedef std::tuple<Types...> tuple_type;
 	void print(const char* __restrict sep, const char* __restrict end) const;
+
+	template <class ...Types2>
+	struct lineage_t {
+		TableInfo<Types...>* this_table;
+		TableInfo<Types2...>* table;
+		vector_type<uint32_t> rid;
+		constexpr lineage_t(TableInfo<Types...>*this_table, TableInfo<Types2...> *table) 
+			: this_table(this_table), table(table), rid(0) {}
+		constexpr lineage_t() : this_table(0), table(0), rid(0) {}
+
+		template <int col>
+		inline auto& get(uint32_t idx) {
+			return get<col>(*table)[rid[idx]];
+		}
+		void emplace_back(const uint32_t& v) {
+			rid.emplace_back(v);
+		}
+	};
+	template<class ...Types2>
+	auto bind(TableInfo<Types2...>* table2) {
+		return lineage_t(this, table2);
+	}
+	
 	template <size_t j = 0>
 	typename std::enable_if<j == sizeof...(Types) - 1, void>::type print_impl(const uint32_t& i, const char* __restrict sep = " ") const;
 	template <size_t j = 0>
@@ -196,6 +216,8 @@ struct TableInfo {
 	auto order_by_view () {
 		return TableView<Types...>(order_by<cols...>(), *this);
 	}
+
+	// Print 2 -- generate printf string first, supports flattening, supports sprintf/printf/fprintf
 	template <int col, int ...rem_cols, class Fn, class ...__Types> 
 	inline void print2_impl(Fn func, const uint32_t& i, const __Types& ... args) const {
 		using this_type = typename std::tuple_element<col, tuple_type>::type;
@@ -257,6 +279,7 @@ struct TableView {
 		delete idxs;
 	}
 };
+
 template <class T>
 constexpr static inline bool is_vector(const ColRef<T>&) {
 	return true;
@@ -265,12 +288,6 @@ template <class T>
 constexpr static inline bool is_vector(const vector_type<T>&) {
 	return true;
 }
-template <class T>
-constexpr static inline bool is_vector(const T&) {
-	return false;
-}
-
-
 
 template<class ...Types>
 TableInfo<Types...>::TableInfo(const char* name, uint32_t n_cols) : name(name), n_cols(n_cols) {

@@ -6,8 +6,8 @@ from engine.utils import base62uuid
 
 class create_table(ast_node):
     name = 'create_table'
-    def __init__(self, parent: "ast_node", node, context: Context = None, cexpr = None):
-        self.cexpr = cexpr
+    def __init__(self, parent: "ast_node", node, context: Context = None, cexprs = None):
+        self.cexprs = cexprs
         super().__init__(parent, node, context)
     def produce(self, node):
         if type(node) is not TableInfo:
@@ -23,19 +23,21 @@ class create_table(ast_node):
         self.context.tables_in_context[tbl] = tbl.table_name
         tbl.cxt_name = tbl.table_name
         tbl.refer_all()
-        if self.cexpr is None:
+        # create an empty new table
+        if self.cexprs is None:
             for c in tbl.columns:
                 self.emit(f"{c.cxt_name}.init();")
+        # create an output table
         else:
             if len(self.context.scans) == 0:
                 for i, c in enumerate(tbl.columns):
                     self.emit(f"{c.cxt_name}.init();")
-                    self.emit(f"{c.cxt_name} = {self.cexpr[i]()};")
+                    self.emit(f"{c.cxt_name} = {self.cexprs[i]()};")
             else:
                 scanner:scan = self.context.scans[-1]
                 for i, c in enumerate(tbl.columns):
                     scanner.add(f"{c.cxt_name}.init();", "init")
-                    scanner.add(f"{c.cxt_name} = {self.cexpr[i](scanner.it_ver)};")
+                    scanner.add(f"{c.cxt_name} = {self.cexprs[i](scanner.it_ver)};")
 
 class insert(ast_node):
     name = 'insert'

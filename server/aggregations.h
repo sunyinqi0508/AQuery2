@@ -91,14 +91,36 @@ decayed_t<VT,T> maxw(uint32_t w, const VT<T>& arr) {
 	}
 	return ret;
 }
+
+template<class T, template<typename ...> class VT>
+decayed_t<VT, types::GetLongType<T>> sums(const VT<T>& arr) {
+	const uint32_t& len = arr.size;
+	decayed_t<VT, types::GetLongType<T>> ret(len);
+	uint32_t i = 0;
+	if(len) ret[i++] = arr[0];
+	for (; i < len; ++i) 
+		ret[i] = ret[i-1] + arr[i];
+	return ret;
+}
+template<class T, template<typename ...> class VT>
+decayed_t<VT, types::GetFPType<T>> avgs(const VT<T>& arr) {
+	const uint32_t& len = arr.size;
+	typedef types::GetFPType<T> FPType;
+	decayed_t<VT, FPType> ret(len);
+	uint32_t i = 0;
+	types::GetLongType<T> s;
+	if(len) s = ret[i++] = arr[0];
+	for (; i < len; ++i) 
+		ret[i] = (s+=arr[i])/(FPType)(i+1);
+	return ret;
+}
 template<class T, template<typename ...> class VT>
 decayed_t<VT, types::GetLongType<T>> sumw(uint32_t w, const VT<T>& arr) {
 	const uint32_t& len = arr.size;
 	decayed_t<VT, types::GetLongType<T>> ret(len);
 	uint32_t i = 0;
 	w = w > len ? len : w;
-	if(arr.size)
-		ret[i++] = arr[0];
+	if(len) ret[i++] = arr[0];
 	for (; i < w; ++i) 
 		ret[i] = ret[i-1] + arr[i];
 	for (; i < len; ++i) 
@@ -113,14 +135,15 @@ decayed_t<VT, types::GetFPType<T>> avgw(uint32_t w, const VT<T>& arr) {
 	uint32_t i = 0;
 	types::GetLongType<T> s;
 	w = w > len ? len : w;
-	if(arr.size)
-		s = ret[i++] = arr[0];
+	if(len)	s = ret[i++] = arr[0];
 	for (; i < w; ++i) 
 		ret[i] = (s += arr[i])/(FPType)(i+1);
 	for (; i < len; ++i) 
 		ret[i] = ret[i-1] + (arr[i] - arr[i-w])/(FPType)w;
 	return ret;
 }
+
+template <class T> constexpr inline T count(const T& v) { return 1; }
 template <class T> constexpr inline T max(const T& v) { return v; }
 template <class T> constexpr inline T min(const T& v) { return v; }
 template <class T> constexpr inline T avg(const T& v) { return v; }

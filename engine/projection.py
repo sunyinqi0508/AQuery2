@@ -95,6 +95,7 @@ class projection(ast_node):
                     sname = expr(self, e)._expr
                     fname = expr.toCExpr(sname) # fastest access method at innermost context
                     absname = expr(self, e, abs_col=True)._expr # absolute name at function scope
+                    # TODO: Make it single pass here.
                     compound = True # compound column
                     cexprs.append(fname)
                     cname = e if type(e) is str else ''.join([a if a in base62alp else '' for a in expr.toCExpr(absname)()])
@@ -109,21 +110,21 @@ class projection(ast_node):
             compound = compound and has_groupby and has_other(self.datasource.rec, self.group_node.referenced)
             self.datasource.rec = None
             
-            typename = ''
+            typename = f'decays<decltype({absname})>'
             if not compound:
-                typename = f'value_type<decays<decltype({absname})>>'
-            else :
-                typename = f'decays<decltype({absname})>'
+                typename = f'value_type<{typename}>'
                 
             cols.append(ColRef(cname, expr.toCExpr(typename)(), self.out_table, 0, None, cname, i, compound=compound))
             
         self.out_table.add_cols(cols, False)
         
         if has_groupby:
-            create_table(self, self.out_table) # only initializes out_table.
+            create_table(self, self.out_table) # creates empty out_table.
             self.group_node.finalize(cexprs, self.out_table)
         else:
-            create_table(self, self.out_table, cexpr = cexprs)
+            create_table(self, self.out_table, cexprs = cexprs) # create and populate out_table.
+            
+            
         self.datasource.group_node = None
         
         if self.where is not None:
@@ -134,7 +135,7 @@ class projection(ast_node):
             self.datasource = self.out_table
             self.context.datasource = self.out_table # discard current ds
             orderby_node = orderby(self, node['orderby'])
-            self.emit(f'auto {disp_varname} ={self.out_table.reference()}->order_by_view<{",".join([f"{c}" for c in orderby_node.col_list])}>();')
+            self.emit(f'auto {disp_varname} = {self.out_table.reference()}->order_by_view<{",".join([f"{c}" for c in orderby_node.col_list])}>();')
         else:
             disp_varname = f'*{self.out_table.cxt_name}'
         if self.disp:
