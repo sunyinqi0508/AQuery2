@@ -8,7 +8,7 @@ SELECT Month,avgs(3,sales)
 FROM sale
 --     ASSUMING ASC Month
 INTO OUTFILE "moving_avg_output.csv"
-FIELDS TERMINATED BY ","
+FIELDS TERMINATED BY ";"
 
 select sales, mins(2,Month) from sale group by sales
 into outfile "flatten.csv" 

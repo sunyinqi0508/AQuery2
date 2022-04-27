@@ -46,7 +46,7 @@ class projection(ast_node):
                     elif type(value) is str:
                         self.datasource = self.context.tables_byname[value]
                 if 'assumptions' in from_clause:
-                    self.assumption = orderby(self, enlist(from_clause['assumptions']))
+                    self.assumption = enlist(from_clause['assumptions'])
                     
             elif type(from_clause) is str:
                 self.datasource = self.context.tables_byname[from_clause]
