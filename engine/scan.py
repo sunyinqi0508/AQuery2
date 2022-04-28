@@ -5,14 +5,16 @@ from engine.expr import expr
 
 class scan(ast_node):
     name = 'scan'
-    def __init__(self, parent: "ast_node", node, size = None, context: Context = None):
+    def __init__(self, parent: "ast_node", node, size = None, context: Context = None, const = False):
         self.type = type
         self.size = size
+        self.const = "const " if const else ""
         super().__init__(parent, node, context)
     def init(self, _):
         self.datasource = self.context.datasource
         self.initializers = ''
         self.start = ''
+        self.front = ''
         self.body = ''
         self.end = '}'
         self.mode = None
@@ -27,13 +29,13 @@ class scan(ast_node):
             self.colref = node
             if self.size is None:
                 self.mode = ["col", node.table]
-                self.start += f'for (auto& {self.it_ver} : {node.reference()}) {{\n'
+                self.start += f'for ({self.const}auto& {self.it_ver} : {node.reference()}) {{\n'
             else:
                 self.mode = ["idx", node.table]
                 self.start += f"for (uint32_t {self.it_ver} = 0; {self.it_ver} < {node.reference()}.size; ++{self.it_ver}){{\\n"
         elif type(node) is str:
             self.mode = ["idx", None]
-            self.start+= f'for(auto& {self.it_ver} : {node}) {{\n'
+            self.start+= f'for({self.const}auto& {self.it_ver} : {node}) {{\n'
         else:
             self.mode = ["idx", node] # Node is the TableInfo
             self.start += f"for (uint32_t {self.it_ver} = 0; {self.it_ver} < {self.size}; ++{self.it_ver}){{\n"
@@ -41,13 +43,16 @@ class scan(ast_node):
     def add(self, stmt, position = "body"):
         if position == "body":
             self.body += stmt + '\n'
-        else:
+        elif position == "init":
             self.initializers += stmt + '\n'
+        else:
+            self.front += stmt + '\n'
+            
     def finalize(self):
         for f in self.filters:
             self.start += f
             self.end += '}'
-        self.context.remove_scan(self, self.initializers + self.start + self.body + self.end)
+        self.context.remove_scan(self, self.initializers + self.start + self.front + self.body + self.end)
         
 class filter(ast_node):
     name = 'filter'

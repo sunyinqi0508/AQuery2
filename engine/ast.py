@@ -92,7 +92,7 @@ class TableInfo:
                 type_tags = type_tags[:-1]
             type_tags += '>'
             
-            self.cxt.emit(f'auto& {base_name} = *(TableInfo{type_tags} *)(cxt->tables[{self.table_name}]);')
+            self.cxt.emit(f'auto& {base_name} = *(TableInfo{type_tags} *)(cxt->tables["{self.table_name}"]);')
         return self.cxt_name
     def refer_all(self):
         self.reference()

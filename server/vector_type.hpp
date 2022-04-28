@@ -81,6 +81,18 @@ public:
 		_move(std::move(vt));
 		return *this;
 	}
+	template <template <class> class VT>
+	vector_type<_Ty> operator =(const VT<_Ty>& vt) {
+		if (capacity > 0) free(container);
+		container = static_cast<_Ty*>(malloc(size * sizeof(_Ty)));
+		
+		size = vt.size;
+		capacity = size;
+		for(uint32_t i = 0; i < size; ++i)
+			container[i] = vt[i];
+		
+		return *this;
+	}
 	void emplace_back(_Ty _val) {
 		if (size >= capacity) { // geometric growth
 			capacity += 1 + (capacity >> 1);

@@ -183,7 +183,7 @@ struct TableInfo {
 	TableInfo(const char* name, uint32_t n_cols);
 	template <int prog = 0>
 	inline void materialize(const vector_type<uint32_t>& idxs, TableInfo<Types...>* tbl = nullptr) { // inplace materialize
-		if constexpr(prog == 0) tbl = 0 ? this : tbl;
+		if constexpr(prog == 0) tbl = (tbl == 0 ? this : tbl);
 		if constexpr (prog == sizeof...(Types)) return;
 		else {
 			auto& col = get<prog>(*this);
@@ -191,7 +191,7 @@ struct TableInfo {
 			for(uint32_t i = 0; i < idxs.size; ++i)
 				new_col[i] = col[idxs[i]];
 			get<prog>(*tbl) = new_col;
-			materialize<prog + 1>();
+			materialize<prog + 1>(idxs, tbl);
 		}
 	}
 	inline TableInfo<Types...>* materialize_copy(const vector_type<uint32_t>& idxs) { 
@@ -200,10 +200,12 @@ struct TableInfo {
 		return tbl;
 	}
 	template<int ...cols>
-	inline vector_type<uint32_t>* order_by() {
-		vector_type<uint32_t>* ord = new vector_type<uint32_t>(colrefs[0].size);
-		for (uint32_t i = 0; i < colrefs[0].size; ++i)
-			(*ord)[i] = i;
+	inline vector_type<uint32_t>* order_by(vector_type<uint32_t>* ord = nullptr) {
+		if (!ord) {
+			ord = new vector_type<uint32_t>(colrefs[0].size);
+			for (uint32_t i = 0; i < colrefs[0].size; ++i)
+				(*ord)[i] = i;
+		}
 		std::sort(ord->begin(), ord->end(), [this](const uint32_t& lhs, const uint32_t& rhs) {
 			return
 				std::forward_as_tuple((cols >= 0 ? get<cols, (cols >= 0)>(*this)[lhs] : -get<cols, (cols >= 0)>(*this)[lhs]) ...)
@@ -345,60 +347,60 @@ inline void TableInfo<Types...>::print(const char* __restrict sep, const char* _
 		std::cout << end;
 	}
 }
-template <class T1, class T2, template<typename ...> class VT>
-VT<typename types::Coercion<T1, T2>::type> operator -(const VT<T1>& lhs, const VT<T2>& rhs) {
-	auto ret = VT<typename types::Coercion<T1, T2>::type>(lhs.size, "");
+template <class T1, class T2, template<typename ...> class VT, template<typename ...> class VT2>
+decayed_t<VT, typename types::Coercion<T1, T2>::type> operator -(const VT<T1>& lhs, const VT2<T2>& rhs) {
+	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size, "");
 	for (int i = 0; i < lhs.size; ++i)
-		ret.container[i] = lhs.container[i] - rhs.container[i];
+		ret[i] = lhs[i] - rhs[i];
 	return ret;
 }
 template <class T1, class T2, template<typename ...> class VT>
-VT<typename types::Coercion<T1, T2>::type> operator -(const VT<T1>& lhs, const T2& rhs) {
-	auto ret = VT<typename types::Coercion<T1, T2>::type>(lhs.size, "");
+decayed_t<VT, typename types::Coercion<T1, T2>::type> operator -(const VT<T1>& lhs, const T2& rhs) {
+	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size, "");
 	for (int i = 0; i < lhs.size; ++i)
-		ret.container[i] = lhs.container[i] - rhs;
+		ret[i] = lhs[i] - rhs;
+	return ret;
+}
+template <class T1, class T2, template<typename ...> class VT, template<typename ...> class VT2>
+decayed_t<VT, typename types::Coercion<T1, T2>::type> operator +(const VT<T1>& lhs, const VT2<T2>& rhs) {
+	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size, "");
+	for (int i = 0; i < lhs.size; ++i)
+		ret[i] = lhs[i] + rhs[i];
 	return ret;
 }
 template <class T1, class T2, template<typename ...> class VT>
-VT<typename types::Coercion<T1, T2>::type> operator +(const VT<T1>& lhs, const VT<T2>& rhs) {
-	auto ret = VT<typename types::Coercion<T1, T2>::type>(lhs.size, "");
+decayed_t<VT, typename types::Coercion<T1, T2>::type> operator +(const VT<T1>& lhs, const T2& rhs) {
+	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size, "");
 	for (int i = 0; i < lhs.size; ++i)
-		ret.container[i] = lhs.container[i] + rhs.container[i];
+		ret[i] = lhs[i] + rhs;
+	return ret;
+}
+template <class T1, class T2, template<typename ...> class VT, template<typename ...> class VT2>
+decayed_t<VT, typename types::Coercion<T1, T2>::type> operator *(const VT<T1>& lhs, const VT2<T2>& rhs) {
+	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size, "");
+	for (int i = 0; i < lhs.size; ++i)
+		ret[i] = lhs[i] * rhs[i];
 	return ret;
 }
 template <class T1, class T2, template<typename ...> class VT>
-VT<typename types::Coercion<T1, T2>::type> operator +(const VT<T1>& lhs, const T2& rhs) {
-	auto ret = VT<typename types::Coercion<T1, T2>::type>(lhs.size, "");
+decayed_t<VT, typename types::Coercion<T1, T2>::type> operator *(const VT<T1>& lhs, const T2& rhs) {
+	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size, "");
 	for (int i = 0; i < lhs.size; ++i)
-		ret.container[i] = lhs.container[i] + rhs;
+		ret[i] = lhs[i] * rhs;
+	return ret;
+}
+template <class T1, class T2, template<typename ...> class VT, template<typename ...> class VT2>
+decayed_t<VT, typename types::Coercion<T1, T2>::type> operator /(const VT<T1>& lhs, const VT2<T2>& rhs) {
+	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size, "");
+	for (int i = 0; i < lhs.size; ++i)
+		ret[i] = lhs[i] / rhs[i];
 	return ret;
 }
 template <class T1, class T2, template<typename ...> class VT>
-VT<typename types::Coercion<T1, T2>::type> operator *(const VT<T1>& lhs, const VT<T2>& rhs) {
-	auto ret = VT<typename types::Coercion<T1, T2>::type>(lhs.size, "");
+decayed_t<VT, typename types::Coercion<T1, T2>::type> operator /(const VT<T1>& lhs, const T2& rhs) {
+	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size, "");
 	for (int i = 0; i < lhs.size; ++i)
-		ret.container[i] = lhs.container[i] * rhs.container[i];
-	return ret;
-}
-template <class T1, class T2, template<typename ...> class VT>
-VT<typename types::Coercion<T1, T2>::type> operator *(const VT<T1>& lhs, const T2& rhs) {
-	auto ret = VT<typename types::Coercion<T1, T2>::type>(lhs.size, "");
-	for (int i = 0; i < lhs.size; ++i)
-		ret.container[i] = lhs.container[i] * rhs;
-	return ret;
-}
-template <class T1, class T2, template<typename ...> class VT>
-VT<typename types::Coercion<T1, T2>::type> operator /(const VT<T1>& lhs, const VT<T2>& rhs) {
-	auto ret = VT<typename types::Coercion<T1, T2>::type>(lhs.size, "");
-	for (int i = 0; i < lhs.size; ++i)
-		ret.container[i] = lhs.container[i] / rhs.container[i];
-	return ret;
-}
-template <class T1, class T2, template<typename ...> class VT>
-VT<typename types::Coercion<T1, T2>::type> operator /(const VT<T1>& lhs, const T2& rhs) {
-	auto ret = VT<typename types::Coercion<T1, T2>::type>(lhs.size, "");
-	for (int i = 0; i < lhs.size; ++i)
-		ret.container[i] = lhs.container[i] / rhs;
+		ret[i] = lhs[i] / rhs;
 	return ret;
 }
 

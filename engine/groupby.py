@@ -1,8 +1,9 @@
-from engine.ast import TableInfo, ast_node
+from engine.ast import ColRef, TableInfo, ast_node
+from engine.orderby import assumption
 from engine.scan import scan
 from engine.utils import base62uuid
 from engine.expr import expr
-import engine.types
+
 class groupby(ast_node):
     name = '_groupby'
     def init(self, _):
@@ -24,7 +25,8 @@ class groupby(ast_node):
         for i, g in enumerate(node):
             v = g['value']
             e = expr(self, v)
-            self.raw_groups.append(e.raw_col)
+            if type(e.raw_col) is ColRef:
+                self.raw_groups.append(e.raw_col)
             e = e._expr
             # if v is compound expr, create tmp cols
             if type(v) is not str:
@@ -48,7 +50,14 @@ class groupby(ast_node):
         self.referenced = self.datasource.rec
         self.datasource.rec = None
         self.scanner.finalize()
-
+        
+    def deal_with_assumptions(self, assumption:assumption, out:TableInfo):
+        gscanner = scan(self, self.group)
+        val_var = 'val_'+base62uuid(7)
+        gscanner.add(f'auto &{val_var} = {gscanner.it_ver}.second;')
+        gscanner.add(f'{out.cxt_name}->order_by<{assumption.result()}>(&{val_var});')
+        gscanner.finalize()
+        
     def finalize(self, cexprs, out:TableInfo):
         gscanner = scan(self, self.group)
         key_var = 'key_'+base62uuid(7)
@@ -59,3 +68,5 @@ class groupby(ast_node):
         gscanner.add(';\n'.join([f'{out.columns[i].reference()}.emplace_back({ce(x=val_var, y=key_var)})' for i, ce in enumerate(cexprs)])+';')
         
         gscanner.finalize()
+        
+        self.datasource.groupinfo = None

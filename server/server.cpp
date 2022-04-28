@@ -100,6 +100,6 @@ int _main()
     }
     //static_assert(std::is_same_v<decltype(fill_integer_array<5, 1>()), std::integer_sequence<bool, 1,1,1,1,1>>, "");
     return 0;
-    
+    std::unordered_map<int, int> a;
 }
 
