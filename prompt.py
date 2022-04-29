@@ -92,6 +92,8 @@ cxt = None
 while test_parser:
     try:
         if server.poll() is not None:
+            mm.seek(0,os.SEEK_SET)
+            mm.write(b'\x01\x00')
             server = subprocess.Popen(["./server.bin", shm])
         q = input()
         if q == 'exec':
@@ -127,6 +129,15 @@ while test_parser:
             if subprocess.call(['make', 'snippet']) == 0:
                 mm.seek(0,os.SEEK_SET)  
                 mm.write(b'\x01\x01')
+            continue
+        elif q.startswith('save'):
+            filename = re.split(' |\t', q)
+            if (len(filename) > 1):
+                filename = filename[1]
+            else:
+                filename = f'out_{base62uuid(4)}.cpp'
+            with open(filename, 'wb') as outfile:
+                outfile.write((cxt.finalize()).encode('utf-8'))
             continue
         trimed = ws.sub(' ', q.lower()).split(' ') 
         if trimed[0].startswith('f'):
