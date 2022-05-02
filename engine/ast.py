@@ -1,4 +1,3 @@
-from operator import index
 from engine.utils import base62uuid
 from copy import copy
 # replace column info with this later.
@@ -203,8 +202,11 @@ class Context:
         using namespace types;
         
     '''
+    LOG_INFO = 'INFO'
+    LOG_ERROR = 'ERROR'
+    LOG_SILENT = 'SILENT'
     def __init__(self): 
-        self.tables:List[TableInfo] = []
+        self.tables:list[TableInfo] = []
         self.tables_byname = dict()
         self.ccols_byname = dict()
         self.gc_name = 'gc_' + base62uuid(4)
@@ -212,6 +214,8 @@ class Context:
         self.udf_map = dict()
         self.headers = set(['\"./server/libaquery.h\"'])
         self.finalized = False
+        self.log_level = Context.LOG_SILENT
+        self.print = print
         # read header
         self.ccode = ''
         self.ccodelet = ''
@@ -277,6 +281,16 @@ class Context:
         self.emit(str_scan)
         self.scans.remove(scan)
         
+    def Info(self, msg):
+        if self.log_level.upper() == Context.LOG_INFO:
+            self.print(msg)
+    def Error(self, msg):
+        if self.log_level.upper() == Context.LOG_ERROR:
+            self.print(msg)
+        else:
+            self.Info(self, msg)
+    
+    
     def finalize(self):
         if not self.finalized:
             headers = ''

@@ -100,7 +100,7 @@ class expr(ast_node):
                 elif key in self.unary_ops:
                     self._expr += f'{self.unary_ops[key]}({expr(self, val)._expr})'
                 else:
-                    print(f'Undefined expr: {key}{val}')
+                    self.context.Error(f'Undefined expr: {key}{val}')
 
                 if key in self.coumpound_generating_ops and not self.is_compound:
                     self.is_compound = True

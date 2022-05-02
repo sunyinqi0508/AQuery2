@@ -24,7 +24,7 @@ class projection(ast_node):
     def produce(self, node):
         p = node['select']
         self.projections = p if type(p) is list else [p]
-        print(node)
+        self.context.Info(node)
 
     def spawn(self, node):
         self.datasource = None

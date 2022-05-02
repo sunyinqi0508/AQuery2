@@ -133,7 +133,7 @@ decayed_t<VT, types::GetFPType<T>> avgw(uint32_t w, const VT<T>& arr) {
 	const uint32_t& len = arr.size;
 	decayed_t<VT, FPType> ret(len);
 	uint32_t i = 0;
-	types::GetLongType<T> s;
+	types::GetLongType<T> s{};
 	w = w > len ? len : w;
 	if(len)	s = ret[i++] = arr[0];
 	for (; i < w; ++i) 

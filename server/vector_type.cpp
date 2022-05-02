@@ -5,7 +5,11 @@ inline void vector_type<_Ty>::out(uint32_t n, const char* sep) const
 {
 	n = n > size ? size : n;
 	std::cout << '(';
-		for (uint32_t i = 0; i < n; ++i)
+	{	
+		uint32_t i = 0;
+		for (; i < n - 1; ++i)
 			std::cout << this->operator[](i) << sep;
+		std::cout << this->operator[](i);
+	}
 	std::cout << ')';
 }

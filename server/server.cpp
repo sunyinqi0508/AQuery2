@@ -37,7 +37,9 @@ void daemon(thread_context* c) {
 typedef int (*code_snippet)(void*);
 int _main();
 int main(int argc, char** argv) {
-    printf("%d %s\n", argc, argv[1]);
+    Context* cxt = new Context();
+    cxt->log("%d %s\n", argc, argv[1]);
+    
     const char* shmname;
     if (argc <= 1)
         return _main();
@@ -48,24 +50,23 @@ int main(int argc, char** argv) {
         return 1;
     bool &running = static_cast<bool*>(shm.pData)[0], 
         &ready = static_cast<bool*>(shm.pData)[1];
-    Context *cxt = new Context();
     using namespace std::chrono_literals;
-    printf("running: %s\n", running? "true":"false");
-    printf("ready: %s\n", ready? "true":"false");
+    cxt->log("running: %s\n", running? "true":"false");
+    cxt->log("ready: %s\n", ready? "true":"false");
     while (running) {
         std::this_thread::sleep_for(1ms);
         if(ready){
-            printf("running: %s\n", running? "true":"false");
-            printf("ready: %s\n", ready? "true":"false");
+            cxt->log("running: %s\n", running? "true":"false");
+            cxt->log("ready: %s\n", ready? "true":"false");
             void* handle = dlopen("./dll.so", RTLD_LAZY);
-            printf("handle: %x\n", handle);
+            cxt->log("handle: %x\n", handle);
             if (handle) {
-                printf("inner\n");
+                cxt->log("inner\n");
                 code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, "dllmain"));
-                printf("routine: %x\n", c);
+                cxt->log("routine: %x\n", c);
                 if (c) {
-                    printf("inner\n");
-                    printf("return: %d\n", c(cxt));
+                    cxt->log("inner\n");
+                    cxt->err("return: %d\n", c(cxt));
                 }
                 dlclose(handle);
             }
@@ -84,17 +85,18 @@ int _main()
     //t.emplace_back(2);
     //print(t);
     //return 0;
+    Context* cxt = new Context();
+    cxt->log_level = LOG_INFO;
     puts(cpp_17 ?"true":"false");
     void* handle = dlopen("dll.so", RTLD_LAZY);
     printf("handle: %x\n", handle);
-    Context* cxt = new Context();
     if (handle) {
-        printf("inner\n");
+        cxt->log("inner\n");
         code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, "dllmain"));
         printf("routine: %x\n", c);
         if (c) {
-            printf("inner\n");
-            printf("return: %d\n", c(cxt));
+            cxt->log("inner\n");
+            cxt->log("return: %d\n", c(cxt));
         }
         dlclose(handle);
     }

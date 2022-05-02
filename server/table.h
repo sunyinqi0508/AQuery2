@@ -45,8 +45,13 @@ public:
 	void out(uint32_t n = 4, const char* sep = " ") const {
 		n = n > this->size ? this->size : n;
 		std::cout << '(';
-			for (uint32_t i = 0; i < n; ++i)
+		if (n > 0)
+		{
+			uint32_t i = 0;
+			for (; i < n - 1; ++i)
 				std::cout << this->operator[](i) << sep;
+			std::cout << this->operator[](i);
+		}
 		std::cout << ')';
 	}
 	template<typename T>
@@ -242,23 +247,49 @@ struct TableInfo {
 		else
 			next(this_value);
 	}
+	std::string get_header_string(const char* __restrict sep, const char* __restrict end) const{
+		std::string header_string = std::string();
+		for (int i = 0; i < sizeof...(Types); ++i)
+			header_string += std::string(this->colrefs[i].name) + sep;
+		const size_t l_sep = strlen(sep);
+		if (header_string.size() - l_sep >= 0)
+			header_string.resize(header_string.size() - l_sep);
+		header_string += end + std::string(header_string.size(), '=') + end;
+		return header_string;
+	}
 	template <int ...cols>
 	void print2(const char* __restrict sep = ",", const char* __restrict end = "\n",
 		const vector_type<uint32_t>* __restrict view = nullptr, FILE* __restrict fp = nullptr) const {
+		
 		std::string printf_string =
 			generate_printf_string<typename std::tuple_element<cols, tuple_type>::type ...>(sep, end);
+		
+		std::string header_string = std::string();
+		constexpr static int a_cols[] = { cols... };
+		for(int i = 0; i < sizeof...(cols); ++i)
+			header_string += std::string(this->colrefs[a_cols[i]].name) + sep;
+		const size_t l_sep = strlen(sep);
+		if(header_string.size() - l_sep >= 0)
+			header_string.resize(header_string.size() - l_sep);
+		
 		const auto& prt_loop = [&fp, &view, &printf_string, *this](const auto& f) {
 			if(view)
 				for (int i = 0; i < view->size; ++i)
 					print2_impl<cols...>(f, (*view)[i], printf_string.c_str());
 			else
 				for (int i = 0; i < colrefs[0].size; ++i)
-					print2_impl<cols...>(f, i, printf_string.c_str());
+					print2_impl<cols...>(f, i, printf_string.c_str());		
 		};
+
 		if (fp)
+		{
+			fprintf(fp, "%s%s", header_string.c_str(), end);
 			prt_loop([&fp](auto... args) { fprintf(fp, args...); });
-		else
+		}
+		else {
+			printf("%s%s", header_string.c_str(), end);
 			prt_loop(printf);
+		}
 	}
 	template <int ...vals> struct applier {
 	inline constexpr static void apply(const TableInfo<Types...>& t, const char* __restrict sep = ",", const char* __restrict end = "\n",
@@ -319,6 +350,9 @@ inline typename std::enable_if < j < sizeof...(Types) - 1, void>::type
 
 template<class ...Types>
 inline void TableView<Types...>::print(const char* __restrict sep, const char* __restrict end) const {
+	std::string header_string = info.get_header_string(sep, end);
+	std::cout << header_string.c_str();
+	
 	int n_rows = 0;
 	if (info.colrefs[0].size > 0)
 		n_rows = info.colrefs[0].size;
@@ -345,6 +379,10 @@ inline typename std::enable_if<j < sizeof...(Types) - 1, void>::type
 
 template<class ...Types>
 inline void TableInfo<Types...>::print(const char* __restrict sep, const char* __restrict end) const {
+	
+	std::string header_string = get_header_string(sep, end);
+	std::cout << header_string.c_str();
+	
 	int n_rows = 0;
 	if (n_cols > 0 && colrefs[0].size > 0)
 		n_rows = colrefs[0].size;

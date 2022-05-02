@@ -92,7 +92,7 @@ print(res)
 #         os.remove(shm)
 #     exit()
 keep = False
-cxt = None
+cxt = engine.initialize()
 while test_parser:
     try:
         if server.poll() is not None:
@@ -107,23 +107,30 @@ while test_parser:
                     engine.generate(s, cxt)
             else:
                 engine.generate(stmts_stmts, cxt)
-            print(cxt.ccode)
+            cxt.Info(cxt.ccode)
             with open('out.cpp', 'wb') as outfile:
                 outfile.write((cxt.finalize()).encode('utf-8'))
             if subprocess.call(['make', 'snippet']) == 0:
                 mm.seek(0,os.SEEK_SET)
                 mm.write(b'\x01\x01')
             continue
+        elif q.startswith('log'):
+            qs = re.split(' |\t', q)
+            if len(qs) > 1:
+                cxt.log_level = qs[1]
+            else:
+                cxt.print(cxt.log_level)
+            continue
         elif q == 'k':
             subprocess.call(basecmd)
             continue
         elif q == 'print':
-            print(stmts)
+            cxt.print(stmts)
             continue
         elif q == 'keep':
             keep = not keep
             continue
-        elif q=='format' or q == 'fmt':
+        elif q == 'format' or q == 'fmt':
             subprocess.call(['clang-format', 'out.cpp'])
         elif q == 'exit':
             break
@@ -151,9 +158,9 @@ while test_parser:
             stmts = parser.parse(contents)
             continue
         stmts = parser.parse(q)
-        print(stmts)
+        cxt.Info(stmts)
     except (ValueError, FileNotFoundError, ParseException) as e:
         rm()
-        print(type(e), e)
+        cxt.Error(type(e), e)
 
 rm()

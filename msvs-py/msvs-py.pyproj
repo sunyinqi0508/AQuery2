@@ -4,13 +4,13 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>ccc243f5-663e-45b7-a6de-b2468c58b3a7</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>
-    </StartupFile>
+    <StartupFile>..\prompt.py</StartupFile>
     <SearchPath>..\msvs-py</SearchPath>
-    <WorkingDirectory>.</WorkingDirectory>
+    <WorkingDirectory>..</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <Name>msvs-py</Name>
     <RootNamespace>msvs-py</RootNamespace>
+    <IsWindowsApplication>False</IsWindowsApplication>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
