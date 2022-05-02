@@ -10,5 +10,5 @@ FROM sale
 INTO OUTFILE "moving_avg_output.csv"
 FIELDS TERMINATED BY ";"
 
-select sales, mins(2,Month) from sale group by sales
+select Month, mins(2,sales) from sale assuming desc Month group by sales 
 into outfile "flatten.csv" 

@@ -55,7 +55,7 @@ class groupby(ast_node):
         gscanner = scan(self, self.group)
         val_var = 'val_'+base62uuid(7)
         gscanner.add(f'auto &{val_var} = {gscanner.it_ver}.second;')
-        gscanner.add(f'{out.cxt_name}->order_by<{assumption.result()}>(&{val_var});')
+        gscanner.add(f'{self.datasource.cxt_name}->order_by<{assumption.result()}>(&{val_var});')
         gscanner.finalize()
         
     def finalize(self, cexprs, out:TableInfo):

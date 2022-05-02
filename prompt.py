@@ -42,27 +42,31 @@ def rm():
         cleanup = False
    
 atexit.register(rm)
-    
-shm = base62uuid()
-if sys.platform != 'win32':
-    import readline
-    shm += '.shm'
-    basecmd = ['bash', '-c', 'rlwrap k']
-    mm = None
-    if not os.path.isfile(shm):
-        # create initial file
-        with open(shm, "w+b") as handle:
-            handle.write(b'\x01\x00') # [running, new job]
-            handle.flush()
-            mm = mmap.mmap(handle.fileno(), 2, access=mmap.ACCESS_WRITE, offset=0)
-    if mm is None:
-        exit(1)
-else:
-    basecmd = ['bash.exe', '-c', 'rlwrap ./k']
-    mm = mmap.mmap(0, 2, shm)
-    mm.write(b'\x01\x00')
-    mm.flush()
-server = subprocess.Popen(["./server.bin", shm])
+
+def init():
+    global shm, server, basecmd, mm
+    shm = base62uuid()
+    if sys.platform != 'win32':
+        import readline
+        shm += '.shm'
+        basecmd = ['bash', '-c', 'rlwrap k']
+        mm = None
+        if not os.path.isfile(shm):
+            # create initial file
+            with open(shm, "w+b") as handle:
+                handle.write(b'\x01\x00') # [running, new job]
+                handle.flush()
+                mm = mmap.mmap(handle.fileno(), 2, access=mmap.ACCESS_WRITE, offset=0)
+        if mm is None:
+            exit(1)
+    else:
+        basecmd = ['bash.exe', '-c', 'rlwrap ./k']
+        mm = mmap.mmap(0, 2, shm)
+        mm.write(b'\x01\x00')
+        mm.flush()
+    server = subprocess.Popen(["./server.bin", shm])
+
+init()
 
 test_parser = True
 
@@ -92,10 +96,8 @@ cxt = None
 while test_parser:
     try:
         if server.poll() is not None:
-            mm.seek(0,os.SEEK_SET)
-            mm.write(b'\x01\x00')
-            server = subprocess.Popen(["./server.bin", shm])
-        q = input()
+            init()
+        q = input().lower()
         if q == 'exec':
             if not keep or cxt is None:
                 cxt = engine.initialize()
@@ -145,7 +147,7 @@ while test_parser:
                             else trimed[1]
                 
             with open(fn, 'r') as file:
-                contents = file.read()
+                contents = file.read()#.lower()
             stmts = parser.parse(contents)
             continue
         stmts = parser.parse(q)

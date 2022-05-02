@@ -84,7 +84,7 @@ public:
 	template <template <class> class VT>
 	vector_type<_Ty> operator =(const VT<_Ty>& vt) {
 		if (capacity > 0) free(container);
-		container = static_cast<_Ty*>(malloc(size * sizeof(_Ty)));
+		container = static_cast<_Ty*>(malloc(vt.size * sizeof(_Ty)));
 		
 		size = vt.size;
 		capacity = size;

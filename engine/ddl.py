@@ -28,7 +28,7 @@ class create_table(ast_node):
         # create an empty new table
         if self.cexprs is None:
             for c in tbl.columns:
-                self.emit(f"{c.cxt_name}.init();")
+                self.emit(f"{c.cxt_name}.init({c.name});")
         # create an output table
         else:
             # 1 to 1 lineage.
@@ -40,7 +40,7 @@ class create_table(ast_node):
                 else:
                     self.lineage = None
                 for i, c in enumerate(tbl.columns):
-                    self.emit(f"{c.cxt_name}.init();")
+                    self.emit(f"{c.cxt_name}.init({c.name});")
                     self.emit(f"{c.cxt_name} = {self.cexprs[i](self.lineage)};")
                 self.lineage = None
                 self.parent.assumptions = None
@@ -54,7 +54,7 @@ class create_table(ast_node):
                     scanner.add(f"{lineage_var}.emplace_back({counter_var}++);", "front")
                     self.lineage = f"{lineage_var}.rid"
                 for i, c in enumerate(tbl.columns):
-                    scanner.add(f"{c.cxt_name}.init();", "init")
+                    scanner.add(f"{c.cxt_name}.init({c.name});", "init")
                     scanner.add(f"{c.cxt_name} = {self.cexprs[i](scanner.it_ver)};")
                     
 class insert(ast_node):

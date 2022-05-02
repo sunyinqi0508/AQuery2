@@ -50,6 +50,7 @@ class expr(ast_node):
         self.inside_agg = False
         if(type(parent) is expr):
             self.inside_agg = parent.inside_agg
+            self.__abs = parent.__abs
         ast_node.__init__(self, parent, node, None)
 
     def init(self, _):

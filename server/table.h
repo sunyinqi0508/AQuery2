@@ -34,7 +34,7 @@ public:
 	ColRef() : vector_type<_Ty>(0), name("") {}
 	ColRef(const uint32_t& size, const char* name = "") : vector_type<_Ty>(size), name(name) {}
 	ColRef(const char* name) : name(name) {}
-	void init() { ty = types::Types<_Ty>::getType();  this->size = this->capacity = 0; this->container = 0; }
+	void init(const char* name = "") { ty = types::Types<_Ty>::getType();  this->size = this->capacity = 0; this->container = 0; this->name = name; }
 	ColRef(const char* name, types::Type_t ty) : name(name), ty(ty) {}
 	using vector_type<_Ty>::operator[];
 	using vector_type<_Ty>::operator=;
@@ -96,6 +96,12 @@ public:
 		for (uint32_t i = 0; i < n; ++i) 
 			std::cout << this->operator[](i)<< sep;
 		std::cout << ')';
+	}
+	operator ColRef<_Ty>() {
+		auto ret = ColRef<_Ty>(size);
+		for (uint32_t i = 0; i < size; ++i)
+			ret[i] = orig[idxs[i]];
+		return ret;
 	}
 };
 template <template <class...> class VT, class T>
