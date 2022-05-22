@@ -59,11 +59,11 @@ int main(int argc, char** argv) {
             cxt->log("running: %s\n", running? "true":"false");
             cxt->log("ready: %s\n", ready? "true":"false");
             void* handle = dlopen("./dll.so", RTLD_LAZY);
-            cxt->log("handle: %x\n", handle);
+            cxt->log("handle: %lx\n", handle);
             if (handle) {
                 cxt->log("inner\n");
                 code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, "dllmain"));
-                cxt->log("routine: %x\n", c);
+                cxt->log("routine: %lx\n", c);
                 if (c) {
                     cxt->log("inner\n");
                     cxt->err("return: %d\n", c(cxt));
@@ -79,7 +79,6 @@ int main(int argc, char** argv) {
 #include "utils.h"
 int _main()
 {
-
     //vector_type<int> t;
     //t = 1;
     //t.emplace_back(2);
@@ -89,11 +88,11 @@ int _main()
     cxt->log_level = LOG_INFO;
     puts(cpp_17 ?"true":"false");
     void* handle = dlopen("dll.so", RTLD_LAZY);
-    printf("handle: %x\n", handle);
+    cxt->log("handle: %llx\n", handle);
     if (handle) {
         cxt->log("inner\n");
         code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, "dllmain"));
-        printf("routine: %x\n", c);
+        cxt->log("routine: %llx\n", c);
         if (c) {
             cxt->log("inner\n");
             cxt->log("return: %d\n", c(cxt));

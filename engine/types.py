@@ -26,6 +26,7 @@ class Int(Types):
     name = "Int"
     cname = "int"
     ctype_name = "types::AINT"
+    
 class Float(Types):
     name = "Float"
     cname = "float"

@@ -1,10 +1,11 @@
-from concurrent.futures import thread
 import re
 import time
+import dbconn
 
 from mo_parsing import ParseException
 import aquery_parser as parser
 import engine
+import reconstruct as xengine
 import subprocess
 import mmap
 import sys
@@ -15,8 +16,10 @@ try:
     os.remove('server.bin') 
 except Exception as e:
     print(type(e), e)
+    
+nullstream = open(os.devnull, 'w')
 
-subprocess.call(['make', 'server.bin'])
+subprocess.call(['make', 'server.bin'], stdout=nullstream)
 cleanup = True
 
 def rm():
@@ -40,7 +43,8 @@ def rm():
                 os.remove(f)
         mm.close()
         cleanup = False
-   
+        nullstream.close()
+        
 atexit.register(rm)
 
 def init():
@@ -77,7 +81,6 @@ q = 'SELECT p.Name, v.Name FROM Production.Product p JOIN Purchasing.ProductVend
 
 res = parser.parse(q)
 
-print(res)
 
 # else:f
 #     if subprocess.call(['make', 'snippet']) == 0:
@@ -91,16 +94,25 @@ print(res)
 #         handle.close()
 #         os.remove(shm)
 #     exit()
-keep = False
+keep = True
 cxt = engine.initialize()
+cxt.Info(res)
 while test_parser:
     try:
         if server.poll() is not None:
             init()
+        print("> ", end="")
+        ready = 1
+        while ready == 1:
+            mm.seek(0,os.SEEK_SET)
+            ready = mm.read(2)[1]
+            time.sleep(.00001)
         q = input().lower()
         if q == 'exec':
             if not keep or cxt is None:
                 cxt = engine.initialize()
+            else:
+                cxt.new()
             stmts_stmts = stmts['stmts']
             if type(stmts_stmts) is list:
                 for s in stmts_stmts:
@@ -110,10 +122,21 @@ while test_parser:
             cxt.Info(cxt.ccode)
             with open('out.cpp', 'wb') as outfile:
                 outfile.write((cxt.finalize()).encode('utf-8'))
-            if subprocess.call(['make', 'snippet']) == 0:
+            if subprocess.call(['make', 'snippet'], stdout = nullstream) == 0:
                 mm.seek(0,os.SEEK_SET)
                 mm.write(b'\x01\x01')
             continue
+        if q == 'xexec':
+            cxt = xengine.initialize()
+            stmts_stmts = stmts['stmts']
+            if type(stmts_stmts) is list:
+                for s in stmts_stmts:
+                    xengine.generate(s, cxt)
+            else:
+                xengine.generate(stmts_stmts, cxt)
+            print(cxt.sql)
+            continue
+        
         elif q.startswith('log'):
             qs = re.split(' |\t', q)
             if len(qs) > 1:
@@ -159,8 +182,17 @@ while test_parser:
             continue
         stmts = parser.parse(q)
         cxt.Info(stmts)
-    except (ValueError, FileNotFoundError, ParseException) as e:
+    except ParseException as e:
+        print(e)
+        continue
+    except (ValueError, FileNotFoundError) as e:
+        # rm()
+        # init()
+        print(e)
+    except (KeyboardInterrupt):
+        break
+    except (Exception) as e:
         rm()
-        cxt.Error(type(e), e)
+        raise e
 
 rm()

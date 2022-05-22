@@ -115,7 +115,7 @@ class expr(ast_node):
                 p.isvector = True
                 p = p.parent
                 
-            self._expr, self.raw_col = self.datasource.parse_tablenames(node, self.materialize_cols, True)
+            self._expr, self.raw_col = self.datasource.parse_col_names(node, self.materialize_cols, True)
             self.raw_col = self.raw_col if type(self.raw_col) is ColRef else None
             if self.__abs and self.raw_col:
                 self._expr = self.raw_col.reference() + ("" if self.inside_agg else index_expr)

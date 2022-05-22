@@ -1,65 +1,57 @@
-#include <unordered_map>
+#include "./server/libaquery.h"
 #include "./server/aggregations.h"
 #include "csv.h"
-#include "./server/libaquery.h"
 #include "./server/hasher.h"
+#include <unordered_map>
 
     extern "C" int __DLLEXPORT__ dllmain(Context* cxt) { 
         using namespace std;
         using namespace types;
         
-    auto sale = new TableInfo<int,int>("sale", 2);
-cxt->tables.insert({"sale", sale});
-auto& sale_Month = *(ColRef<int> *)(&sale->colrefs[0]);
-auto& sale_sales = *(ColRef<int> *)(&sale->colrefs[1]);
-sale_Month.init("Month");
-sale_sales.init("sales");
-io::CSVReader<2> csv_reader_6ojNrU("moving_avg.csv");
-csv_reader_6ojNrU.read_header(io::ignore_extra_column, "Month","sales");
-int tmp_30abZdE5;
-int tmp_zx6KcpzH;
-while(csv_reader_6ojNrU.read_row(tmp_30abZdE5,tmp_zx6KcpzH)) { 
+    auto test = new TableInfo<int,int,int,int>("test", 4);
+cxt->tables.insert({"test", test});
+auto& test_a = *(ColRef<int> *)(&test->colrefs[0]);
+auto& test_b = *(ColRef<int> *)(&test->colrefs[1]);
+auto& test_c = *(ColRef<int> *)(&test->colrefs[2]);
+auto& test_d = *(ColRef<int> *)(&test->colrefs[3]);
+test_a.init("a");
+test_b.init("b");
+test_c.init("c");
+test_d.init("d");
+io::CSVReader<4> csv_reader_307VD4("test.csv");
+csv_reader_307VD4.read_header(io::ignore_extra_column, "a","b","c","d");
+int tmp_3LXIYQmp;
+int tmp_1m5NCKR4;
+int tmp_10LZcLgy;
+int tmp_39pPZL8W;
+while(csv_reader_307VD4.read_row(tmp_3LXIYQmp,tmp_1m5NCKR4,tmp_10LZcLgy,tmp_39pPZL8W)) { 
 
-sale_Month.emplace_back(tmp_30abZdE5);
-sale_sales.emplace_back(tmp_zx6KcpzH);
+test_a.emplace_back(tmp_3LXIYQmp);
+test_b.emplace_back(tmp_1m5NCKR4);
+test_c.emplace_back(tmp_10LZcLgy);
+test_d.emplace_back(tmp_39pPZL8W);
 }
-auto out_4oKV = new TableInfo<value_type<decays<decltype(sale_Month)>>,value_type<decays<decltype(avgw(3,sale_sales))>>>("out_4oKV", 2);
-cxt->tables.insert({"out_4oKV", out_4oKV});
-auto& out_4oKV_Month = *(ColRef<value_type<decays<decltype(sale_Month)>>> *)(&out_4oKV->colrefs[0]);
-auto& out_4oKV_avgw3salesales = *(ColRef<value_type<decays<decltype(avgw(3,sale_sales))>>> *)(&out_4oKV->colrefs[1]);
-auto order_3t9jQY = sale->order_by<0>();
-out_4oKV_Month.init("Month");
-out_4oKV_Month = sale_Month[*order_3t9jQY];
-out_4oKV_avgw3salesales.init("avgw3salesales");
-out_4oKV_avgw3salesales = avgw(3,sale_sales[*order_3t9jQY]);
-print(*out_4oKV);
-FILE* fp_d7p2ph = fopen("moving_avg_output.csv", "w");
-out_4oKV->printall(";", "\n", nullptr, fp_d7p2ph);
-fclose(fp_d7p2ph);
-typedef record<decltype(sale_sales[0])> record_typexsfbsFs;
-unordered_map<record_typexsfbsFs, vector_type<uint32_t>, transTypes<record_typexsfbsFs, hasher>> g5N8IBNq;
-for (uint32_t i4w = 0; i4w < sale_sales.size; ++i4w){
-g5N8IBNq[forward_as_tuple(sale_sales[i4w])].emplace_back(i4w);
+typedef record<decltype(test_a[0]),decltype(test_b[0]),decltype(test_d[0])> record_type3OMslKw;
+unordered_map<record_type3OMslKw, vector_type<uint32_t>, transTypes<record_type3OMslKw, hasher>> g7LNVAss;
+for (uint32_t i1T = 0; i1T < test_a.size; ++i1T){
+g7LNVAss[forward_as_tuple(test_a[i1T],test_b[i1T],test_d[i1T])].emplace_back(i1T);
 }
-auto out_7JGJ = new TableInfo<decays<decltype(sale_Month)>,value_type<decays<decltype(minw(2,sale_sales))>>>("out_7JGJ", 2);
-cxt->tables.insert({"out_7JGJ", out_7JGJ});
-auto& out_7JGJ_Month = *(ColRef<decays<decltype(sale_Month)>> *)(&out_7JGJ->colrefs[0]);
-auto& out_7JGJ_minw2salesales = *(ColRef<value_type<decays<decltype(minw(2,sale_sales))>>> *)(&out_7JGJ->colrefs[1]);
-out_7JGJ_Month.init("Month");
-out_7JGJ_minw2salesales.init("minw2salesales");
-for(auto& iVb : g5N8IBNq) {
-auto &val_6xjJXey = iVb.second;
-sale->order_by<-1>(&val_6xjJXey);
+auto out_HSfK = new TableInfo<decays<decltype(sum(test_c))>,value_type<decays<decltype(test_b)>>,value_type<decays<decltype(test_d)>>>("out_HSfK", 3);
+cxt->tables.insert({"out_HSfK", out_HSfK});
+auto& out_HSfK_sumtestc = *(ColRef<decays<decltype(sum(test_c))>> *)(&out_HSfK->colrefs[0]);
+auto& out_HSfK_b = *(ColRef<value_type<decays<decltype(test_b)>>> *)(&out_HSfK->colrefs[1]);
+auto& out_HSfK_d = *(ColRef<value_type<decays<decltype(test_d)>>> *)(&out_HSfK->colrefs[2]);
+out_HSfK_sumtestc.init("sumtestc");
+out_HSfK_b.init("b");
+out_HSfK_d.init("d");
+for(auto& i18 : g7LNVAss) {
+auto &key_3s5slnK = i18.first;
+auto &val_2nNLv0D = i18.second;
+out_HSfK_sumtestc.emplace_back(sum(test_c[val_2nNLv0D]));
+out_HSfK_b.emplace_back(get<1>(key_3s5slnK));
+out_HSfK_d.emplace_back(get<2>(key_3s5slnK));
 }
-for(auto& i5G : g5N8IBNq) {
-auto &key_1e9JJOf = i5G.first;
-auto &val_6g6wlkk = i5G.second;
-out_7JGJ_Month.emplace_back(sale_Month[val_6g6wlkk]);
-out_7JGJ_minw2salesales.emplace_back(minw(2,get<0>(key_1e9JJOf)));
-}
-print(*out_7JGJ);
-FILE* fp_1yhzJM = fopen("flatten.csv", "w");
-out_7JGJ->printall(",", "\n", nullptr, fp_1yhzJM);
-fclose(fp_1yhzJM);
+auto d5b7C95U = out_HSfK->order_by_view<-3,1>();
+print(d5b7C95U);
 return 0;
 }

@@ -160,12 +160,14 @@ class TableInfo:
         return self.get_col(col_name).cname
 
     def add_alias(self, alias):
-        # TODO: Exception when alias already defined.
         # TODO: Scoping of alias should be constrainted in the query.
+        if alias in self.cxt.tables_byname.keys():
+            print("Error: table alias already exists")
+            return
         self.cxt.tables_byname[alias] = self
         self.alias.add(alias)
         
-    def parse_tablenames(self, colExpr, materialize = True, raw = False):
+    def parse_col_names(self, colExpr, materialize = True, raw = False):
         # get_col = self.get_col if materialize else self.get_col_d
 
         parsedColExpr = colExpr.split('.')
@@ -177,7 +179,7 @@ class TableInfo:
             if datasource is None:
                 raise ValueError(f'Table name/alias not defined{parsedColExpr[0]}')
             else:
-                ret = datasource.parse_tablenames(parsedColExpr[1], raw)
+                ret = datasource.parse_col_names(parsedColExpr[1], raw)
         from engine.expr import index_expr
         string = ret.reference() + index_expr
         if self.groupinfo is not None and ret and ret in self.groupinfo.raw_groups:
@@ -205,6 +207,23 @@ class Context:
     LOG_INFO = 'INFO'
     LOG_ERROR = 'ERROR'
     LOG_SILENT = 'SILENT'
+    def new(self):
+        self.tmp_names = set()
+        self.udf_map = dict()
+        self.headers = set(['\"./server/libaquery.h\"'])
+        self.finalized = False
+        # read header
+        self.ccode = ''
+        self.ccodelet = ''
+        with open('header.cxx', 'r') as outfile:
+            self.ccode = outfile.read()         
+        # datasource will be availible after `from' clause is parsed
+        # and will be deactivated when the `from' is out of scope
+        self.datasource = None
+        self.ds_stack = []
+        self.scans = []
+        self.removing_scan = False
+
     def __init__(self): 
         self.tables:list[TableInfo] = []
         self.tables_byname = dict()

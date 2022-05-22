@@ -45,12 +45,14 @@ class projection(ast_node):
                             print(f'from func over table{node}')
                     elif type(value) is str:
                         self.datasource = self.context.tables_byname[value]
+                    if 'name' in value:
+                        self.datasource.add_alias(value['name'])
                 if 'assumptions' in from_clause:
                     self.assumptions = enlist(from_clause['assumptions'])
                     
             elif type(from_clause) is str:
                 self.datasource = self.context.tables_byname[from_clause]
-            
+                
             if self.datasource is None:
                 raise ValueError('spawn error: from clause')
            
