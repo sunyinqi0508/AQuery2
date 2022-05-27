@@ -35,7 +35,7 @@ void daemon(thread_context* c) {
 }
 #include "aggregations.h"
 typedef int (*code_snippet)(void*);
-int _main();
+int test_main();
 
 int dll_main(int argc, char** argv, Context* cxt){
     Config *cfg = reinterpret_cast<Config *>(argv[0]);
@@ -52,7 +52,7 @@ int dll_main(int argc, char** argv, Context* cxt){
 
     while(cfg->running){
         if (cfg->new_query) {
-            void* handle = dlopen("d:/gg/Aquery++/dll.so", RTLD_LAZY);
+            void* handle = dlopen("./dll.so", RTLD_LAZY);
             code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, "dllmain"));
             c(cxt);
             dlclose(handle);
