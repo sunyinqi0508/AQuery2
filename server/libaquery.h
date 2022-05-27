@@ -10,10 +10,21 @@ enum Log_level {
 	LOG_SILENT
 };
 
+struct Config{
+    int running, new_query, server_mode, n_buffers;
+    int buffer_sizes[];
+};
+
 struct Context{
     typedef int (*printf_type) (const char *format, ...);
 	std::unordered_map<const char*, void*> tables;
     std::unordered_map<const char*, uColRef *> cols;
+
+	Config* cfg;
+
+	int n_buffers, *sz_bufs;
+	void **buffers;
+	
 	Log_level log_level = LOG_SILENT;
 	printf_type print = printf;
 	template <class ...Types>
@@ -28,8 +39,8 @@ struct Context{
 	}
 };
 
-#ifdef _MSC_VER
-#define __DLLEXPORT__  __declspec(dllexport) __stdcall 
+#ifdef _WIN32
+#define __DLLEXPORT__  __declspec(dllexport) __stdcall
 #else 
 #define __DLLEXPORT__
 #endif

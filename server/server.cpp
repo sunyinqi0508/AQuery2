@@ -36,13 +36,43 @@ void daemon(thread_context* c) {
 #include "aggregations.h"
 typedef int (*code_snippet)(void*);
 int _main();
-int main(int argc, char** argv) {
+
+int dll_main(int argc, char** argv, Context* cxt){
+    Config *cfg = reinterpret_cast<Config *>(argv[0]);
+
+    auto buf_szs = cfg->buffer_sizes;
+    void** buffers = (void**)malloc(sizeof(void*) * cfg->n_buffers);
+    for (int i = 0; i < cfg->n_buffers; i++) 
+        buffers[i] = static_cast<void *>(argv[i + 1]);
+
+    cxt->buffers = buffers;
+    cxt->cfg = cfg;
+    cxt->n_buffers = cfg->n_buffers;
+    cxt->sz_bufs = buf_szs;
+
+    while(cfg->running){
+        if (cfg->new_query) {
+            void* handle = dlopen("d:/gg/Aquery++/dll.so", RTLD_LAZY);
+            code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, "dllmain"));
+            c(cxt);
+            dlclose(handle);
+            cfg->new_query = 0;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    return 0;
+}
+
+extern "C" int __DLLEXPORT__ main(int argc, char** argv) {
     Context* cxt = new Context();
     cxt->log("%d %s\n", argc, argv[1]);
     
     const char* shmname;
-    if (argc <= 1)
-        return _main();
+    if (argc < 0)
+        return dll_main(argc, argv, cxt);
+    else if (argc <= 1)
+        return test_main();
     else
         shmname = argv[1];
     SharedMemory shm = SharedMemory(shmname);
@@ -68,7 +98,6 @@ int main(int argc, char** argv) {
                     cxt->log("inner\n");
                     cxt->err("return: %d\n", c(cxt));
                 }
-                dlclose(handle);
             }
             ready = false;
         }
@@ -77,7 +106,7 @@ int main(int argc, char** argv) {
     return 0;
 }
 #include "utils.h"
-int _main()
+int test_main()
 {
     //vector_type<int> t;
     //t = 1;
