@@ -248,6 +248,8 @@ class create_table(ast_node):
             columns.append(f'{c.name} {c.type.upper()}')
         self.sql += ', '.join(columns)
         self.sql += ')'
+        if self.context.use_columnstore:
+            self.sql += ' engine=ColumnStore'
     
 
         

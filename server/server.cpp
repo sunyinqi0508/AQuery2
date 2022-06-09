@@ -5,6 +5,7 @@
 #include <chrono>
 
 #include "libaquery.h"
+#include "monetdb_conn.h"
 #ifdef _WIN32
 #include "winhelper.h"
 #else 
@@ -50,8 +51,12 @@ int dll_main(int argc, char** argv, Context* cxt){
     cxt->n_buffers = cfg->n_buffers;
     cxt->sz_bufs = buf_szs;
 
+
     while(cfg->running){
         if (cfg->new_query) {
+            if (cfg->backend_type == BACKEND_MonetDB){
+
+            }
             void* handle = dlopen("./dll.so", RTLD_LAZY);
             code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, "dllmain"));
             c(cxt);

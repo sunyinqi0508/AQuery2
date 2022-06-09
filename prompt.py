@@ -96,33 +96,19 @@ class Config:
         self.running = 1
         self.n_buffers = n_bufs
         
-    @property
-    def running(self):
-        return self.np_buf[0]
-    @running.setter
-    def running(self, rn):
-        self.np_buf[0] = rn
-     
-    @property
-    def new_query(self):
-        return self.np_buf[1]
-    @new_query.setter
-    def new_query(self, nq):
-        self.np_buf[1] = nq
-
-    @property
-    def server_mode(self):
-        return self.np_buf[2]
-    @server_mode.setter
-    def server_mode(self, mode):
-        self.np_buf[2] = mode
-
-    @property
-    def n_buffers(self):
-        return self.np_buf[3]
-    @n_buffers.setter
-    def n_buffers(self, n_bufs):
-        self.np_buf[3] = n_bufs
+    def __getter (self, *, i):
+        return self.np_buf[i]
+    def __setter(self, v, *, i):
+        self.np_buf[i] = v
+    def binder(_i):
+        from functools import partial
+        return property(partial(Config.__getter, i = _i), partial(Config.__setter, i = _i))
+    
+    running = binder(0)
+    new_query = binder(1)
+    server_mode = binder(2)
+    backend_type = binder(3)
+    n_buffers = binder(4)
 
     def set_bufszs(self, buf_szs):
         for i in range(min(len(buf_szs), self.n_buffers)):

@@ -10,8 +10,13 @@ enum Log_level {
 	LOG_SILENT
 };
 
+enum Backend_Type {
+	BACKEND_AQuery,
+	BACKEND_MonetDB,
+	BACKEND_MariaDB
+};
 struct Config{
-    int running, new_query, server_mode, n_buffers;
+    int running, new_query, server_mode, backend_type, n_buffers;
     int buffer_sizes[];
 };
 
@@ -25,8 +30,10 @@ struct Context{
 	int n_buffers, *sz_bufs;
 	void **buffers;
 	
+	void* alt_server;
 	Log_level log_level = LOG_SILENT;
 	printf_type print = printf;
+
 	template <class ...Types>
 	void log(Types... args) {
 		if (log_level == LOG_INFO)
