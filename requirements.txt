@@ -1,0 +1,5 @@
+mo-future
+mo-dots==8.20.21357
+mo-parsing
+mo-imports
+readline; sys_platform != 'win32'

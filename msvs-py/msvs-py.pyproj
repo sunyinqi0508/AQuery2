@@ -1,0 +1,93 @@
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>ccc243f5-663e-45b7-a6de-b2468c58b3a7</ProjectGuid>
+    <ProjectHome>.</ProjectHome>
+    <StartupFile>..\prompt.py</StartupFile>
+    <SearchPath>..\msvs-py</SearchPath>
+    <WorkingDirectory>..</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <Name>msvs-py</Name>
+    <RootNamespace>msvs-py</RootNamespace>
+    <IsWindowsApplication>False</IsWindowsApplication>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+  </PropertyGroup>
+  <ItemGroup>
+    <Folder Include="..\aquery_parser\" />
+    <Folder Include="..\aquery_parser\__pycache__\" />
+    <Folder Include="..\engine\" />
+    <Folder Include="..\engine\__pycache__\" />
+    <Folder Include="parser\" />
+    <Folder Include="parser\__pycache__\" />
+    <Folder Include="__pycache__\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\aquery_parser\keywords.py" />
+    <Compile Include="..\aquery_parser\sql_parser.py" />
+    <Compile Include="..\aquery_parser\types.py" />
+    <Compile Include="..\aquery_parser\utils.py" />
+    <Compile Include="..\aquery_parser\windows.py" />
+    <Compile Include="..\aquery_parser\__init__.py" />
+    <Compile Include="..\engine\ast.py" />
+    <Compile Include="..\engine\ddl.py" />
+    <Compile Include="..\engine\expr.py" />
+    <Compile Include="..\engine\groupby.py" />
+    <Compile Include="..\engine\join.py" />
+    <Compile Include="..\engine\orderby.py" />
+    <Compile Include="..\engine\projection.py" />
+    <Compile Include="..\engine\scan.py" />
+    <Compile Include="..\engine\types.py" />
+    <Compile Include="..\engine\utils.py" />
+    <Compile Include="..\engine\__init__.py" />
+    <Compile Include="..\prompt.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\aquery_parser\__pycache__\keywords.cpython-310.pyc" />
+    <Content Include="..\aquery_parser\__pycache__\keywords.cpython-39.pyc" />
+    <Content Include="..\aquery_parser\__pycache__\sql_parser.cpython-310.pyc" />
+    <Content Include="..\aquery_parser\__pycache__\sql_parser.cpython-39.pyc" />
+    <Content Include="..\aquery_parser\__pycache__\types.cpython-310.pyc" />
+    <Content Include="..\aquery_parser\__pycache__\types.cpython-39.pyc" />
+    <Content Include="..\aquery_parser\__pycache__\utils.cpython-310.pyc" />
+    <Content Include="..\aquery_parser\__pycache__\utils.cpython-39.pyc" />
+    <Content Include="..\aquery_parser\__pycache__\windows.cpython-310.pyc" />
+    <Content Include="..\aquery_parser\__pycache__\windows.cpython-39.pyc" />
+    <Content Include="..\aquery_parser\__pycache__\__init__.cpython-310.pyc" />
+    <Content Include="..\aquery_parser\__pycache__\__init__.cpython-39.pyc" />
+    <Content Include="..\engine\__pycache__\ast.cpython-310.pyc" />
+    <Content Include="..\engine\__pycache__\ast.cpython-39.pyc" />
+    <Content Include="..\engine\__pycache__\ddl.cpython-310.pyc" />
+    <Content Include="..\engine\__pycache__\ddl.cpython-39.pyc" />
+    <Content Include="..\engine\__pycache__\expr.cpython-310.pyc" />
+    <Content Include="..\engine\__pycache__\expr.cpython-39.pyc" />
+    <Content Include="..\engine\__pycache__\groupby.cpython-310.pyc" />
+    <Content Include="..\engine\__pycache__\join.cpython-310.pyc" />
+    <Content Include="..\engine\__pycache__\join.cpython-39.pyc" />
+    <Content Include="..\engine\__pycache__\orderby.cpython-310.pyc" />
+    <Content Include="..\engine\__pycache__\projection.cpython-310.pyc" />
+    <Content Include="..\engine\__pycache__\projection.cpython-39.pyc" />
+    <Content Include="..\engine\__pycache__\scan.cpython-310.pyc" />
+    <Content Include="..\engine\__pycache__\types.cpython-310.pyc" />
+    <Content Include="..\engine\__pycache__\utils.cpython-310.pyc" />
+    <Content Include="..\engine\__pycache__\utils.cpython-39.pyc" />
+    <Content Include="..\engine\__pycache__\__init__.cpython-310.pyc" />
+    <Content Include="..\engine\__pycache__\__init__.cpython-39.pyc" />
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
+  <!-- Uncomment the CoreCompile target to enable the Build command in
+       Visual Studio and specify your pre- and post-build commands in
+       the BeforeBuild and AfterBuild targets below. -->
+  <!--<Target Name="CoreCompile" />-->
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+</Project>

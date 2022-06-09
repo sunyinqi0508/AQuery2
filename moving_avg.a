@@ -1,0 +1,14 @@
+CREATE TABLE sale(Month INT, sales INT)
+
+LOAD DATA INFILE "moving_avg.csv"
+INTO TABLE sale
+FIELDS TERMINATED BY "\t"
+
+SELECT Month,avgs(3,sales)
+FROM sale
+     ASSUMING ASC Month
+INTO OUTFILE "moving_avg_output.csv"
+FIELDS TERMINATED BY ";"
+
+select Month, mins(2,sales) from sale assuming desc Month group by sales 
+into outfile "flatten.csv" 
