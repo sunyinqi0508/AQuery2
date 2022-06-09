@@ -77,7 +77,8 @@ class Context:
         self.cols = []
         self.datasource = None
         self.udf_map = dict()
-    
+        self.use_columnstore = False
+        
     def emit(self, sql:str):
         self.sql += sql + ' '
         

@@ -25,8 +25,10 @@ struct Context{
 	int n_buffers, *sz_bufs;
 	void **buffers;
 	
+	void* alt_server;
 	Log_level log_level = LOG_SILENT;
 	printf_type print = printf;
+
 	template <class ...Types>
 	void log(Types... args) {
 		if (log_level == LOG_INFO)
