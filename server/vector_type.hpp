@@ -64,7 +64,11 @@ public:
 	constexpr vector_type(vector_type<_Ty>&& vt) noexcept : capacity(0) {
 		_move(std::move(vt));
 	}
-	vector_type<_Ty> operator =(const _Ty& vt) {
+	// size >= capacity ==> readonly vector
+	constexpr vector_type(const uint32_t size, void* data) : 
+		size(size), capacity(0), container(static_cast<_Ty*>(data)) {}
+
+	vector_type<_Ty>& operator =(const _Ty& vt) {
 		if (!container) { 
 			container = (_Ty*)malloc(sizeof(_Ty)); 
 			capacity = 1; 
@@ -73,16 +77,24 @@ public:
 		container[0] = vt;
 		return *this;
 	}
-	vector_type<_Ty> operator =(const vector_type<_Ty>& vt) {
+	// template<template <typename ...> class VT, class T>
+	// vector_type<_Ty>& operator =(VT<T>&& vt) {
+	// 	this->container = (_Ty*)vt.container;
+	// 	this->size = vt.size;
+	// 	this->capacity = vt.capacity;
+	// 	vt.capacity = 0; // rvalue's 
+	// 	return *this;
+	// }
+	vector_type<_Ty>& operator =(const vector_type<_Ty>& vt) {
 		_copy(vt);
 		return *this;
 	}
-	vector_type<_Ty> operator =(vector_type<_Ty>&& vt) {
+	vector_type<_Ty>& operator =(vector_type<_Ty>&& vt) {
 		_move(std::move(vt));
 		return *this;
 	}
 	template <template <class> class VT>
-	vector_type<_Ty> operator =(const VT<_Ty>& vt) {
+	vector_type<_Ty>& operator =(const VT<_Ty>& vt) {
 		if (capacity > 0) free(container);
 		container = static_cast<_Ty*>(malloc(vt.size * sizeof(_Ty)));
 		
@@ -211,7 +223,7 @@ public:
 
 #define Opeq(o, x) \
 	template<typename T>\
-	vector_type<typename types::Coercion<_Ty, T>::type> inline x##eq(const vector_type<T>& r) {\
+	inline vector_type<typename types::Coercion<_Ty, T>::type>& x##eq(const vector_type<T>& r) {\
 		for (int i = 0; i < size; ++i)\
 			container[i] = container[i] o##= r[i];\
 		return *this;\

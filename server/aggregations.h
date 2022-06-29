@@ -3,6 +3,9 @@
 #include <utility>
 #include <limits>
 #include <deque>
+#include <cmath>
+#undef max
+#undef min
 template <class T, template<typename ...> class VT>
 size_t count(const VT<T>& v) {
 	return v.size;
@@ -24,6 +27,16 @@ types::GetFPType<T> avg(const VT<T>& v) {
 	return static_cast<types::GetFPType<T>>(
 		sum<T>(v) / static_cast<long double>(v.size));
 }
+
+template<class T, template<typename ...> class VT>
+VT<double> sqrt(const VT<T>& v) {
+	VT<double> ret {v.size};
+	for (uint32_t i = 0; i < v.size; ++i){
+		ret[i] = sqrt(v[i]);
+	}
+	return ret;
+}
+
 template <class T, template<typename ...> class VT>
 T max(const VT<T>& v) {
 	T max_v = std::numeric_limits<T>::min();
@@ -128,8 +141,8 @@ decayed_t<VT, types::GetLongType<T>> sumw(uint32_t w, const VT<T>& arr) {
 	return ret;
 }
 template<class T, template<typename ...> class VT>
-decayed_t<VT, types::GetFPType<T>> avgw(uint32_t w, const VT<T>& arr) {
-	typedef types::GetFPType<T> FPType;
+decayed_t<VT, types::GetFPType<types::GetLongType<T>>> avgw(uint32_t w, const VT<T>& arr) {
+	typedef types::GetFPType<types::GetLongType<T>> FPType;
 	const uint32_t& len = arr.size;
 	decayed_t<VT, FPType> ret(len);
 	uint32_t i = 0;

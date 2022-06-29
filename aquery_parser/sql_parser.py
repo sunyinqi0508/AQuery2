@@ -344,7 +344,7 @@ def parser(literal_string, ident, sqlserver=False):
             + LBRACE
             + fbody
             + RBRACE
-        )
+        )("udf")
 
         selection = (
             (SELECT + DISTINCT + ON + LB)

@@ -12,7 +12,9 @@ struct Server{
     monetdbe_result* res = 0;
     monetdbe_column* ret_col = 0;
     monetdbe_cnt cnt = 0;
-
+    char* last_error = 0;
+    
+    Server(Context* cxt = nullptr);
     void connect(Context* cxt);
     void exec(const char* q);
     void *getCol(int col_idx);

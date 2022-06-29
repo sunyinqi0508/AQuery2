@@ -1,14 +1,14 @@
-CREATE TABLE sale(Month INT, sales INT)
+CREATE TABLE sale(Mont INT, sales INT)
 
 LOAD DATA INFILE "moving_avg.csv"
 INTO TABLE sale
-FIELDS TERMINATED BY "\t"
+FIELDS TERMINATED BY ","
 
-SELECT Month,avgs(3,sales)
+SELECT Mont,avgs(3,sales)
 FROM sale
-     ASSUMING ASC Month
+     ASSUMING ASC Mont
 INTO OUTFILE "moving_avg_output.csv"
 FIELDS TERMINATED BY ";"
 
-select Month, mins(2,sales) from sale assuming desc Month group by sales 
+select Mont, mins(2,sales) from sale assuming desc Mont group by sales 
 into outfile "flatten.csv" 

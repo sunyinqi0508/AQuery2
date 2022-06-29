@@ -1,0 +1,24 @@
+FUNCTION covariance (x , y ) {
+xmean := avg (x) ;
+ymean := avg (y) ;
+avg (( x - xmean ) * (y - ymean ))
+}
+
+FUNCTION sd ( x) {
+sqrt ( covariance (x , x) )
+}
+
+FUNCTION pairCorr (x , y ) {
+covariance (x , y ) / ( sd (x) * sd (y ))
+}
+
+CREATE TABLE test1(a INT, b INT, c INT, d INT)
+
+LOAD DATA INFILE "test.csv"
+INTO TABLE test1
+FIELDS TERMINATED BY ","
+
+SELECT pairCorr(c, b) * d, sum(a), b
+FROM test1
+group by c,b,d
+order by b ASC

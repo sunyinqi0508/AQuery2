@@ -28,11 +28,14 @@ class expr(ast_node):
         'xor' : '^',
         'gt':'>',
         'lt':'<',
-        'le':'<=',
-        'gt':'>='
+        'lte':'<=',
+        'gte':'>=',
+        'neq':'!=', 
+        'eq':'=='
     }
 
     compound_ops = {
+        'missing' : ['missing', lambda x: f'{x[0]} == nullval<decays<decltype({x[0]})>>'],
     }
 
     unary_ops = {

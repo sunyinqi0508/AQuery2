@@ -38,6 +38,27 @@ void daemon(thread_context* c) {
 typedef int (*code_snippet)(void*);
 int test_main();
 
+int n_recv = 0;
+char** n_recvd = nullptr;
+
+extern "C" void __DLLEXPORT__ receive_args(int argc, char**argv){
+    n_recv = argc;
+    n_recvd = argv;
+}
+enum BinaryInfo_t {
+	MSVC, MSYS, GCC, CLANG, AppleClang
+};
+extern "C" int __DLLEXPORT__ binary_info() {
+#if defined(_MSC_VER) && !defined (__llvm__)
+	return MSVC;
+#elif defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)
+	return MSYS;
+#elif defined(__GNUC__)
+    return GCC;
+#else
+	return AppleClang;
+#endif
+}
 int dll_main(int argc, char** argv, Context* cxt){
     Config *cfg = reinterpret_cast<Config *>(argv[0]);
 
@@ -50,17 +71,39 @@ int dll_main(int argc, char** argv, Context* cxt){
     cxt->cfg = cfg;
     cxt->n_buffers = cfg->n_buffers;
     cxt->sz_bufs = buf_szs;
-
+    cxt->alt_server = NULL;
 
     while(cfg->running){
         if (cfg->new_query) {
-            if (cfg->backend_type == BACKEND_MonetDB){
 
+            if (cfg->backend_type == BACKEND_MonetDB){
+                if (cxt->alt_server == 0)
+                    cxt->alt_server = new Server(cxt);
+                Server* server = reinterpret_cast<Server*>(cxt->alt_server);
+                if(n_recv > 0){
+                    for(int i = 0; i < n_recv; ++i)
+                    {
+                        server->exec(n_recvd[i]);
+                        printf("Exec Q%d: %s\n", i, n_recvd[i]);
+                    }
+                    n_recv = 0;
+                }
+                if(server->last_error == nullptr){
+                    
+                }   
+                else{
+                    server->last_error = nullptr;
+                    continue;
+                } 
             }
-            void* handle = dlopen("./dll.so", RTLD_LAZY);
-            code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, "dllmain"));
-            c(cxt);
-            dlclose(handle);
+            
+            // puts(cfg->has_dll ? "true" : "false");
+            if (cfg->backend_type == BACKEND_AQuery || cfg->has_dll) {
+                void* handle = dlopen("./dll.so", RTLD_LAZY);
+                code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, "dllmain"));
+                c(cxt);
+                dlclose(handle);
+            }
             cfg->new_query = 0;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -70,6 +113,7 @@ int dll_main(int argc, char** argv, Context* cxt){
 }
 
 extern "C" int __DLLEXPORT__ main(int argc, char** argv) {
+    puts("running");
     Context* cxt = new Context();
     cxt->log("%d %s\n", argc, argv[1]);
     
@@ -119,6 +163,27 @@ int test_main()
     //print(t);
     //return 0;
     Context* cxt = new Context();
+    if (cxt->alt_server == 0)
+        cxt->alt_server = new Server(cxt);
+    Server* server = reinterpret_cast<Server*>(cxt->alt_server);
+    const char* qs[]= {
+        "CREATE TABLE tt(a INT, b INT, c INT, d INT);",
+        "COPY OFFSET 2 INTO tt FROM  'D:/gg/AQuery++/test.csv'  ON SERVER    USING DELIMITERS  ',';",
+        "CREATE TABLE sale(Mont INT, sales INT);",
+		"COPY OFFSET 2 INTO sale FROM  'D:/gg/AQuery++/moving_avg.csv'  ON SERVER    USING DELIMITERS  ',';",
+		"SELECT a FROM tt, sale WHERE a = Mont  ;"
+    };
+    n_recv = sizeof(qs)/(sizeof (char*));
+	n_recvd = const_cast<char**>(qs);
+    if (n_recv > 0) {
+        for (int i = 0; i < n_recv; ++i)
+        {
+            server->exec(n_recvd[i]);
+            printf("Exec Q%d: %s\n", i, n_recvd[i]);
+        }
+        n_recv = 0;
+    }
+
     cxt->log_level = LOG_INFO;
     puts(cpp_17 ?"true":"false");
     void* handle = dlopen("./dll.so", RTLD_LAZY);

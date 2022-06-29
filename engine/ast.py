@@ -1,5 +1,6 @@
 from engine.utils import base62uuid
 from copy import copy
+from typing import *
 # replace column info with this later.
 class ColRef:
     def __init__(self, cname, _ty, cobj, cnt, table:'TableInfo', name, id, compound = False):
@@ -65,7 +66,7 @@ class TableInfo:
         self.views = set()
         #keep track of temp vars
         self.local_vars = dict()
-        self.rec = None 
+        self.rec = None # a hook on get_col_d to record tables being referenced in the process
         self.groupinfo = None
         self.add_cols(cols)
         # runtime
@@ -207,14 +208,17 @@ class Context:
     LOG_INFO = 'INFO'
     LOG_ERROR = 'ERROR'
     LOG_SILENT = 'SILENT'
+    from engine.types import Types
+    type_table : Dict[str, Types] = dict()
+    
     def new(self):
         self.tmp_names = set()
         self.udf_map = dict()
         self.headers = set(['\"./server/libaquery.h\"'])
         self.finalized = False
         # read header
-        self.ccode = ''
-        self.ccodelet = ''
+        self.ccode = str()
+        self.ccodelet = str()
         with open('header.cxx', 'r') as outfile:
             self.ccode = outfile.read()         
         # datasource will be availible after `from' clause is parsed
@@ -236,8 +240,8 @@ class Context:
         self.log_level = Context.LOG_SILENT
         self.print = print
         # read header
-        self.ccode = ''
-        self.ccodelet = ''
+        self.ccode = str()
+        self.ccodelet = str()
         self.columns_in_context = dict()
         self.tables_in_context = dict()
         with open('header.cxx', 'r') as outfile:

@@ -1,11 +1,13 @@
 import enum
 import re
 import time
-import dbconn
-
+# import dbconn
 from mo_parsing import ParseException
 import aquery_parser as parser
 import engine
+import engine.projection
+import engine.ddl
+
 import reconstruct as xengine
 import subprocess
 import mmap
@@ -17,9 +19,16 @@ import atexit
 import threading
 import ctypes
 
+import aquery_config
+
 class RunType(enum.Enum):
     Threaded = 0
     IPC = 1
+
+class Backend_Type(enum.Enum):
+	BACKEND_AQuery = 0
+	BACKEND_MonetDB = 1
+	BACKEND_MariaDB = 2
 
 server_mode = RunType.Threaded
 
@@ -31,7 +40,6 @@ except Exception as e:
     print(type(e), e)
     
 nullstream = open(os.devnull, 'w')
-
 subprocess.call(['make', server_bin], stdout=nullstream)
 cleanup = True
 
@@ -88,27 +96,20 @@ c = lambda _ba: ctypes.cast((ctypes.c_char * len(_ba)).from_buffer(_ba), ctypes.
 class Config:
     def __init__(self, nq = 0, mode = server_mode, n_bufs = 0, bf_szs = []) -> None:
         self.int_size = 4
-        self.n_attrib = 4
+        self.n_attrib = 6
         self.buf = bytearray((self.n_attrib + n_bufs) * self.int_size)
         self.np_buf = np.ndarray(shape=(self.n_attrib), buffer=self.buf, dtype=np.int32)
         self.new_query = nq
         self.server_mode = mode.value 
         self.running = 1
+        self.backend_type = Backend_Type.BACKEND_AQuery.value
+        self.has_dll = 0
         self.n_buffers = n_bufs
         
-    def __getter (self, *, i):
+    def getter (self, *, i):
         return self.np_buf[i]
-    def __setter(self, v, *, i):
+    def setter(self, v, *, i):
         self.np_buf[i] = v
-    def binder(_i):
-        from functools import partial
-        return property(partial(Config.__getter, i = _i), partial(Config.__setter, i = _i))
-    
-    running = binder(0)
-    new_query = binder(1)
-    server_mode = binder(2)
-    backend_type = binder(3)
-    n_buffers = binder(4)
 
     def set_bufszs(self, buf_szs):
         for i in range(min(len(buf_szs), self.n_buffers)):
@@ -118,14 +119,27 @@ class Config:
     def c(self):
         return c(self.buf)
 
+def binder(cls, attr, _i):
+    from functools import partial
+    setattr(cls, attr, property(partial(cls.getter, i = _i), partial(cls.setter, i = _i)))
+
+binder(Config, 'running', 0)
+binder(Config, 'new_query', 1)
+binder(Config, 'server_mode', 2)
+binder(Config, 'backend_type', 3)
+binder(Config, 'has_dll', 4)
+binder(Config, 'n_buffers', 5)
+
 cfg = Config()
 th = None
+send = None
     
 def init_threaded():
-    
-    if os.name == 'nt':
+    if os.name == 'nt' and aquery_config.add_path_to_ldpath:
         t = os.environ['PATH'].lower().split(';')
         vars = re.compile('%.*%')
+        os.add_dll_directory(os.path.abspath('.'))
+        os.add_dll_directory(os.path.abspath('./lib'))
         for e in t:
             if(len(e) != 0):
                 if '%' in e:
@@ -133,13 +147,20 @@ def init_threaded():
                         m_e = vars.findall(e)
                         for m in m_e:
                             e = e.replace(m, os.environ[m[1:-1]])
-                        # print(m, e)
                     except Exception:
                         continue
-                os.add_dll_directory(e)
+                try:
+                    os.add_dll_directory(e)
+                except Exception:
+                    continue
     
+    else:
+        os.environ['PATH'] = os.environ['PATH'] + os.pathsep + os.path.abspath('.')
+        os.environ['PATH'] = os.environ['PATH'] + os.pathsep + os.path.abspath('./lib')
+        
     server_so = ctypes.CDLL('./'+server_bin)
-    global cfg, th
+    global cfg, th, send
+    send = server_so['receive_args']
     th = threading.Thread(target=server_so['main'], args=(-1, ctypes.POINTER(ctypes.c_char_p)(cfg.c)), daemon=True)
     th.start()
         
@@ -172,7 +193,7 @@ q = 'SELECT p.Name, v.Name FROM Production.Product p JOIN Purchasing.ProductVend
 
 res = parser.parse(q)
 
-
+payload = None
 keep = True
 cxt = engine.initialize()
 cxt.Info(res)
@@ -184,34 +205,49 @@ while test_parser:
             time.sleep(.00001)
         print("> ", end="")
         q = input().lower()
-        if q == 'exec':
-            if not keep or cxt is None:
-                cxt = engine.initialize()
-            else:
-                cxt.new()
-            stmts_stmts = stmts['stmts']
-            if type(stmts_stmts) is list:
-                for s in stmts_stmts:
-                    engine.generate(s, cxt)
-            else:
-                engine.generate(stmts_stmts, cxt)
-            cxt.Info(cxt.ccode)
-            with open('out.cpp', 'wb') as outfile:
-                outfile.write((cxt.finalize()).encode('utf-8'))
+        if q == 'exec': # generate build and run (AQuery Engine)
+            cfg.backend_type = Backend_Type.BACKEND_AQuery.value
+            cxt = engine.exec(stmts, cxt, keep)
             if subprocess.call(['make', 'snippet'], stdout = nullstream) == 0:
                 set_ready()
             continue
-        if q == 'xexec':
-            cxt = xengine.initialize()
-            stmts_stmts = stmts['stmts']
-            if type(stmts_stmts) is list:
-                for s in stmts_stmts:
-                    xengine.generate(s, cxt)
+        
+        elif q == 'xexec': # generate build and run (MonetDB Engine)
+            cfg.backend_type = Backend_Type.BACKEND_MonetDB.value
+            cxt = xengine.exec(stmts, cxt, keep)
+            if server_mode == RunType.Threaded:
+                # assignment to avoid auto gc
+                sqls =  [s.strip() for s in cxt.sql.split(';')]
+                qs = [ctypes.c_char_p(bytes(q, 'utf-8')) for q in sqls if len(q)]
+                sz = len(qs)
+                payload = (ctypes.c_char_p*sz)(*qs)
+                send(sz, payload)
+            if cxt.udf is not None:
+                with open('udf.hpp', 'wb') as outfile:
+                    outfile.write(cxt.udf.encode('utf-8'))
+                
+            if cxt.has_dll:
+                with open('out.cpp', 'wb') as outfile:
+                    outfile.write((cxt.finalize()).encode('utf-8'))
+                subprocess.call(['make', 'snippet'], stdout = nullstream)
+                cfg.has_dll = 1
             else:
-                xengine.generate(stmts_stmts, cxt)
-            print(cxt.sql)
+                cfg.has_dll = 0
+            set_ready()
+            
             continue
         
+        
+        elif q == 'dbg':
+            import code
+            var = globals().copy()
+            var.update(locals())
+            sh = code.InteractiveConsole(var)
+            try:
+                code.interact()
+            except BaseException as e: 
+            # don't care about anything happened in interactive console
+                pass
         elif q.startswith('log'):
             qs = re.split(' |\t', q)
             if len(qs) > 1:
@@ -232,11 +268,11 @@ while test_parser:
             subprocess.call(['clang-format', 'out.cpp'])
         elif q == 'exit':
             break
-        elif q == 'r':
+        elif q == 'r': # build and run
             if subprocess.call(['make', 'snippet']) == 0:
                 set_ready()
             continue
-        elif q == 'rr':
+        elif q == 'rr': # run
             set_ready()
             continue
         elif q.startswith('save'):
@@ -263,13 +299,10 @@ while test_parser:
         print(e)
         continue
     except (ValueError, FileNotFoundError) as e:
-        # rm()
-        # init()
         print(e)
     except (KeyboardInterrupt):
         break
-    except (Exception) as e:
+    except:
         rm()
-        raise e
-
+        raise
 rm()

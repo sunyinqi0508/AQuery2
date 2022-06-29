@@ -16,7 +16,8 @@ enum Backend_Type {
 	BACKEND_MariaDB
 };
 struct Config{
-    int running, new_query, server_mode, backend_type, n_buffers;
+    int running, new_query, server_mode,
+	 	backend_type, has_dll, n_buffers;
     int buffer_sizes[];
 };
 
@@ -31,7 +32,7 @@ struct Context{
 	void **buffers;
 	
 	void* alt_server;
-	Log_level log_level = LOG_SILENT;
+	Log_level log_level = LOG_INFO;
 	printf_type print = printf;
 
 	template <class ...Types>

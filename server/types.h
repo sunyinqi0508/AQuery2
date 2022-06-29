@@ -21,8 +21,8 @@ constexpr static bool is_vector_type = is_vector_impl<T>::value;
 
 namespace types {
 	enum Type_t {
-		AINT, AFLOAT, ASTR, ADOUBLE, ALDOUBLE, ALONG, ASHORT, ADATE, ATIME, ACHAR,
-		AUINT, AULONG, AUSHORT, AUCHAR, VECTOR, NONE, ERROR
+		AINT32, AFLOAT, ASTR, ADOUBLE, ALDOUBLE, AINT64, AINT16, ADATE, ATIME, AINT8,
+		AUINT32, AUINT64, AUINT16, AUINT8, VECTOR, NONE, ERROR
 	};
 	static constexpr const char* printf_str[] = { "%d", "%f", "%s", "%lf", "%llf", "%ld", "%hi", "%s", "%s", "%c",
 		"%u", "%lu", "%hu", "%hhu", "Vector<%s>", "NULL", "ERROR" };
@@ -44,20 +44,20 @@ namespace types {
 		typedef T type;
 		constexpr Types() noexcept = default;
 #define ConnectTypes(f) \
-		f(int, AINT) \
+		f(int, AINT32) \
 		f(float, AFLOAT) \
 		f(const char*, ASTR) \
 		f(double, ADOUBLE) \
 		f(long double, ALDOUBLE) \
-		f(long, ALONG) \
-		f(short, ASHORT) \
+		f(long, AINT64) \
+		f(short, AINT16) \
 		f(date_t, ADATE) \
 		f(time_t, ATIME) \
-		f(unsigned char, ACHAR) \
-		f(unsigned int, AUINT) \
-		f(unsigned long, AULONG) \
-		f(unsigned short, AUSHORT) \
-		f(unsigned char, AUCHAR) 
+		f(unsigned char, AINT8) \
+		f(unsigned int, AUINT32) \
+		f(unsigned long, AUINT64) \
+		f(unsigned short, AUINT16) \
+		f(unsigned char, AUINT8) 
 
 		inline constexpr static Type_t getType() {
 #define	TypeConnect(x, y) if constexpr(std::is_same<x, T>::value) return y; else
@@ -73,11 +73,11 @@ namespace types {
 #define Cond(c, x, y) typename std::conditional<c, x, y>::type
 #define Comp(o) (sizeof(T1) o sizeof(T2))
 #define Same(x, y) (std::is_same_v<x, y>)
-#define _U(x) std::is_unsigned<x>::value
+#define __U(x) std::is_unsigned<x>::value
 #define Fp(x) std::is_floating_point<x>::value
 	template <class T1, class T2>
 	struct Coercion {
-		using t1 = Cond(Comp(<= ), Cond(Comp(== ), Cond(Fp(T1), T1, Cond(Fp(T2), T2, Cond(_U(T1), T2, T1))), T2), T1);
+		using t1 = Cond(Comp(<= ), Cond(Comp(== ), Cond(Fp(T1), T1, Cond(Fp(T2), T2, Cond(__U(T1), T2, T1))), T2), T1);
 		using t2 = Cond(Same(T1, T2), T1, Cond(Same(T1, const char*) || Same(T2, const char*), const char*, void));
 		using type = Cond(Same(t2, void), Cond(Same(T1, date_t) && Same(T2, time_t) || Same(T1, time_t) && Same(T2, time_t), void, t1), t2);
 	};
@@ -90,7 +90,7 @@ namespace types {
 	using GetFPType = typename GetFPTypeImpl<typename std::decay<T>::type>::type;
 	template<class T>
 	struct GetLongTypeImpl {
-		using type = Cond(_U(T), unsigned long long, Cond(Fp(T), long double, long long));
+		using type = Cond(__U(T), unsigned long long, Cond(Fp(T), long double, long long));
 	};
 	template<class T>
 	using GetLongType = typename GetLongTypeImpl<typename std::decay<T>::type>::type;
@@ -189,4 +189,17 @@ template <template <class...> class VT, class ...V>
 struct value_type_rec_impl<VT<V...>> { typedef typename value_type_rec_impl<get_first<int>>::type type; };
 template <class T>
 using value_type_r = typename value_type_rec_impl<T>::type;
+
+template <class T>
+struct nullval_impl { constexpr static T value = 0; };
+template <class T>
+constexpr static T nullval = nullval_impl<T>::value;
+#include <limits>
+template <>
+struct nullval_impl<int> { constexpr static int value = std::numeric_limits<int>::min(); };
+template<>
+struct nullval_impl<float> { constexpr static float value = -std::numeric_limits<float>::quiet_NaN(); };
+template<>
+struct nullval_impl<double> { constexpr static double value = -std::numeric_limits<double>::quiet_NaN(); };
+
 #endif // !_TYPES_H

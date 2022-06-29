@@ -34,7 +34,31 @@ public:
 	ColRef() : vector_type<_Ty>(0), name("") {}
 	ColRef(const uint32_t& size, const char* name = "") : vector_type<_Ty>(size), name(name) {}
 	ColRef(const char* name) : name(name) {}
+	ColRef(const uint32_t size, void* data, const char* name = "") : vector_type<_Ty>(size, data), name(name) {}
 	void init(const char* name = "") { ty = types::Types<_Ty>::getType();  this->size = this->capacity = 0; this->container = 0; this->name = name; }
+	void initfrom(uint32_t sz, void*container, const char* name = "") {
+		ty = types::Types<_Ty>::getType();  
+		this->size = sz;
+		this->capacity = 0;
+		this->container = (_Ty*)container; 
+		this->name = name; 
+	}
+	template<template <typename ...> class VT, typename T>
+	void initfrom(const VT<T>& v, const char* name = ""){
+		ty = types::Types<_Ty>::getType();  
+		this->size = v.size;
+		this->capacity = 0;
+		this->container = (_Ty*)(v.container); 
+		this->name = name; 
+	}
+	template <class T>
+	ColRef<_Ty>& operator =(ColRef<T>&& vt) {
+		this->container = (_Ty*)vt.container;
+		this->size = vt.size;
+		this->capacity = vt.capacity;
+		vt.capacity = 0; // rvalue's 
+		return *this;
+	}
 	ColRef(const char* name, types::Type_t ty) : name(name), ty(ty) {}
 	using vector_type<_Ty>::operator[];
 	using vector_type<_Ty>::operator=;
@@ -180,7 +204,10 @@ struct TableInfo {
 	auto bind(TableInfo<Types2...>* table2) {
 		return lineage_t(this, table2);
 	}
-	
+	template <size_t i = 0>
+	auto& get_col() {
+		return *reinterpret_cast<ColRef<std::tuple_element_t <i, tuple_type>>*>(colrefs + i);
+	}
 	template <size_t j = 0>
 	typename std::enable_if<j == sizeof...(Types) - 1, void>::type print_impl(const uint32_t& i, const char* __restrict sep = " ") const;
 	template <size_t j = 0>
@@ -192,6 +219,7 @@ struct TableInfo {
 	template <size_t ...Idxs>
 	using getRecordType = typename GetTypes<Idxs...>::type;
 	TableInfo(const char* name, uint32_t n_cols);
+	TableInfo(const char* name = "");
 	template <int prog = 0>
 	inline void materialize(const vector_type<uint32_t>& idxs, TableInfo<Types...>* tbl = nullptr) { // inplace materialize
 		if constexpr(prog == 0) tbl = (tbl == 0 ? this : tbl);
@@ -331,6 +359,16 @@ constexpr static inline bool is_vector(const vector_type<T>&) {
 template<class ...Types>
 TableInfo<Types...>::TableInfo(const char* name, uint32_t n_cols) : name(name), n_cols(n_cols) {
 	this->colrefs = (ColRef<void>*)malloc(sizeof(ColRef<void>) * n_cols);
+	for (int i = 0; i < n_cols; ++i) {
+		this->colrefs[i].init();
+	}
+}
+template<class ...Types>
+TableInfo<Types...>::TableInfo(const char* name) : name(name), n_cols(sizeof...(Types)) {
+	this->colrefs = (ColRef<void>*)malloc(sizeof(ColRef<void>) * this->n_cols);
+	for (int i = 0; i < n_cols; ++i) {
+		this->colrefs[i].init();
+	}
 }
 template <class ...Types>
 template <size_t j>
@@ -405,6 +443,13 @@ decayed_t<VT, typename types::Coercion<T1, T2>::type> operator -(const VT<T1>& l
 		ret[i] = lhs[i] - rhs;
 	return ret;
 }
+template <class T1, class T2, template<typename ...> class VT>
+decayed_t<VT, typename types::Coercion<T1, T2>::type> operator -(const T2& lhs, const VT<T1>& rhs) {
+	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(rhs.size, "");
+	for (int i = 0; i < rhs.size; ++i)
+		ret[i] = lhs - rhs[i];
+	return ret;
+}
 template <class T1, class T2, template<typename ...> class VT, template<typename ...> class VT2>
 decayed_t<VT, typename types::Coercion<T1, T2>::type> operator +(const VT<T1>& lhs, const VT2<T2>& rhs) {
 	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size, "");
@@ -417,6 +462,13 @@ decayed_t<VT, typename types::Coercion<T1, T2>::type> operator +(const VT<T1>& l
 	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size, "");
 	for (int i = 0; i < lhs.size; ++i)
 		ret[i] = lhs[i] + rhs;
+	return ret;
+}
+template <class T1, class T2, template<typename ...> class VT>
+decayed_t<VT, typename types::Coercion<T1, T2>::type> operator +(const T2& lhs, const VT<T1>& rhs) {
+	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(rhs.size, "");
+	for (int i = 0; i < rhs.size; ++i)
+		ret[i] = lhs + rhs[i];
 	return ret;
 }
 template <class T1, class T2, template<typename ...> class VT, template<typename ...> class VT2>
@@ -433,18 +485,32 @@ decayed_t<VT, typename types::Coercion<T1, T2>::type> operator *(const VT<T1>& l
 		ret[i] = lhs[i] * rhs;
 	return ret;
 }
+template <class T1, class T2, template<typename ...> class VT>
+decayed_t<VT, typename types::Coercion<T1, T2>::type> operator *(const T2& lhs, const VT<T1>& rhs) {
+	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(rhs.size, "");
+	for (int i = 0; i < rhs.size; ++i)
+		ret[i] = lhs * rhs[i];
+	return ret;
+}
 template <class T1, class T2, template<typename ...> class VT, template<typename ...> class VT2>
-decayed_t<VT, typename types::Coercion<T1, T2>::type> operator /(const VT<T1>& lhs, const VT2<T2>& rhs) {
-	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size, "");
+decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>> operator /(const VT<T1>& lhs, const VT2<T2>& rhs) {
+	auto ret = decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>>(lhs.size, "");
 	for (int i = 0; i < lhs.size; ++i)
 		ret[i] = lhs[i] / rhs[i];
 	return ret;
 }
 template <class T1, class T2, template<typename ...> class VT>
-decayed_t<VT, typename types::Coercion<T1, T2>::type> operator /(const VT<T1>& lhs, const T2& rhs) {
-	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size, "");
+decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>> operator /(const VT<T1>& lhs, const T2& rhs) {
+	auto ret = decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>>(lhs.size, "");
 	for (int i = 0; i < lhs.size; ++i)
 		ret[i] = lhs[i] / rhs;
+	return ret;
+}
+template <class T1, class T2, template<typename ...> class VT>
+decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>> operator /(const T2& lhs, const VT<T1>& rhs) {
+	auto ret = decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>>(rhs.size, "");
+	for (int i = 0; i < rhs.size; ++i)
+		ret[i] = lhs / rhs[i];
 	return ret;
 }
 

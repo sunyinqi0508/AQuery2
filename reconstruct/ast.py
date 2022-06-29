@@ -1,4 +1,7 @@
-from engine.utils import enlist, base62uuid, base62alp
+from re import T
+from typing import Set, Tuple
+from engine.types import *
+from engine.utils import enlist, base62uuid, base62alp, get_leagl_name
 from reconstruct.storage import Context, TableInfo, ColRef
     
 class ast_node:
@@ -76,30 +79,60 @@ class projection(ast_node):
         # deal with projections
         self.out_table = TableInfo('out_'+base62uuid(4), [], self.context)
         cols = []
-        col_exprs = []
+        col_ext : Set[ColRef]= set()
+        col_exprs : List[Tuple[str, Types]] = []
+        
+        proj_map = dict()
+        var_table = dict()
+        
         for i, proj in enumerate(self.projections):
             compound = False
             self.datasource.rec = set()
             name = ''
+            this_type = AnyT
             if type(proj) is dict:
-                
                 if 'value' in proj:
                     e = proj['value']
-                    name = expr(self, e).sql
-                    disp_name = ''.join([a if a in base62alp else '' for a in name])
+                    proj_expr = expr(self, e)
+                    this_type = proj_expr.type
+                    name = proj_expr.sql
                     compound = True # compound column
+                    if not proj_expr.is_special:
+                        y = lambda x:x
+                        name = eval('f\'' + name + '\'')
+                        if name not in var_table:
+                            var_table[name] = len(col_exprs)
+                        proj_map[i] = [this_type, len(col_exprs)]
+                        col_exprs.append((name, proj_expr.type))
+                    else:
+                        self.context.headers.add('"./server/aggregations.h"')
+                        if self.datasource.rec is not None:
+                            col_ext = col_ext.union(self.datasource.rec)
+                        proj_map[i] = [this_type, proj_expr.sql]
+                        
                     if 'name' in proj: # renaming column by AS keyword
-                        name += ' ' +  proj['name']
-                    col_exprs.append(name)
-                
+                        name += ' AS ' +  proj['name']
+                        if not proj_expr.is_special:
+                            var_table[proj['name']] = len(col_exprs)
+                    
+                    disp_name = get_leagl_name(name)
+                    
             elif type(proj) is str:
                 col = self.datasource.get_col(proj)
+                this_type = col.type
                 name = col.name
             self.datasource.rec = None
             # TODO: Type deduction in Python
-            cols.append(ColRef('unknown', self.out_table, None, disp_name, i, compound=compound))
-        self.add(', '.join(col_exprs))
-        
+            cols.append(ColRef(this_type, self.out_table, None, disp_name, i, compound=compound))
+        col_ext = [c for c in col_ext if c.name not in var_table] # remove duplicates in var_table
+        col_ext_names = [c.name for c in col_ext]
+        self.add(', '.join([c[0] for c in col_exprs] + col_ext_names))
+    
+        _base_offset = len(col_exprs)
+        for i, col in enumerate(col_ext_names):
+            if col not in var_table:
+                var_table[col] = i + _base_offset
+    
         def finialize(astnode:ast_node):
             if(astnode is not None):
                 self.add(astnode.sql)
@@ -110,13 +143,50 @@ class projection(ast_node):
         if 'orderby' in node:
             self.add(orderby(self, node['orderby']).sql)
         if 'outfile' in node:
-            self.add(outfile(self, node['outfile']).sql)
+            self.sql = outfile(self, node['outfile'], sql = self.sql).sql
         if self.parent is None:
             self.emit(self.sql+';\n')
         else: 
             # TODO: subquery, name create tmp-table from subquery w/ alias as name 
             pass
+        # cpp module codegen
+        self.context.has_dll = True
+        # extract typed-columns from result-set
+        vid2cname = [0]*len(var_table)
+        pyname2cname = dict()
+        typenames = [c[1] for c in col_exprs] + [c.type for c in col_ext]
+        length_name = 'len_' + base62uuid(6)
+        self.context.emitc(f'auto {length_name} = server->cnt;')
         
+        for v, idx in var_table.items():
+            vname = get_leagl_name(v) + '_' + base62uuid(3)
+            pyname2cname[v] = vname
+            self.context.emitc(f'auto {vname} = ColRef<{typenames[idx].cname}>({length_name}, server->getCol({idx}));')
+            vid2cname[idx] = vname
+        # Create table into context
+        outtable_name = 'out_' + base62uuid(6)
+        out_typenames = [None] * len(proj_map)
+        for key, val in proj_map.items():
+            if type(val[1]) is str:
+                x = True
+                y = lambda t: pyname2cname[t]
+                val[1] = eval('f\'' + val[1] + '\'')
+            if val[0] == LazyT:
+                out_typenames[key] = f'value_type<decays<decltype({val[1]})>>'
+            else:
+                out_typenames[key] = val[0].cname
+            
+        # out_typenames = [v[0].cname for v in proj_map.values()]
+        self.context.emitc(f'auto {outtable_name} = new TableInfo<{",".join(out_typenames)}>("{outtable_name}");')
+        
+        for key, val in proj_map.items():
+            if type(val[1]) is int:
+                self.context.emitc(f'{outtable_name}->get_col<{key}>().initfrom({vid2cname[val[1]]});')
+            else:
+        # for funcs evaluate f_i(x, ...)
+                self.context.emitc(f'{outtable_name}->get_col<{key}>() = {val[1]};')
+        # print out col_is
+        self.context.emitc(f'print(*{outtable_name});')
         
 class orderby(ast_node):
     name = 'order by'
@@ -147,6 +217,7 @@ class join(ast_node):
         self.joins:list = []
         self.tables = []
         self.tables_dir = dict()
+        self.rec = None
         # self.tmp_name = 'join_' + base62uuid(4)
         # self.datasource = TableInfo(self.tmp_name, [], self.context)
     def append(self, tbls, __alias = ''):
@@ -169,7 +240,7 @@ class join(ast_node):
     def produce(self, node):
         if type(node) is list:
             for d in node:
-                self.append(join(self, d).__str__())
+                self.append(join(self, d))
         
         elif type(node) is dict:
             alias = ''
@@ -205,7 +276,10 @@ class join(ast_node):
     def get_cols(self, colExpr: str) -> ColRef:
         for t in self.tables:
             if colExpr in t.columns_byname:
-                return t.columns_byname[colExpr]                
+                col = t.columns_byname[colExpr]
+                if type(self.rec) is set:
+                    self.rec.add(col)
+                return col
             
     def parse_col_names(self, colExpr:str) -> ColRef:
         parsedColExpr = colExpr.split('.')
@@ -245,7 +319,7 @@ class create_table(ast_node):
         self.sql = f'CREATE TABLE {tbl.table_name}('
         columns = []
         for c in tbl.columns:
-            columns.append(f'{c.name} {c.type.upper()}')
+            columns.append(f'{c.name} {c.type.sqlname}')
         self.sql += ', '.join(columns)
         self.sql += ')'
         if self.context.use_columnstore:
@@ -275,7 +349,13 @@ class insert(ast_node):
 class load(ast_node):
     name="load"
     first_order = name
-    def produce(self, node):
+    def init(self, _):
+        if self.context.dialect == 'MonetDB':
+            self.produce = self.produce_monetdb
+        else:
+            self.produce = self.produce_aq
+            
+    def produce_aq(self, node):
         node = node['load']
         s1 = 'LOAD DATA INFILE '
         s2 = 'INTO TABLE '
@@ -284,16 +364,97 @@ class load(ast_node):
         if 'term' in node:
             self.sql += f' {s3} \"{node["term"]["literal"]}\"'
             
-            
+    def produce_monetdb(self, node):
+        node = node['load']
+        s1 = f'COPY OFFSET 2 INTO {node["table"]} FROM '
+        s2 = ' ON SERVER '
+        s3 = ' USING DELIMITERS '
+        import os
+        p = os.path.abspath(node['file']['literal']).replace('\\', '/')
+        self.sql = f'{s1} \'{p}\' {s2} '
+        if 'term' in node:
+            self.sql += f' {s3} \'{node["term"]["literal"]}\''
+                    
 class outfile(ast_node):
     name="_outfile"
-    def produce(self, node):
+    def __init__(self, parent, node, context = None, *, sql = None):
+        super().__init__(parent, node, context)
+        self.sql = sql
+        if self.context.dialect == 'MonetDB':
+            self.produce = self.produce_monetdb
+        else:
+            self.produce = self.produce_aq
+            
+    def produce_aq(self, node):
         filename = node['loc']['literal'] if 'loc' in node else node['literal']
-        self.sql = f'INTO OUTFILE "{filename}"'
+        self.sql += f'INTO OUTFILE "{filename}"'
         if 'term' in node:
             self.sql += f' FIELDS TERMINATED BY \"{node["term"]["literal"]}\"'
 
+    def produce_monetdb(self, node):
+        filename = node['loc']['literal'] if 'loc' in node else node['literal']
+        import os
+        p = os.path.abspath('.').replace('\\', '/') + '/' + filename
+        self.sql = f'COPY {self.sql} INTO "{p}"'
+        d = '\t'
+        e = '\n'
+        if 'term' in node:
+            d = node['term']['literal']
+        self.sql += f' delimiters \'{d}\', \'{e}\''
 
+class udf(ast_node):
+    name = 'udf'
+    first_order = name
+    def __call__(self, c_code = False, *args):
+        from engine.types import fn_behavior
+        return fn_behavior(self, c_code, *args)
+    def return_type(self, *_ : Types):
+        return LazyT
+    def init(self, node):
+        self.var_table = {}
+        self.args = []
+        if self.context.udf is None:
+            self.context.udf = Context.udf_head
+            self.context.headers.add('\"./udf.hpp\"')
+            
+    def produce(self, node):
+        from engine.utils import get_leagl_name, check_leagl_name
+        node = node[self.name]
+        # register udf
+        self.cname = get_leagl_name(node['fname'])
+        self.sqlname = self.cname
+        self.context.udf_map[self.cname] = self
+        self.ccode = f'auto {self.cname} = []('
+        
+    def consume(self, node):
+        from engine.utils import get_leagl_name, check_leagl_name
+        node = node[self.name]
+        
+        if 'params' in node:
+            for args in node['params']:
+                cname = get_leagl_name(args)
+                self.var_table[args] = cname
+                self.args.append(cname)
+        self.ccode += ', '.join([f'auto {a}' for a in self.args]) + ') {\n'
+        
+        if 'assignment' in node:
+            for assign in node['assignment']:
+                var = assign['var']
+                ex = expr(self, assign['expr'], c_code=True)
+                if var in self.var_table:
+                    self.ccode += f'\t{var} = {ex.eval()};\n'
+                else:
+                    cvar = get_leagl_name(var)
+                    self.var_table[var] = cvar
+                    self.ccode += f'\tauto {cvar} = {ex.eval()};\n'
+                    
+        ret = node['ret']
+        self.ccode += f'\treturn {expr(self, ret, c_code=True).eval()};'
+        self.ccode += '\n};\n'
+        print(self.ccode)
+        
+        self.context.udf += self.ccode + '\n'
+    
 def include(objs):
     import inspect
     for _, cls in inspect.getmembers(objs):

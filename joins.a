@@ -1,0 +1,34 @@
+FUNCTION covariance (x , y ) {
+xmean := avg (x) ;
+ymean := avg (y) ;
+avg (( x - xmean ) * (y - ymean ))
+}
+
+FUNCTION sd ( x) {
+sqrt ( covariance (x , x) )
+}
+
+FUNCTION pairCorr (x , y ) {
+covariance (x , y ) / ( sd (x) * sd (y ))
+}
+
+-- FUNCTION covariances (w, x , y ) {
+-- xmean := avgs (w, x) ;
+-- ymean := avgs (y) ;
+-- avg (( x - xmean ) * (y - ymean ))
+-- }
+
+CREATE TABLE tt(a INT, b INT, c INT, d INT)
+
+LOAD DATA INFILE "test.csv"
+INTO TABLE tt
+FIELDS TERMINATED BY ","
+
+CREATE TABLE sale(Mont INT, sales INT)
+
+LOAD DATA INFILE "moving_avg.csv"
+INTO TABLE sale
+FIELDS TERMINATED BY ","
+
+select sd(a) + sales from tt, sale where tt.a = sale.Mont
+
