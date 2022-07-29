@@ -1,19 +1,23 @@
 import uuid
 
-base62alp = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+lower_alp = 'abcdefghijklmnopqrstuvwxyz'
+upper_alp = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 nums = '0123456789'
+base62alp = nums + lower_alp + upper_alp
+
 reserved_monet = ['month']
+
 def base62uuid(crop=8):
-    id = uuid.uuid4().int
+    _id = uuid.uuid4().int
     ret = ''
     
-    while id:
-        ret = base62alp[id % 62] + ret
-        id //= 62
+    while _id:
+        ret = base62alp[_id % 62] + ret
+        _id //= 62
     
     return ret[:crop] if len(ret) else '0'
 
-def get_leagl_name(name, lower = True):
+def get_legal_name(name, lower = True):
     if name is not None:
         if lower:
             name = name.lower()
@@ -26,7 +30,7 @@ def get_leagl_name(name, lower = True):
         
     return name
 
-def check_leagl_name(name):
+def check_legal_name(name):
     all_underscores = True
     for c in name:
         if c not in base62alp and c != '_':
@@ -54,3 +58,16 @@ def has_other(a, b):
 
 def defval(val, default):
     return default if val is None else val
+
+# escape must be readonly
+from typing import Set
+def remove_last(pattern : str, string : str, escape : Set[str] = set()) -> str:
+    idx = string.rfind(pattern)
+    if idx == -1:
+        return string
+    else:
+        if set(string[idx:]).difference(escape):
+            return string
+        else:
+            return string[:idx] + string[idx+1:]
+    

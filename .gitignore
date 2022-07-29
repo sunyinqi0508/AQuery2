@@ -18,6 +18,9 @@ out.k
 k
 *.so
 *.pdf
+**/*.cmake
+**/Debug
+**/Release
 test*.c*
 *.csv
 !test.csv
@@ -38,3 +41,5 @@ test*.c*
 *.shm
 server/packages/**
 *.ipynb
+*.cmake
+*.stackdump

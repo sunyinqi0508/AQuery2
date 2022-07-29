@@ -4,9 +4,14 @@ MonetDB_LIB =
 ifeq ($(OS),Windows_NT)
 	OS_SUPPORT += server/winhelper.cpp
 	MonetDB_LIB += -Imonetdb/msvc msc-plugin/monetdbe.dll 
+else
+	MonetDB_LIB += -lmonetdbe
 endif
-$(info $(OS_SUPPORT))
 
+info:
+	$(info $(OS_SUPPORT))
+	$(info $(OS)) 
+	$(info "test")
 server.bin:
 	$(CXX) server/server.cpp $(OS_SUPPORT) --std=c++1z -O3 -march=native -o server.bin
 server.so:

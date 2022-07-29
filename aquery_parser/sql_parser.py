@@ -235,6 +235,8 @@ def parser(literal_string, ident, sqlserver=False):
             scale_function = ((real_num | int_num) + call_function) / scale
             scale_ident = ((real_num | int_num) + ident) / scale
 
+
+        
         compound = (
             NULL
             | TRUE
@@ -329,13 +331,40 @@ def parser(literal_string, ident, sqlserver=False):
                 + Group(var_name("name") + AS + over_clause("value"))("join")
             )
         ) / to_join_call
-        
-        fassign = Group(var_name("var") + Suppress(FASSIGN) + expr("expr") + Suppress(";"))("assignment")
-        fassigns = fassign + ZeroOrMore(fassign, Whitespace(white=" \t"))
 
-        fbody = (Optional(fassigns) + expr("ret"))
+
+        definable_name = Forward()
+        dindex = definable_name("l") + LSB + expr("idx") + RSB
+        definable_name << var_name | dindex
+        
+        # lname = Forward()
+        # ptr = (lname("l") + LAMBDA + var_name("r"))
+        # member = (lname("l") + DOT + var_name("r"))
+        # idx = (expr | COLON)
+        # index = (lname("l") + LSB + expr("lidx") + "," + idx("ridx") + RSB)
+        # lname << var_name | ptr | member | index 
+        
+        assignment = expr("var") + (FASSIGN|PASSIGN|MASSIGN|MULASSIGN|DASSIGN)("op") + expr("expr")
+        declaration = definable_name("var") + Optional(Suppress(FASSIGN) + expr("expr"))
+        fassign = Group(assignment + Suppress(";"))("assignment")
+        static_decl = Group(STATIC + delimited_list(declaration))("static_decl")
+        stmt = Forward()
+        elifstmt = Group(ELIF + LB + expr("cond") + RB + stmt)("elif")
+        elsestmt = Group(ELSE + stmt)("else")
+        ifstmt = Group(IF + LB + expr("cond") + RB + stmt + 
+                       ZeroOrMore(elifstmt) + Optional(elsestmt))("if")
+        forstmt = Group(FOR + LB + ( delimited_list(assignment)("defs")
+                                    + Suppress(";") + expr("cond") + 
+                                    Suppress(";") + delimited_list(assignment)("tail"))
+                        + RB + stmt)("for")
+        block = Forward()
+        stmt << (fassign|ifstmt|forstmt|block|Suppress(";"))
+        stmts = (ZeroOrMore(stmt("stmt"), Whitespace())) 
+        block << (LBRACE + Optional(stmts) + RBRACE)("code_block")
+        fbody = (Optional(static_decl) + Optional(stmts) + expr("ret"))
 
         udf = (
+            Optional(AGGREGATION("Agg")) +
             FUNCTION 
             + var_name("fname") 
             + LB 

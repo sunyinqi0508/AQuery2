@@ -62,6 +62,9 @@ public:
 	ColRef(const char* name, types::Type_t ty) : name(name), ty(ty) {}
 	using vector_type<_Ty>::operator[];
 	using vector_type<_Ty>::operator=;
+	using vector_type<_Ty>::subvec;
+	using vector_type<_Ty>::subvec_view;
+	using vector_type<_Ty>::subvec_deep;
 	ColView<_Ty> operator [](const vector_type<uint32_t>&idxs) const {
 		return ColView<_Ty>(*this, idxs);
 	}
@@ -132,6 +135,14 @@ public:
 			ret[i] = orig[idxs[i]];
 		return ret;
 	}
+	ColRef<_Ty> subvec_deep(uint32_t start, uint32_t end) {
+		uint32_t len = end - start;
+		ColRef<_Ty> subvec(len);
+		for (uint32_t i = 0; i < len; ++i)
+			subvec[i] = operator[](i);
+		return subvec;
+	}
+	inline ColRef<_Ty> subvec_deep(uint32_t start = 0) { return subvec_deep(start, size); }
 };
 template <template <class...> class VT, class T>
 std::ostream& operator<<(std::ostream& os, const VT<T>& v)
@@ -431,84 +442,84 @@ inline void TableInfo<Types...>::print(const char* __restrict sep, const char* _
 }
 template <class T1, class T2, template<typename ...> class VT, template<typename ...> class VT2>
 decayed_t<VT, typename types::Coercion<T1, T2>::type> operator -(const VT<T1>& lhs, const VT2<T2>& rhs) {
-	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size, "");
+	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size);
 	for (int i = 0; i < lhs.size; ++i)
 		ret[i] = lhs[i] - rhs[i];
 	return ret;
 }
 template <class T1, class T2, template<typename ...> class VT>
 decayed_t<VT, typename types::Coercion<T1, T2>::type> operator -(const VT<T1>& lhs, const T2& rhs) {
-	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size, "");
+	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size);
 	for (int i = 0; i < lhs.size; ++i)
 		ret[i] = lhs[i] - rhs;
 	return ret;
 }
 template <class T1, class T2, template<typename ...> class VT>
 decayed_t<VT, typename types::Coercion<T1, T2>::type> operator -(const T2& lhs, const VT<T1>& rhs) {
-	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(rhs.size, "");
+	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(rhs.size);
 	for (int i = 0; i < rhs.size; ++i)
 		ret[i] = lhs - rhs[i];
 	return ret;
 }
 template <class T1, class T2, template<typename ...> class VT, template<typename ...> class VT2>
 decayed_t<VT, typename types::Coercion<T1, T2>::type> operator +(const VT<T1>& lhs, const VT2<T2>& rhs) {
-	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size, "");
+	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size);
 	for (int i = 0; i < lhs.size; ++i)
 		ret[i] = lhs[i] + rhs[i];
 	return ret;
 }
 template <class T1, class T2, template<typename ...> class VT>
 decayed_t<VT, typename types::Coercion<T1, T2>::type> operator +(const VT<T1>& lhs, const T2& rhs) {
-	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size, "");
+	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size);
 	for (int i = 0; i < lhs.size; ++i)
 		ret[i] = lhs[i] + rhs;
 	return ret;
 }
 template <class T1, class T2, template<typename ...> class VT>
 decayed_t<VT, typename types::Coercion<T1, T2>::type> operator +(const T2& lhs, const VT<T1>& rhs) {
-	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(rhs.size, "");
+	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(rhs.size);
 	for (int i = 0; i < rhs.size; ++i)
 		ret[i] = lhs + rhs[i];
 	return ret;
 }
 template <class T1, class T2, template<typename ...> class VT, template<typename ...> class VT2>
 decayed_t<VT, typename types::Coercion<T1, T2>::type> operator *(const VT<T1>& lhs, const VT2<T2>& rhs) {
-	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size, "");
+	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size);
 	for (int i = 0; i < lhs.size; ++i)
 		ret[i] = lhs[i] * rhs[i];
 	return ret;
 }
 template <class T1, class T2, template<typename ...> class VT>
 decayed_t<VT, typename types::Coercion<T1, T2>::type> operator *(const VT<T1>& lhs, const T2& rhs) {
-	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size, "");
+	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size);
 	for (int i = 0; i < lhs.size; ++i)
 		ret[i] = lhs[i] * rhs;
 	return ret;
 }
 template <class T1, class T2, template<typename ...> class VT>
 decayed_t<VT, typename types::Coercion<T1, T2>::type> operator *(const T2& lhs, const VT<T1>& rhs) {
-	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(rhs.size, "");
+	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(rhs.size);
 	for (int i = 0; i < rhs.size; ++i)
 		ret[i] = lhs * rhs[i];
 	return ret;
 }
 template <class T1, class T2, template<typename ...> class VT, template<typename ...> class VT2>
 decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>> operator /(const VT<T1>& lhs, const VT2<T2>& rhs) {
-	auto ret = decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>>(lhs.size, "");
+	auto ret = decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>>(lhs.size);
 	for (int i = 0; i < lhs.size; ++i)
 		ret[i] = lhs[i] / rhs[i];
 	return ret;
 }
 template <class T1, class T2, template<typename ...> class VT>
 decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>> operator /(const VT<T1>& lhs, const T2& rhs) {
-	auto ret = decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>>(lhs.size, "");
+	auto ret = decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>>(lhs.size);
 	for (int i = 0; i < lhs.size; ++i)
 		ret[i] = lhs[i] / rhs;
 	return ret;
 }
 template <class T1, class T2, template<typename ...> class VT>
 decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>> operator /(const T2& lhs, const VT<T1>& rhs) {
-	auto ret = decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>>(rhs.size, "");
+	auto ret = decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>>(rhs.size);
 	for (int i = 0; i < rhs.size; ++i)
 		ret[i] = lhs / rhs[i];
 	return ret;

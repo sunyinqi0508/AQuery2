@@ -14,11 +14,26 @@ const char* monetdbe_type_str[] = {
 	// should be last:
 	"monetdbe_type_unknown"
 } ;
+const unsigned char monetdbe_type_szs[] = {
+    sizeof(monetdbe_column_bool::null_value), sizeof(monetdbe_column_int8_t::null_value), 
+    sizeof(monetdbe_column_int16_t::null_value), sizeof(monetdbe_column_int32_t::null_value), 
+    sizeof(monetdbe_column_int64_t::null_value),
+#ifdef HAVE_HGE
+    sizeof(monetdbe_column_int128_t::null_value),
+#endif
+    sizeof(monetdbe_column_size_t::null_value), sizeof(monetdbe_column_float::null_value),
+    sizeof(monetdbe_column_double::null_value),
+    sizeof(monetdbe_column_str::null_value), sizeof(monetdbe_column_blob::null_value),
+    sizeof(monetdbe_data_date), sizeof(monetdbe_data_time), sizeof(monetdbe_data_timestamp),
 
+    // should be last:
+    1
+};
 Server::Server(Context* cxt){
     if (cxt){
         connect(cxt);
-    }
+    } 
+    
 }
 
 void Server::connect(Context *cxt){

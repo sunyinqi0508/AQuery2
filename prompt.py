@@ -34,13 +34,17 @@ server_mode = RunType.Threaded
 
 server_bin = 'server.bin' if server_mode == RunType.IPC else 'server.so'
 
-try:
-    os.remove(server_bin) 
-except Exception as e:
-    print(type(e), e)
+
     
 nullstream = open(os.devnull, 'w')
-subprocess.call(['make', server_bin], stdout=nullstream)
+
+if aquery_config.rebuild_backend:
+    try:
+        os.remove(server_bin) 
+    except Exception as e:
+        print(type(e), e)
+    subprocess.call(['make', server_bin], stdout=nullstream)
+    
 cleanup = True
 
 def rm():
@@ -157,12 +161,12 @@ def init_threaded():
     else:
         os.environ['PATH'] = os.environ['PATH'] + os.pathsep + os.path.abspath('.')
         os.environ['PATH'] = os.environ['PATH'] + os.pathsep + os.path.abspath('./lib')
-        
-    server_so = ctypes.CDLL('./'+server_bin)
-    global cfg, th, send
-    send = server_so['receive_args']
-    th = threading.Thread(target=server_so['main'], args=(-1, ctypes.POINTER(ctypes.c_char_p)(cfg.c)), daemon=True)
-    th.start()
+    if aquery_config.run_backend:    
+        server_so = ctypes.CDLL('./'+server_bin)
+        global cfg, th, send
+        send = server_so['receive_args']
+        th = threading.Thread(target=server_so['main'], args=(-1, ctypes.POINTER(ctypes.c_char_p)(cfg.c)), daemon=True)
+        th.start()
         
 if server_mode == RunType.IPC:
     atexit.register(rm)
@@ -180,8 +184,11 @@ else:
         global cfg
         cfg.new_query = 1
     set_ready = __set_ready
-    get_ready = lambda:cfg.new_query
-    server_status = lambda : not th.is_alive()
+    get_ready = lambda: aquery_config.run_backend and cfg.new_query
+    if aquery_config.run_backend:
+        server_status = lambda : not th.is_alive()
+    else:
+        server_status = lambda : True
 init()
 
 test_parser = True
@@ -221,7 +228,10 @@ while test_parser:
                 qs = [ctypes.c_char_p(bytes(q, 'utf-8')) for q in sqls if len(q)]
                 sz = len(qs)
                 payload = (ctypes.c_char_p*sz)(*qs)
-                send(sz, payload)
+                try:
+                    send(sz, payload)
+                except TypeError as e:
+                    print(e)
             if cxt.udf is not None:
                 with open('udf.hpp', 'wb') as outfile:
                     outfile.write(cxt.udf.encode('utf-8'))
@@ -237,19 +247,18 @@ while test_parser:
             
             continue
         
-        
         elif q == 'dbg':
             import code
-            var = globals().copy()
-            var.update(locals())
+            from copy import deepcopy
+            var = {**globals(), **locals()}
             sh = code.InteractiveConsole(var)
             try:
-                code.interact()
+                sh.interact(banner = 'debugging session began.', exitmsg = 'debugging session ended.')
             except BaseException as e: 
             # don't care about anything happened in interactive console
-                pass
+                print(e.with_traceback())
         elif q.startswith('log'):
-            qs = re.split(' |\t', q)
+            qs = re.split(r'[ \t]', q)
             if len(qs) > 1:
                 cxt.log_level = qs[1]
             else:
@@ -276,7 +285,7 @@ while test_parser:
             set_ready()
             continue
         elif q.startswith('save'):
-            filename = re.split(' |\t', q)
+            filename = re.split(r'[ \t]', q)
             if (len(filename) > 1):
                 filename = filename[1]
             else:

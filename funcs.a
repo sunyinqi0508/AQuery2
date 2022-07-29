@@ -4,8 +4,19 @@ ymean := avg (y) ;
 avg (( x - xmean ) * (y - ymean ))
 }
 
+
 FUNCTION sd ( x) {
 sqrt ( covariance (x , x) )
+}
+
+AGGREGATION FUNCTION covariances(x, y, w){
+    static xmeans := 0, ymeans := 0, cnt := 0; 
+    if (cnt < w) { xmeans += x; }
+    else {       
+        xmeans += (x - x.vec[cnt - w]) / w;
+        ymeans += (y - y.vec[cnt - w]) / w;   
+    }
+    avg (( x.vec(x.len-w, x.len) - xmean ) * (y.vec(y.len - w, y.len) - ymean ))
 }
 
 FUNCTION pairCorr (x , y ) {

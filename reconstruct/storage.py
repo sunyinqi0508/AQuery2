@@ -86,6 +86,7 @@ class Context:
         self.sql = ''  
         self.finalized = False
         self.udf = None
+        self.scans = []
               
     def __init__(self):
         self.tables_byname = dict()
@@ -94,6 +95,7 @@ class Context:
         self.cols = []
         self.datasource = None
         self.udf_map = dict()
+        self.udf_agg_map = dict()
         self.use_columnstore = False
         self.print = print
         self.has_dll = False
@@ -110,7 +112,10 @@ class Context:
         tbl = TableInfo(table_name, cols, self)
         self.tables.append(tbl)
         return tbl
-    
+    def remove_scan(self, scan, str_scan):
+        self.emitc(str_scan)
+        self.scans.remove(scan)
+        
     function_head = '''
     extern "C" int __DLLEXPORT__ dllmain(Context* cxt) { 
         using namespace std;

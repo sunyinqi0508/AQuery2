@@ -1,7 +1,9 @@
-from re import T
-from typing import Set, Tuple
+from copy import deepcopy
+from dataclasses import dataclass
+from enum import Enum, auto
+from typing import Set, Tuple, Dict, Union, List, Optional
 from engine.types import *
-from engine.utils import enlist, base62uuid, base62alp, get_leagl_name
+from engine.utils import enlist, base62uuid, base62alp, get_legal_name
 from reconstruct.storage import Context, TableInfo, ColRef
     
 class ast_node:
@@ -9,11 +11,14 @@ class ast_node:
     types = dict()
     first_order = False
     
-    def __init__(self, parent:"ast_node", node, context:Context = None):
+    def __init__(self, parent:Optional["ast_node"], node, context:Optional[Context] = None):
         self.context = parent.context if context is None else context
         self.parent = parent
         self.sql = ''
-        self.datasource = None
+        if hasattr(parent, 'datasource'):
+            self.datasource = parent.datasource
+        else:
+            self.datasource = None
         self.init(node)
         self.produce(node)
         self.spawn(node)
@@ -38,7 +43,7 @@ class ast_node:
             self.emit(self.sql+';\n')
         
         
-from reconstruct.expr import expr
+from reconstruct.expr import expr, fastscan
 
 
 class projection(ast_node):
@@ -70,10 +75,6 @@ class projection(ast_node):
         else:
             self.where = None    
 
-        if 'groupby' in node:
-            self.group_node = groupby(self, node['groupby'])
-        else:
-            self.group_node = None
 
     def consume(self, node):
         # deal with projections
@@ -82,9 +83,9 @@ class projection(ast_node):
         col_ext : Set[ColRef]= set()
         col_exprs : List[Tuple[str, Types]] = []
         
-        proj_map = dict()
+        proj_map : Dict[int, List[Union[Types, int, str, expr]]]= dict()
         var_table = dict()
-        
+        self.sp_refs = set()
         for i, proj in enumerate(self.projections):
             compound = False
             self.datasource.rec = set()
@@ -102,25 +103,26 @@ class projection(ast_node):
                         name = eval('f\'' + name + '\'')
                         if name not in var_table:
                             var_table[name] = len(col_exprs)
-                        proj_map[i] = [this_type, len(col_exprs)]
+                        proj_map[i] = [this_type, len(col_exprs), proj_expr]
                         col_exprs.append((name, proj_expr.type))
                     else:
                         self.context.headers.add('"./server/aggregations.h"')
                         if self.datasource.rec is not None:
-                            col_ext = col_ext.union(self.datasource.rec)
-                        proj_map[i] = [this_type, proj_expr.sql]
+                            col_ext = col_ext.union(self.datasource.rec) # TODO: make this one var?
+                            self.sp_refs = self.sp_refs.union(self.datasource.rec)
+                        proj_map[i] = [this_type, proj_expr.sql, proj_expr]
                         
                     if 'name' in proj: # renaming column by AS keyword
                         name += ' AS ' +  proj['name']
                         if not proj_expr.is_special:
                             var_table[proj['name']] = len(col_exprs)
                     
-                    disp_name = get_leagl_name(name)
+                    disp_name = get_legal_name(name)
                     
             elif type(proj) is str:
                 col = self.datasource.get_col(proj)
                 this_type = col.type
-                name = col.name
+                # name = col.name
             self.datasource.rec = None
             # TODO: Type deduction in Python
             cols.append(ColRef(this_type, self.out_table, None, disp_name, i, compound=compound))
@@ -133,13 +135,17 @@ class projection(ast_node):
             if col not in var_table:
                 var_table[col] = i + _base_offset
     
+    
         def finialize(astnode:ast_node):
             if(astnode is not None):
                 self.add(astnode.sql)
         self.add('FROM')        
         finialize(self.datasource)                
         finialize(self.where)
-        finialize(self.group_node)
+        if 'groupby' in node:
+            self.group_node = groupby(self, node['groupby'])
+        else:
+            self.group_node = None
         if 'orderby' in node:
             self.add(orderby(self, node['orderby']).sql)
         if 'outfile' in node:
@@ -149,6 +155,8 @@ class projection(ast_node):
         else: 
             # TODO: subquery, name create tmp-table from subquery w/ alias as name 
             pass
+        
+        
         # cpp module codegen
         self.context.has_dll = True
         # extract typed-columns from result-set
@@ -159,44 +167,59 @@ class projection(ast_node):
         self.context.emitc(f'auto {length_name} = server->cnt;')
         
         for v, idx in var_table.items():
-            vname = get_leagl_name(v) + '_' + base62uuid(3)
+            vname = get_legal_name(v) + '_' + base62uuid(3)
             pyname2cname[v] = vname
             self.context.emitc(f'auto {vname} = ColRef<{typenames[idx].cname}>({length_name}, server->getCol({idx}));')
             vid2cname[idx] = vname
         # Create table into context
         outtable_name = 'out_' + base62uuid(6)
         out_typenames = [None] * len(proj_map)
+        
         for key, val in proj_map.items():
             if type(val[1]) is str:
                 x = True
                 y = lambda t: pyname2cname[t]
-                val[1] = eval('f\'' + val[1] + '\'')
+                val[1] = val[2].eval(x, y, gettype=True)
+                if callable(val[1]):
+                    val[1] = val[1](True)
+                decltypestring = val[1] 
+
             if val[0] == LazyT:
-                out_typenames[key] = f'value_type<decays<decltype({val[1]})>>'
+                out_typenames[key] = f'value_type<decays<decltype({decltypestring})>>'
             else:
                 out_typenames[key] = val[0].cname
             
         # out_typenames = [v[0].cname for v in proj_map.values()]
         self.context.emitc(f'auto {outtable_name} = new TableInfo<{",".join(out_typenames)}>("{outtable_name}");')
-        
-        for key, val in proj_map.items():
-            if type(val[1]) is int:
-                self.context.emitc(f'{outtable_name}->get_col<{key}>().initfrom({vid2cname[val[1]]});')
-            else:
-        # for funcs evaluate f_i(x, ...)
-                self.context.emitc(f'{outtable_name}->get_col<{key}>() = {val[1]};')
+        # TODO: Inject custom group by code here and flag them in proj_map
+        # Type of UDFs? Complex UDFs, ones with static vars?
+        if self.group_node is not None:
+            gb_vartable : Dict[str, Union[str, int]] = deepcopy(pyname2cname)
+            gb_cexprs : List[str] = []
+            
+            for key, val in proj_map.items():
+                col_name = 'col_' + base62uuid(6)
+                self.context.emitc(f'auto {col_name} = {outtable_name}->get_col<{key}>();')
+                gb_cexprs.append((col_name, val[2]))
+            self.group_node.finalize(gb_cexprs, gb_vartable)
+        else:
+            for key, val in proj_map.items():
+                if type(val[1]) is int:
+                    self.context.emitc(f'{outtable_name}->get_col<{key}>().initfrom({vid2cname[val[1]]});')
+                else:
+            # for funcs evaluate f_i(x, ...)
+                    self.context.emitc(f'{outtable_name}->get_col<{key}>() = {val[1]};')
         # print out col_is
         self.context.emitc(f'print(*{outtable_name});')
-        
+     
 class orderby(ast_node):
     name = 'order by'
     def produce(self, node):
         if node is None:
             self.sql = ''
             return
-        elif type(node) is not list:
-            node = [node]
         
+        node = enlist(node)
         o_list = []
         
         for o in node:
@@ -206,11 +229,172 @@ class orderby(ast_node):
             o_list.append(o_str)
         self.add(', '.join(o_list))
             
+
+class scan(ast_node):
+    name = 'scan'
+    def __init__(self, parent: "ast_node", node, loop_style = 'for', context: Context = None, const = False):
+        self.const = "const " if const else ""
+        self.loop_style = loop_style
+        super().__init__(parent, node, context)
+        
+    def init(self, _):
+        self.datasource = self.context.datasource
+        self.initializers = ''
+        self.start = ''
+        self.front = ''
+        self.body = ''
+        self.end = '}'
+        scan_vars = set(s.it_var for s in self.context.scans)
+        self.it_ver = 'i' + base62uuid(2)
+        while(self.it_ver in scan_vars):
+            self.it_ver = 'i' + base62uuid(6)
+        self.parent.context.scans.append(self)
+        
+    def produce(self, node):
+        if self.loop_style == 'for_each':
+            self.colref = node
+            self.start += f'for ({self.const}auto& {self.it_ver} : {node.cobj}) {{\n'
+        else:
+            self.start += f"for (uint32_t {self.it_ver} = 0; {self.it_ver} < {node}; ++{self.it_ver}){{\n"
             
-class groupby(orderby):
+    def add(self, stmt, position = "body"):
+        if position == "body":
+            self.body += stmt + '\n'
+        elif position == "init":
+            self.initializers += stmt + '\n'
+        else:
+            self.front += stmt + '\n'
+            
+    def finalize(self):
+        self.context.remove_scan(self, self.initializers + self.start + self.front + self.body + self.end)
+    
+class groupby_c(ast_node):
+    name = '_groupby'
+
+    def produce(self, node : List[Tuple[expr, Set[ColRef]]]):
+        self.context.headers.add('"./server/hasher.h"')
+        self.context.headers.add('unordered_map')
+        self.group = 'g' + base62uuid(7)
+        self.group_type = 'record_type' + base62uuid(7)
+        self.datasource = self.parent.datasource
+        self.scanner = None
+        self.datasource.rec = set()
+        
+        g_contents = ''
+        g_contents_list = []
+        first_col = ''
+        
+        for g in node:
+            e = g[0]
+            g_str = e.eval(c_code = True)
+            # if v is compound expr, create tmp cols
+            if e.is_ColExpr:
+                tmpcol = 't' + base62uuid(7)
+                self.emit(f'auto {tmpcol} = {g_str};')
+                e = tmpcol
+            g_contents_list.append(e)
+        first_col = g_contents_list[0]
+        g_contents_decltype = [f'decays<decltype({c})>' for c in g_contents_list]
+        g_contents = ','.join(g_contents_list)
+        self.emit(f'typedef record<{",".join(g_contents_decltype)}> {self.group_type};')
+        self.emit(f'unordered_map<{self.group_type}, vector_type<uint32_t>, '
+            f'transTypes<{self.group_type}, hasher>> {self.group};')
+        self.n_grps = len(node)
+        self.scanner = scan(self, first_col + '.size')
+        self.scanner.add(f'{self.group}[forward_as_tuple({g_contents}[{self.scanner.it_ver}])].emplace_back({self.scanner.it_ver});')
+
+    def consume(self, _):
+        self.scanner.finalize()
+        
+    # def deal_with_assumptions(self, assumption:assumption, out:TableInfo):
+    #     gscanner = scan(self, self.group)
+    #     val_var = 'val_'+base62uuid(7)
+    #     gscanner.add(f'auto &{val_var} = {gscanner.it_ver}.second;')
+    #     gscanner.add(f'{self.datasource.cxt_name}->order_by<{assumption.result()}>(&{val_var});')
+    #     gscanner.finalize()
+        
+    def finalize(self, cexprs : List[Tuple[str, expr]], var_table : Dict[str, Union[str, int]]):
+        gscanner = scan(self, self.group)
+        key_var = 'key_'+base62uuid(7)
+        val_var = 'val_'+base62uuid(7)
+        
+        gscanner.add(f'auto &{key_var} = {gscanner.it_ver}.first;')
+        gscanner.add(f'auto &{val_var} = {gscanner.it_ver}.second;')
+        len_var = None
+        def define_len_var():
+            nonlocal len_var
+            if len_var is None:
+                len_var = 'len_'+base62uuid(7)
+                gscanner.add(f'auto &{len_var} = {val_var}.size;', position = 'front')
+            
+        def get_var_names (varname : str):
+            var = var_table[varname]
+            if type(var) is str:
+                return f'{var}[{val_var}]'
+            else:
+                return f'get<{var}>({key_var})'
+        
+        for ce in cexprs:
+            ex = ce[1]
+            materialize_builtin = {}
+            if type(ex.udf) is udf:
+                if '_builtin_len' in ex.udf.builtin_used:
+                    define_len_var()
+                    materialize_builtin['_builtin_len'] = len_var
+                if '_builtin_ret' in ex.udf.builtin_used:
+                    define_len_var()
+                    gscanner.add(f'{ce[0]}.emplace_back({{{len_var}}});\n')
+                    materialize_builtin['_builtin_ret'] = f'{ce[0]}.back()'
+                    gscanner.add(f'{ex.eval(c_code = True, y=get_var_names, materialize_builtin = materialize_builtin)};\n')
+                    continue
+            gscanner.add(f'{ce[0]}.emplace_back({ex.eval(c_code = True, y=get_var_names, materialize_builtin = materialize_builtin)});\n')
+        
+        gscanner.finalize()
+        
+        self.datasource.groupinfo = None
+
+            
+class groupby(ast_node):
     name = 'group by'
-
-
+    @property
+    def use_sp_gb (self):
+        return len(self.sp_refs) > 0
+    def produce(self, node):
+        if type(self.parent) is not projection:
+            raise ValueError('groupby can only be used in projection')
+        sp_refs = self.parent.sp_refs
+        
+        node = enlist(node)
+        o_list = []
+        self.dedicated_glist = []
+        self.refs : Set[ColRef] = set()
+        self.sp_refs : Set[ColRef] = set()
+        for g in node:
+            self.datasource.rec = set()
+            g_expr = expr(self, g['value'])
+            refs : Set[ColRef] = self.datasource.rec
+            self.datasource.rec = None
+            this_sp_ref = refs.difference(sp_refs)
+            this_ref = refs.intersection(this_sp_ref)
+            # TODO: simplify this
+            self.refs = self.refs.union(this_ref)
+            self.sp_refs = self.sp_refs.union(this_sp_ref)
+            
+            self.dedicated_glist.append((g_expr, refs))
+            g_str = g_expr.eval(c_code = False)
+            if 'sort' in g and f'{g["sort"]}'.lower() == 'desc':
+                g_str = g_str + ' ' + 'DESC'
+            o_list.append(g_str)
+            
+        if not self.use_sp_gb:
+            self.dedicated_gb = None
+            self.add(', '.join(o_list))
+            
+    def finalize(self, cexprs : List[Tuple[str, expr]], var_table : Dict[str, Union[str, int]]):
+        if self.use_sp_gb:
+            self.dedicated_gb = groupby_c(self.parent, self.dedicated_glist)
+            self.dedicated_gb.finalize(cexprs, var_table)
+    
 class join(ast_node):
     name = 'join'
     def init(self, _):
@@ -233,7 +417,7 @@ class join(ast_node):
             self.tables_dir[tbls.table_name] = tbls
             for a in tbls.alias:
                 self.tables_dir[a] = tbls
-                
+            
         elif type(tbls) is projection:
             self.joins.append(alias(tbls.finalize()))
             
@@ -257,7 +441,6 @@ class join(ast_node):
                     tbl = self.context.tables_byname[table_name]
                     if 'name' in node:
                         tbl.add_alias(node['name'])
-
                 self.append(tbl, alias)
             else:
                 keys = node.keys()
@@ -271,7 +454,10 @@ class join(ast_node):
                     self.tables_dir = {**self.tables_dir, **j.tables_dir}
                 
         elif type(node) is str:
-            self.append(self.context.tables_byname[node])
+            if node in self.context.tables_byname:
+                self.append(self.context.tables_byname[node])
+            else:
+                print(f'Error: table {node} not found.')
     
     def get_cols(self, colExpr: str) -> ColRef:
         for t in self.tables:
@@ -324,9 +510,7 @@ class create_table(ast_node):
         self.sql += ')'
         if self.context.use_columnstore:
             self.sql += ' engine=ColumnStore'
-    
 
-        
 class insert(ast_node):
     name = 'insert'
     first_order = name
@@ -405,56 +589,261 @@ class outfile(ast_node):
 class udf(ast_node):
     name = 'udf'
     first_order = name
+    @dataclass
+    class builtin_var:
+        enabled : bool = False
+        _type : Types = AnyT  
+        all = ('_builtin_len', '_builtin_ret')
+        
+    def decltypecall(self, c_code = False, *args):
+        from engine.types import fn_behavior
+        class dummy:
+            def __init__(self, name):
+                self.cname = name + '_gettype'
+                self.sqlname = self.cname
+        return fn_behavior(dummy(self.cname), c_code, *args)
+    
     def __call__(self, c_code = False, *args):
         from engine.types import fn_behavior
-        return fn_behavior(self, c_code, *args)
+        builtin_args = [f'{{{n}()}}' for n, v in self.builtin.items() if v.enabled]
+        return fn_behavior(self, c_code, *args, *builtin_args)
+    
     def return_type(self, *_ : Types):
         return LazyT
-    def init(self, node):
+    
+    def init(self, _):
+        self.builtin : Dict[str, udf.builtin_var] = {
+            '_builtin_len' : udf.builtin_var(False, UIntT), 
+            '_builtin_ret' : udf.builtin_var(False, Types(
+                255, name = 'generic_ref', cname = 'auto&'
+            ))
+        }
         self.var_table = {}
         self.args = []
         if self.context.udf is None:
             self.context.udf = Context.udf_head
             self.context.headers.add('\"./udf.hpp\"')
-            
+        self.vecs = set()
+        self.code_list = []
+        self.builtin_used = None
+        
+    def add(self, *code):
+        ccode = ''
+        for c in code:
+            if type(c) is str:
+                ccode += c
+            else:
+                self.code_list.append(ccode)
+                self.code_list.append(c)
+                ccode = ''
+        if ccode:
+            self.code_list.append(ccode)        
+                
+        
     def produce(self, node):
-        from engine.utils import get_leagl_name, check_leagl_name
+        from engine.utils import get_legal_name, check_legal_name
         node = node[self.name]
         # register udf
-        self.cname = get_leagl_name(node['fname'])
+        self.agg = 'Agg' in node
+        self.cname = get_legal_name(node['fname'])
         self.sqlname = self.cname
         self.context.udf_map[self.cname] = self
-        self.ccode = f'auto {self.cname} = []('
-        
+        if self.agg:
+            self.context.udf_agg_map[self.cname] = self
+        self.add(f'auto {self.cname} = [](')
+    
+    def get_block(self, ind, node):
+        if 'stmt' in node:
+            old_ind = ind
+            ind += '\t'
+            next_stmt = enlist(node['stmt'])
+            if len(next_stmt) > 1:
+                self.add(f' {{\n')
+                self.get_stmt(ind ,next_stmt)
+                self.add(f'{old_ind}}}\n')
+            else:
+                self.get_stmt(ind, next_stmt)
+                
+    def get_cname(self, x:str):
+        return self.var_table[x]
+    
+    def get_assignment(self, ind, node, *, types = 'auto', sep = ';\n'):
+        var_ex = expr(self, node['var'], c_code=True, supress_undefined = True)
+        ex = expr(self, node['expr'], c_code=True)
+        var = var_ex.eval(y=self.get_cname)
+        if var in self.var_table or hasattr(var_ex, 'builtin_var'):
+            op = '='
+            if 'op' in node and node['op'] != ':=':
+                op = node['op']
+            e = ex.eval(y=self.get_cname)
+            def assign_behavior(decltypestr = False):
+                nonlocal ind, var, op, e, sep
+                v = var(decltypestr) if callable(var) else var
+                _e = e(decltypestr) if callable(e) else e
+                if v == '_builtin_ret':
+                    return f'{ind}return {_e}{sep}'
+                elif '_builtin_ret' not in _e:
+                    return f'{ind}{v} {op} {_e}{sep}'
+                else:
+                    return ''
+            self.add(assign_behavior)
+        else:
+            cvar = get_legal_name(var)
+            self.var_table[var] = cvar
+            self.add(f'{ind}{types} {cvar} = ', ex.eval(y=self.get_cname), sep)
+            
+    def get_stmt(self, ind, node):
+        node = enlist(node)
+        for n in node:
+            if 'if' in n:
+                _ifnode = n['if']
+                self.add(f'{ind}if(', expr(self, _ifnode["cond"]).eval(y=self.get_cname), ')')
+                if 'stmt' in _ifnode:
+                    self.get_block(ind, _ifnode)
+                else:
+                    self.add('\n')
+                    self.get_stmt(ind + '\t', _ifnode)
+                if  'elif' in _ifnode:
+                    for e in n['elif']:
+                        self.add(f'{ind}else if(', expr(self, e["cond"]).eval(y=self.get_cname), ')')
+                        self.get_block(ind, e)
+                if 'else' in _ifnode:
+                    self.add(f'{ind}else ')
+                    self.get_block(ind, _ifnode['else'])
+                        
+            elif 'for' in n:
+                _fornode = n['for']
+                defs = _fornode['defs']
+                self.add(f'{ind}for({"auto " if len(enlist(defs["op"])) != 0 else ";"}')
+                def get_inline_assignments(node, end = '; '):
+                    var = enlist(node['var'])
+                    op = enlist(node['op'])
+                    expr = enlist(node['expr'])
+                    len_node = len(enlist(op))
+                    for i, (v, o, e) in enumerate(zip(var, op, expr)):
+                        self.get_assignment('', {'var' : v, 'op' : o, 'expr' : e}, types = '', sep = ', ' if i != len_node - 1 else end)
+                get_inline_assignments(defs)
+                self.add(expr(self, _fornode["cond"]).eval(y=self.get_cname), '; ')
+                get_inline_assignments(_fornode['tail'], ') ')                
+                if 'stmt' in _fornode:
+                    self.get_block(ind, _fornode)
+                else:
+                    self.add('\n')
+                    self.get_stmt(ind + '\t', _fornode)
+            elif 'assignment' in n:
+                assign = n['assignment']
+                self.get_assignment(ind, assign)
+                    
+                    
     def consume(self, node):
-        from engine.utils import get_leagl_name, check_leagl_name
+        from engine.utils import get_legal_name, check_legal_name
         node = node[self.name]
-        
+                    
         if 'params' in node:
             for args in node['params']:
-                cname = get_leagl_name(args)
+                cname = get_legal_name(args)
                 self.var_table[args] = cname
                 self.args.append(cname)
-        self.ccode += ', '.join([f'auto {a}' for a in self.args]) + ') {\n'
+        front = [*self.code_list, ', '.join([f'auto {a}' for a in self.args])]
+        self.code_list = []
         
-        if 'assignment' in node:
-            for assign in node['assignment']:
-                var = assign['var']
-                ex = expr(self, assign['expr'], c_code=True)
-                if var in self.var_table:
-                    self.ccode += f'\t{var} = {ex.eval()};\n'
-                else:
-                    cvar = get_leagl_name(var)
-                    self.var_table[var] = cvar
-                    self.ccode += f'\tauto {cvar} = {ex.eval()};\n'
-                    
+        self.with_storage = False
+        self.with_statics = False
+        self.static_decl : Optional[List[str]] = None
+        ind = '\t'
+        if 'static_decl' in node:
+            self.add(') {\n')
+            curr = node['static_decl']
+            self.with_statics = True
+            if 'var' in curr and 'expr' in curr:
+                if len(curr['var']) != len(curr['expr']):
+                    print("Error: every static variable must be initialized.")
+                self.static_decl = []
+                for v, e in zip(curr['var'], curr['expr']):
+                    cname = get_legal_name(v)
+                    self.var_table[v] = cname
+                    self.static_decl.append(f'{cname} = ', expr(self, e, c_code=True).eval(self.get_cname))
+                self.add(f'{ind}static auto {"; static auto ".join(self.static_decl)};\n')
+                self.add(f'{ind}auto reset = [=]() {{ {"; ".join(self.static_decl)}; }};\n')
+                self.add(f'{ind}auto call = []({", ".join([f"decltype({a}) {a}" for a in self.args])}')
+                ind = '\t\t'
+                front = [*front, *self.code_list]
+                self.code_list = []
+        if 'stmt' in node:
+            self.get_stmt(ind, node['stmt'])
+            # first scan to determine vec types
+            # if self.agg:    
+            #     for assign in node['assignment']:
+            #         var = fastscan(assign['var'])
+            #         ex = fastscan(assign['expr'])
+            #         self.vecs.union(var.vec_vars)
+            #         self.vecs.union(var.requested_lens)
+            #         self.vecs.union(ex.vec_vars)
+            #         self.vecs.union(ex.requested_lens)
+            # if len(self.vecs) != 0:
+            #     self.idx_var = 'idx_' + base62uuid(5)
+            #     self.ccode += f'{ind}auto {self.idx_var} = 0;\n'
+             
         ret = node['ret']
-        self.ccode += f'\treturn {expr(self, ret, c_code=True).eval()};'
-        self.ccode += '\n};\n'
-        print(self.ccode)
+        def return_call(decltypestr = False):
+            if (decltypestr):
+                return ''
+            ret = ''
+            for r in self.return_call:
+                if callable(r):
+                    ret += r(False)
+                else:
+                    ret += r
+            return ret
+        self.return_call = (f'{ind}return ', expr(self, ret, c_code=True).eval(self.get_cname), ';\n')
+        self.add(return_call)
+        if self.with_statics:
+            self.add('\t};\n')
+            self.add('\treturn std::make_pair(reset, call);\n')
+        self.add('};\n')
         
-        self.context.udf += self.ccode + '\n'
-    
+        #print(self.ccode)
+        self.builtin_args = [(name, var._type.cname) for name, var in self.builtin.items() if var.enabled]
+        # self.context.udf += front + builtin_argstr + self.ccode + '\n'
+        self.finalize(front)
+        
+    def finalize(self, front):
+        builtin_argstr = ', ' if len(self.builtin_args) and len(self.args) else ''
+        builtin_argstr += ', '.join([f'{t} {n}' for (n, t) in self.builtin_args])
+        self.builtin_used = [b for b, v in self.builtin.items() if v.enabled]
+        ccode = ''
+        def process_recursion(l, decltypestr = False):
+            nonlocal ccode
+            for c in l:
+                if type(c) is str:
+                    ccode += c
+                elif callable(c):
+                    ccode += c(decltypestr) # a callback function
+                else:
+                    raise ValueError(f'Illegal operation in udf code generation: {c}')
+        process_recursion(front)
+        ccode += builtin_argstr + ') {\n'
+        process_recursion(self.code_list)
+        self.context.udf += ccode + '\n'
+        ccode = ''
+        if self.return_pattern == udf.ReturnPattern.elemental_return:
+            ccode += f'auto {self.cname}_gettype = []('
+            process_recursion(front[1:], True)
+            ccode += ') {\n\tuint32_t _builtin_len = 0;\n' 
+            process_recursion(self.code_list, True)
+            self.context.udf += ccode + '\n'
+            
+    class ReturnPattern(Enum):
+        bulk_return = auto()
+        elemental_return = auto()
+        
+    @property
+    def return_pattern(self):
+        if '_builtin_ret' in self.builtin_used:
+            return udf.ReturnPattern.elemental_return
+        else:
+            return udf.ReturnPattern.bulk_return
+            
 def include(objs):
     import inspect
     for _, cls in inspect.getmembers(objs):

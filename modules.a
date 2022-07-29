@@ -1,0 +1,4 @@
+LOAD MODULE FROM "test.so" 
+FUNCTIONS (div(a:int, b:int) -> double, 
+    mulvec(a:int, b:vecfloat) -> vecfloat
+);

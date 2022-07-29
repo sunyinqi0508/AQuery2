@@ -4,6 +4,8 @@ import os
 # os.environ['CXX'] = 'C:/Program Files/LLVM/bin/clang.exe'
 
 add_path_to_ldpath = True
+rebuild_backend = False
+run_backend = False
 
 os_platform = 'unkown'
 

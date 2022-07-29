@@ -47,6 +47,7 @@ public:
 	_Ty* container;
 	uint32_t size, capacity;
 	typedef _Ty* iterator_t;
+	typedef _Ty value_t;
 	vector_type(const uint32_t& size) : size(size), capacity(size) {
 		container = (_Ty*)malloc(size * sizeof(_Ty));
 	}
@@ -58,6 +59,7 @@ public:
 		}
 	}
 	constexpr vector_type() noexcept : size(0), capacity(0), container(0) {};
+	constexpr vector_type(_Ty* container, uint32_t len) noexcept : size(len), capacity(0), container(container) {};
 	constexpr vector_type(const vector_type<_Ty>& vt) noexcept : capacity(0) {
 		_copy(vt);
 	}
@@ -107,11 +109,13 @@ public:
 	}
 	void emplace_back(_Ty _val) {
 		if (size >= capacity) { // geometric growth
-			capacity += 1 + (capacity >> 1);
-			_Ty* n_container = (_Ty*)malloc(capacity * sizeof(_Ty));
+			uint32_t new_capacity = size + 1 + (size >> 1);
+			_Ty* n_container = (_Ty*)malloc(new_capacity * sizeof(_Ty));
 			memcpy(n_container, container, sizeof(_Ty) * size);
-			free(container);
+			if (capacity)
+				free(container);
 			container = n_container;
+			capacity = new_capacity;
 		}
 		container[size++] = _val;
 	}
@@ -208,6 +212,25 @@ public:
 		size = this->size + dist;
 	}
 	void out(uint32_t n = 4, const char* sep = " ") const;
+	vector_type<_Ty> subvec(uint32_t start, uint32_t end) {
+		vector_type<_Ty> subvec(end - start);
+		memcpy(subvec.container, container + start, sizeof(_Ty) * (end - start));
+		return subvec;
+	}
+	inline vector_type<_Ty> subvec_view(uint32_t start, uint32_t end) {
+		return subvec(container + start, end - start);
+	}
+	vector_type<_Ty> subvec_deep(uint32_t start, uint32_t end) {
+		uint32_t len = end - start;
+		vector_type<_Ty> subvec(len);
+		for (uint32_t i = 0; i < len; ++i)
+			subvec[i] = container[i];
+		return subvec;
+	}
+	inline vector_type<_Ty> subvec(uint32_t start = 0) { return subvec(start, size); }
+	inline vector_type<_Ty> subvec_view(uint32_t start = 0) { return subvec_view(start, size); }
+	inline vector_type<_Ty> subvec_deep(uint32_t start = 0) { return subvec_deep(start, size); }
+	
 	~vector_type() {
 		if (capacity > 0) free(container);
 		container = 0; size = capacity = 0;
@@ -285,6 +308,12 @@ public:
 	void operator[](const uint32_t& i) {
 		
 	}
+	vector_type<void> subvec(uint32_t, uint32_t);
+	vector_type<void> subvec_view(uint32_t, uint32_t);
+	vector_type<void> subvec_deep(uint32_t, uint32_t);
+	vector_type<void> subvec(uint32_t);
+	vector_type<void> subvec_view(uint32_t);
+	vector_type<void> subvec_deep(uint32_t);
 };
 #pragma pack(pop)
 #endif

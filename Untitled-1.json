@@ -1,0 +1,222 @@
+{
+  "stmts": {
+    "udf": {
+      "fname": "covariances2",
+      "params": ["x", "y", "w"],
+      "stmt": [{
+        "assignment": {
+          "var": "xmeans",
+          "op": ":=",
+          "expr": 0.0
+        }
+      }, {
+        "assignment": {
+          "var": "ymeans",
+          "op": ":=",
+          "expr": 0.0
+        }
+      }, {
+        "assignment": {
+          "var": "l",
+          "op": ":=",
+          "expr": "_builtin_len"
+        }
+      }, {
+        "if": {
+          "cond": {
+            "gt": ["w", "l"]
+          },
+          "assignment": {
+            "var": "w",
+            "op": ":=",
+            "expr": "l"
+          },
+          "elif": [{
+            "cond": {
+              "gt": ["w", {
+                "add": ["l", 2]
+              }]
+            },
+            "stmt": [{
+              "assignment": {
+                "var": "l",
+                "op": ":=",
+                "expr": 3
+              }
+            }, {
+              "assignment": {
+                "var": "w",
+                "op": ":=",
+                "expr": 4
+              }
+            }]
+          }, {
+            "cond": {
+              "lt": ["w", 99]
+            },
+            "stmt": {
+              "assignment": {
+                "var": "l",
+                "op": ":=",
+                "expr": 8
+              }
+            }
+          }, {
+            "cond": {
+              "lt": ["w", 999]
+            },
+            "assignment": {
+              "var": "w",
+              "op": ":=",
+              "expr": 6
+            }
+          }],
+          "else": {
+            "assignment": {
+              "var": "l",
+              "op": ":=",
+              "expr": {
+                "div": ["l", 2]
+              }
+            }
+          }
+        }
+      }, {
+        "for": {
+          "defs": {
+            "var": ["i", "j"],
+            "op": [":=", ":="],
+            "expr": [0, 0]
+          },
+          "cond": {
+            "lt": ["i", "w"]
+          },
+          "tail": {
+            "var": "i",
+            "op": ":=",
+            "expr": {
+              "add": ["i", 1]
+            }
+          },
+          "stmt": [{
+            "assignment": {
+              "var": "xmeans",
+              "op": "+=",
+              "expr": {
+                "get": ["x", "i"]
+              }
+            }
+          }, {
+            "assignment": {
+              "var": "ymeans",
+              "op": "+=",
+              "expr": {
+                "get": ["y", "i"]
+              }
+            }
+          }, {
+            "assignment": {
+              "var": {
+                "get": ["_builtin_ret", "i"]
+              },
+              "op": ":=",
+              "expr": {
+                "avg": {
+                  "mul": [{
+                    "sub": [{
+                      "x": [{
+                        "sub": ["l", "w"]
+                      }, "l"]
+                    }, "xmeans"]
+                  }, {
+                    "sub": [{
+                      "y": [{
+                        "sub": ["l", "w"]
+                      }, "l"]
+                    }, "ymeans"]
+                  }]
+                }
+              }
+            }
+          }]
+        }
+      }, {
+        "for": {
+          "defs": {
+            "var": "i",
+            "op": ":=",
+            "expr": 0
+          },
+          "cond": {
+            "lt": ["i", "l"]
+          },
+          "tail": {
+            "var": "i",
+            "op": "+=",
+            "expr": 1
+          },
+          "stmt": [{
+            "assignment": {
+              "var": "xmeans",
+              "op": "+=",
+              "expr": {
+                "div": [{
+                  "sub": [{
+                    "get": ["x", "i"]
+                  }, {
+                    "get": ["x", {
+                      "sub": ["i", "w"]
+                    }]
+                  }]
+                }, "w"]
+              }
+            }
+          }, {
+            "assignment": {
+              "var": "ymeans",
+              "op": "+=",
+              "expr": {
+                "div": [{
+                  "sub": [{
+                    "get": ["y", "i"]
+                  }, {
+                    "get": ["y", {
+                      "sub": ["i", "w"]
+                    }]
+                  }]
+                }, "w"]
+              }
+            }
+          }, {
+            "assignment": {
+              "var": {
+                "get": ["_builtin_ret", "i"]
+              },
+              "op": ":=",
+              "expr": {
+                "avg": {
+                  "mul": [{
+                    "sub": [{
+                      "x": [{
+                        "sub": ["l", "w"]
+                      }, "l"]
+                    }, "xmeans"]
+                  }, {
+                    "sub": [{
+                      "y": [{
+                        "sub": ["l", "w"]
+                      }, "l"]
+                    }, "ymeans"]
+                  }]
+                }
+              }
+            }
+          }]
+        }
+      }],
+      "ret": {
+        "null": {}
+      }
+    }
+  }
+}

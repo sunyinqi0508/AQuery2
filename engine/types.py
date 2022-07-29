@@ -79,6 +79,10 @@ LongT = Types(4, name = 'int64', sqlname = 'BIGINT', fp_type = DoubleT)
 ByteT = Types(1, name = 'int8', sqlname = 'TINYINT', long_type=LongT, fp_type=FloatT)
 ShortT = Types(2, name = 'int16', sqlname='SMALLINT', long_type=LongT, fp_type=FloatT)
 IntT = Types(3, name = 'int', cname = 'int', long_type=LongT, fp_type=FloatT)
+ULongT = Types(8, name = 'uint64', sqlname = 'UINT64', fp_type=DoubleT)
+UIntT = Types(7, name = 'uint32', sqlname = 'UINT32', long_type=ULongT, fp_type=FloatT)
+UShortT = Types(6, name = 'uint16', sqlname = 'UINT16', long_type=ULongT, fp_type=FloatT)
+UByteT = Types(5, name = 'uint8', sqlname = 'UINT8', long_type=ULongT, fp_type=FloatT)
 StrT = Types(200, name = 'str', cname = 'const char*', sqlname='VARCHAR', ctype_name = 'types::STRING')
 def _ty_make_dict(fn : str, *ty : Types): 
     return {eval(fn):t for t in ty}
@@ -214,6 +218,11 @@ spnull = OperatorBase('missing', 1, logical, cname = "", sqlname = "", call = is
 
 # cstdlib
 fnsqrt = OperatorBase('sqrt', 1, lambda *_ : DoubleT, cname = 'sqrt', sqlname = 'SQRT', call = fn_behavior)
+fnlog = OperatorBase('log', 2, lambda *_ : DoubleT, cname = 'log', sqlname = 'LOG', call = fn_behavior)
+fnsin = OperatorBase('sin', 1, lambda *_ : DoubleT, cname = 'sin', sqlname = 'SIN', call = fn_behavior)
+fncos = OperatorBase('cos', 1, lambda *_ : DoubleT, cname = 'cos', sqlname = 'COS', call = fn_behavior)
+fntan = OperatorBase('tan', 1, lambda *_ : DoubleT, cname = 'tan', sqlname = 'TAN', call = fn_behavior)
+fnpow = OperatorBase('pow', 2, lambda *_ : DoubleT, cname = 'pow', sqlname = 'POW', call = fn_behavior)
 
 # type collections
 def _op_make_dict(*items : OperatorBase):
@@ -223,8 +232,8 @@ builtin_binary_logical = _op_make_dict(opand, opor, opxor, opgt, oplt, opge, opl
 builtin_unary_logical = _op_make_dict(opnot)
 builtin_unary_arith = _op_make_dict(opneg)
 builtin_unary_special = _op_make_dict(spnull)
-builtin_cstdlib = _op_make_dict(fnsqrt)
+builtin_cstdlib = _op_make_dict(fnsqrt, fnlog, fnsin, fncos, fntan, fnpow)
 builtin_func = _op_make_dict(fnmax, fnmin, fnsum, fnavg, fnmaxs, fnmins, fnsums, fnavgs, fncnt)
-builtin_operators : dict[str, OperatorBase] = {**builtin_binary_arith, **builtin_binary_logical, 
+builtin_operators : Dict[str, OperatorBase] = {**builtin_binary_arith, **builtin_binary_logical, 
     **builtin_unary_arith, **builtin_unary_logical, **builtin_unary_special, **builtin_func, **builtin_cstdlib}
     
