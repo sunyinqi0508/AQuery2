@@ -80,12 +80,12 @@ class projection(ast_node):
         # deal with projections
         self.out_table = TableInfo('out_'+base62uuid(4), [], self.context)
         cols = []
-        col_ext : Set[ColRef]= set()
+        self.col_ext : Set[ColRef]= set()
         col_exprs : List[Tuple[str, Types]] = []
         
         proj_map : Dict[int, List[Union[Types, int, str, expr]]]= dict()
-        var_table = dict()
-        self.sp_refs = set()
+        self.var_table = dict()
+        # self.sp_refs = set()
         for i, proj in enumerate(self.projections):
             compound = False
             self.datasource.rec = set()
@@ -101,21 +101,20 @@ class projection(ast_node):
                     if not proj_expr.is_special:
                         y = lambda x:x
                         name = eval('f\'' + name + '\'')
-                        if name not in var_table:
-                            var_table[name] = len(col_exprs)
+                        if name not in self.var_table:
+                            self.var_table[name] = len(col_exprs)
                         proj_map[i] = [this_type, len(col_exprs), proj_expr]
                         col_exprs.append((name, proj_expr.type))
                     else:
                         self.context.headers.add('"./server/aggregations.h"')
                         if self.datasource.rec is not None:
-                            col_ext = col_ext.union(self.datasource.rec) # TODO: make this one var?
-                            self.sp_refs = self.sp_refs.union(self.datasource.rec)
+                            self.col_ext = self.col_ext.union(self.datasource.rec)
                         proj_map[i] = [this_type, proj_expr.sql, proj_expr]
                         
                     if 'name' in proj: # renaming column by AS keyword
                         name += ' AS ' +  proj['name']
                         if not proj_expr.is_special:
-                            var_table[proj['name']] = len(col_exprs)
+                            self.var_table[proj['name']] = len(col_exprs)
                     
                     disp_name = get_legal_name(name)
                     
@@ -126,26 +125,30 @@ class projection(ast_node):
             self.datasource.rec = None
             # TODO: Type deduction in Python
             cols.append(ColRef(this_type, self.out_table, None, disp_name, i, compound=compound))
-        col_ext = [c for c in col_ext if c.name not in var_table] # remove duplicates in var_table
-        col_ext_names = [c.name for c in col_ext]
+        
+        if 'groupby' in node:
+            self.group_node = groupby(self, node['groupby'])
+        else:
+            self.group_node = None
+        
+        self.col_ext = [c for c in self.col_ext if c.name not in self.var_table] # remove duplicates in self.var_table
+        col_ext_names = [c.name for c in self.col_ext]
         self.add(', '.join([c[0] for c in col_exprs] + col_ext_names))
     
         _base_offset = len(col_exprs)
         for i, col in enumerate(col_ext_names):
-            if col not in var_table:
-                var_table[col] = i + _base_offset
+            if col not in self.var_table:
+                self.var_table[col] = i + _base_offset
     
     
         def finialize(astnode:ast_node):
             if(astnode is not None):
                 self.add(astnode.sql)
-        self.add('FROM')        
+        self.add('FROM')
         finialize(self.datasource)                
         finialize(self.where)
-        if 'groupby' in node:
-            self.group_node = groupby(self, node['groupby'])
-        else:
-            self.group_node = None
+        finialize(self.group_node)
+        
         if 'orderby' in node:
             self.add(orderby(self, node['orderby']).sql)
         if 'outfile' in node:
@@ -160,15 +163,15 @@ class projection(ast_node):
         # cpp module codegen
         self.context.has_dll = True
         # extract typed-columns from result-set
-        vid2cname = [0]*len(var_table)
-        pyname2cname = dict()
-        typenames = [c[1] for c in col_exprs] + [c.type for c in col_ext]
+        vid2cname = [0]*len(self.var_table)
+        self.pyname2cname = dict()
+        typenames = [c[1] for c in col_exprs] + [c.type for c in self.col_ext]
         length_name = 'len_' + base62uuid(6)
         self.context.emitc(f'auto {length_name} = server->cnt;')
         
-        for v, idx in var_table.items():
+        for v, idx in self.var_table.items():
             vname = get_legal_name(v) + '_' + base62uuid(3)
-            pyname2cname[v] = vname
+            self.pyname2cname[v] = vname
             self.context.emitc(f'auto {vname} = ColRef<{typenames[idx].cname}>({length_name}, server->getCol({idx}));')
             vid2cname[idx] = vname
         # Create table into context
@@ -178,14 +181,18 @@ class projection(ast_node):
         for key, val in proj_map.items():
             if type(val[1]) is str:
                 x = True
-                y = lambda t: pyname2cname[t]
+                y = lambda t: self.pyname2cname[t]
                 val[1] = val[2].eval(x, y, gettype=True)
                 if callable(val[1]):
                     val[1] = val[1](True)
                 decltypestring = val[1] 
 
             if val[0] == LazyT:
-                out_typenames[key] = f'value_type<decays<decltype({decltypestring})>>'
+                decltypestring = f'value_type<decays<decltype({decltypestring})>>'
+                if type(val[2].udf) is udf and val[2].udf.return_pattern == udf.ReturnPattern.elemental_return:
+                    out_typenames[key] = f'ColRef<{decltypestring}>'
+                else:
+                    out_typenames[key] = decltypestring
             else:
                 out_typenames[key] = val[0].cname
             
@@ -193,13 +200,13 @@ class projection(ast_node):
         self.context.emitc(f'auto {outtable_name} = new TableInfo<{",".join(out_typenames)}>("{outtable_name}");')
         # TODO: Inject custom group by code here and flag them in proj_map
         # Type of UDFs? Complex UDFs, ones with static vars?
-        if self.group_node is not None:
-            gb_vartable : Dict[str, Union[str, int]] = deepcopy(pyname2cname)
+        if self.group_node is not None and self.group_node.use_sp_gb:
+            gb_vartable : Dict[str, Union[str, int]] = deepcopy(self.pyname2cname)
             gb_cexprs : List[str] = []
             
             for key, val in proj_map.items():
                 col_name = 'col_' + base62uuid(6)
-                self.context.emitc(f'auto {col_name} = {outtable_name}->get_col<{key}>();')
+                self.context.emitc(f'decltype(auto) {col_name} = {outtable_name}->get_col<{key}>();')
                 gb_cexprs.append((col_name, val[2]))
             self.group_node.finalize(gb_cexprs, gb_vartable)
         else:
@@ -231,6 +238,17 @@ class orderby(ast_node):
             
 
 class scan(ast_node):
+    class Position(Enum):
+        init = auto()
+        front = auto()
+        body = auto()
+        back = auto()
+        fin = auto()
+        # TODO: use this for positions for scanner
+    class LoopStyle(Enum):
+        forloop = auto()
+        foreach = auto()
+        
     name = 'scan'
     def __init__(self, parent: "ast_node", node, loop_style = 'for', context: Context = None, const = False):
         self.const = "const " if const else ""
@@ -253,7 +271,7 @@ class scan(ast_node):
     def produce(self, node):
         if self.loop_style == 'for_each':
             self.colref = node
-            self.start += f'for ({self.const}auto& {self.it_ver} : {node.cobj}) {{\n'
+            self.start += f'for ({self.const}auto& {self.it_ver} : {node}) {{\n'
         else:
             self.start += f"for (uint32_t {self.it_ver} = 0; {self.it_ver} < {node}; ++{self.it_ver}){{\n"
             
@@ -270,7 +288,9 @@ class scan(ast_node):
     
 class groupby_c(ast_node):
     name = '_groupby'
-
+    def init(self, _):
+        self.proj : projection = self.parent
+        return super().init(_)
     def produce(self, node : List[Tuple[expr, Set[ColRef]]]):
         self.context.headers.add('"./server/hasher.h"')
         self.context.headers.add('unordered_map')
@@ -285,19 +305,19 @@ class groupby_c(ast_node):
         first_col = ''
         
         for g in node:
-            e = g[0]
-            g_str = e.eval(c_code = True)
+            e = expr(self, g[0].node, c_code=True)
+            g_str = e.eval(c_code = True, y = lambda c: self.proj.pyname2cname[c])
             # if v is compound expr, create tmp cols
             if e.is_ColExpr:
                 tmpcol = 't' + base62uuid(7)
-                self.emit(f'auto {tmpcol} = {g_str};')
+                self.context.emitc(f'auto {tmpcol} = {g_str};')
                 e = tmpcol
             g_contents_list.append(e)
         first_col = g_contents_list[0]
-        g_contents_decltype = [f'decays<decltype({c})>' for c in g_contents_list]
+        g_contents_decltype = [f'decays<decltype({c})::value_t>' for c in g_contents_list]
         g_contents = ','.join(g_contents_list)
-        self.emit(f'typedef record<{",".join(g_contents_decltype)}> {self.group_type};')
-        self.emit(f'unordered_map<{self.group_type}, vector_type<uint32_t>, '
+        self.context.emitc(f'typedef record<{",".join(g_contents_decltype)}> {self.group_type};')
+        self.context.emitc(f'unordered_map<{self.group_type}, vector_type<uint32_t>, '
             f'transTypes<{self.group_type}, hasher>> {self.group};')
         self.n_grps = len(node)
         self.scanner = scan(self, first_col + '.size')
@@ -314,12 +334,12 @@ class groupby_c(ast_node):
     #     gscanner.finalize()
         
     def finalize(self, cexprs : List[Tuple[str, expr]], var_table : Dict[str, Union[str, int]]):
-        gscanner = scan(self, self.group)
+        gscanner = scan(self, self.group, loop_style = 'for_each')
         key_var = 'key_'+base62uuid(7)
         val_var = 'val_'+base62uuid(7)
         
-        gscanner.add(f'auto &{key_var} = {gscanner.it_ver}.first;')
-        gscanner.add(f'auto &{val_var} = {gscanner.it_ver}.second;')
+        gscanner.add(f'auto &{key_var} = {gscanner.it_ver}.first;', position = 'front')
+        gscanner.add(f'auto &{val_var} = {gscanner.it_ver}.second;', position = 'front')
         len_var = None
         def define_len_var():
             nonlocal len_var
@@ -356,29 +376,22 @@ class groupby_c(ast_node):
             
 class groupby(ast_node):
     name = 'group by'
-    @property
-    def use_sp_gb (self):
-        return len(self.sp_refs) > 0
     def produce(self, node):
         if type(self.parent) is not projection:
             raise ValueError('groupby can only be used in projection')
-        sp_refs = self.parent.sp_refs
         
         node = enlist(node)
         o_list = []
-        self.dedicated_glist = []
-        self.refs : Set[ColRef] = set()
-        self.sp_refs : Set[ColRef] = set()
+        self.dedicated_glist : List[Tuple[expr, Set[ColRef]]] = []
+        self.use_sp_gb = False
         for g in node:
             self.datasource.rec = set()
             g_expr = expr(self, g['value'])
             refs : Set[ColRef] = self.datasource.rec
             self.datasource.rec = None
-            this_sp_ref = refs.difference(sp_refs)
-            this_ref = refs.intersection(this_sp_ref)
-            # TODO: simplify this
-            self.refs = self.refs.union(this_ref)
-            self.sp_refs = self.sp_refs.union(this_sp_ref)
+            if self.parent.col_ext:
+                this_sp_ref = refs.difference(self.parent.col_ext)
+                self.use_sp_gb = self.use_sp_gb or len(this_sp_ref) > 0
             
             self.dedicated_glist.append((g_expr, refs))
             g_str = g_expr.eval(c_code = False)
@@ -389,7 +402,13 @@ class groupby(ast_node):
         if not self.use_sp_gb:
             self.dedicated_gb = None
             self.add(', '.join(o_list))
-            
+        else:
+            for l in self.dedicated_glist:
+                # l_exist = l[1].difference(self.parent.col_ext)
+                # for l in l_exist:
+                #     self.parent.var_table.
+                self.parent.col_ext.update(l[1])    
+                
     def finalize(self, cexprs : List[Tuple[str, expr]], var_table : Dict[str, Union[str, int]]):
         if self.use_sp_gb:
             self.dedicated_gb = groupby_c(self.parent, self.dedicated_glist)

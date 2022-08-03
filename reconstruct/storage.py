@@ -100,6 +100,7 @@ class Context:
         self.print = print
         self.has_dll = False
         self.dialect = 'MonetDB'
+        self.have_hge = False
         
         self.new()
 

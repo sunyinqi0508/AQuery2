@@ -21,11 +21,11 @@ constexpr static bool is_vector_type = is_vector_impl<T>::value;
 
 namespace types {
 	enum Type_t {
-		AINT32, AFLOAT, ASTR, ADOUBLE, ALDOUBLE, AINT64, AINT16, ADATE, ATIME, AINT8,
-		AUINT32, AUINT64, AUINT16, AUINT8, VECTOR, NONE, ERROR
+		AINT32, AFLOAT, ASTR, ADOUBLE, ALDOUBLE, AINT64, AINT128, AINT16, ADATE, ATIME, AINT8,
+		AUINT32, AUINT64, AUINT128, AUINT16, AUINT8, VECTOR, NONE, ERROR
 	};
-	static constexpr const char* printf_str[] = { "%d", "%f", "%s", "%lf", "%llf", "%ld", "%hi", "%s", "%s", "%c",
-		"%u", "%lu", "%hu", "%hhu", "Vector<%s>", "NULL", "ERROR" };
+	static constexpr const char* printf_str[] = { "%d", "%f", "%s", "%lf", "%llf", "%ld", "%s", "%hi", "%s", "%s", "%c",
+		"%u", "%lu", "%s", "%hu", "%hhu", "Vector<%s>", "NULL", "ERROR" };
 	// TODO: deal with data/time <=> str/uint conversion
 	struct date_t {
 		uint32_t val;
@@ -43,6 +43,17 @@ namespace types {
 	struct Types {
 		typedef T type;
 		constexpr Types() noexcept = default;
+#ifdef __SIZEOF_INT128__
+#define F_INT128(__F_) __F_(__int128_t, AINT128) \
+				 __F_(__uint128_t, AUINT128)
+#define ULL_Type __uint128_t
+#define LL_Type __int128_t
+#else
+#define F_INT128 
+#define ULL_Type unsigned long long
+#define LL_Type long long
+#endif
+
 #define ConnectTypes(f) \
 		f(int, AINT32) \
 		f(float, AFLOAT) \
@@ -57,7 +68,8 @@ namespace types {
 		f(unsigned int, AUINT32) \
 		f(unsigned long, AUINT64) \
 		f(unsigned short, AUINT16) \
-		f(unsigned char, AUINT8) 
+		f(unsigned char, AUINT8) \
+		F_INT128(f)
 
 		inline constexpr static Type_t getType() {
 #define	TypeConnect(x, y) if constexpr(std::is_same<x, T>::value) return y; else
@@ -90,7 +102,7 @@ namespace types {
 	using GetFPType = typename GetFPTypeImpl<typename std::decay<T>::type>::type;
 	template<class T>
 	struct GetLongTypeImpl {
-		using type = Cond(__U(T), unsigned long long, Cond(Fp(T), long double, long long));
+		using type = Cond(__U(T), ULL_Type, Cond(Fp(T), long double, LL_Type));
 	};
 	template<class T>
 	using GetLongType = typename GetLongTypeImpl<typename std::decay<T>::type>::type;
@@ -202,4 +214,19 @@ struct nullval_impl<float> { constexpr static float value = -std::numeric_limits
 template<>
 struct nullval_impl<double> { constexpr static double value = -std::numeric_limits<double>::quiet_NaN(); };
 
+constexpr size_t sum_type(size_t a[], size_t sz) {
+    size_t ret = 0;
+    for (int i = 0; i < sz; ++i) 
+        ret += a[i];
+    return ret;
+}
+template<class Types, class ...T1> constexpr size_t sum_type() {
+    size_t t[] = {std::is_same_v<Types, T1> ...};
+    return sum_type(t, sizeof...(T1));
+}
+template<class ...T1, class ...Types> constexpr
+size_t count_type(std::tuple<Types...>* ts) {
+    size_t t[] = {sum_type<Types, T1...>() ...};
+    return sum_type(t, sizeof...(Types));
+}
 #endif // !_TYPES_H

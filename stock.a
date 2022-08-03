@@ -18,7 +18,7 @@ INSERT INTO stocks VALUES(15,2)
 INSERT INTO stocks VALUES(16,5)
 
 /*<k> "q1" </k>*/
-SELECT max(price-min(timestamp)) FROM stocks
+-- SELECT max(price-min(timestamp)) FROM stocks
 
 /*<k> "q2" </k>*/
 SELECT max(price-mins(price)) FROM stocks

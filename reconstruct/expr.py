@@ -37,7 +37,7 @@ class expr(ast_node):
         self.codlets : list = []
         self.codebuf : Optional[str] = None
         self._udf_decltypecall = None
-        
+        self.node = node
         self.supress_undefined = supress_undefined
         if(type(parent) is expr):
             self.inside_agg = parent.inside_agg

@@ -1,4 +1,5 @@
 from engine.utils import defval
+from aquery_config import have_hge
 from typing import Dict, List
 
 type_table: Dict[str, "Types"] = {}
@@ -75,6 +76,8 @@ LazyT = Types(240, name = 'Lazy', cname = '', sqlname = '', ctype_name = '')
 DoubleT = Types(17, name = 'double', cname='double', sqlname = 'DOUBLE', is_fp = True)
 FloatT = Types(16, name = 'float', cname = 'float', sqlname = 'REAL', 
                 long_type = DoubleT, is_fp = True)
+HgeT = Types(9, name = 'int128',cname='__int128_t', sqlname = 'HUGEINT', fp_type = DoubleT)
+UHgeT = Types(10, name = 'uint128', cname='__uint128_t', sqlname = 'HUGEINT', fp_type = DoubleT)
 LongT = Types(4, name = 'int64', sqlname = 'BIGINT', fp_type = DoubleT)
 ByteT = Types(1, name = 'int8', sqlname = 'TINYINT', long_type=LongT, fp_type=FloatT)
 ShortT = Types(2, name = 'int16', sqlname='SMALLINT', long_type=LongT, fp_type=FloatT)
@@ -167,7 +170,7 @@ def binary_op_behavior(op:OperatorBase, c_code, x, y):
 
 def unary_op_behavior(op:OperatorBase, c_code, x):
     name = op.cname if c_code else op.sqlname
-    return f'({x} {name})'
+    return f'({name} {x})'
 
 def fn_behavior(op:OperatorBase, c_code, *x):
     name = op.cname if c_code else op.sqlname

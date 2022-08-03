@@ -28,6 +28,7 @@ struct SharedMemory
     }
 };
 #endif
+
 struct thread_context{
 
 }v;
@@ -59,6 +60,15 @@ extern "C" int __DLLEXPORT__ binary_info() {
 	return AppleClang;
 #endif
 }
+
+__AQEXPORT__(bool) have_hge(){
+#if    defined(_MONETDBE_LIB_) and defined(HAVE_HGE)
+    return HAVE_HGE;
+#else
+    return false;
+#endif
+}
+
 int dll_main(int argc, char** argv, Context* cxt){
     Config *cfg = reinterpret_cast<Config *>(argv[0]);
 
@@ -111,50 +121,50 @@ int dll_main(int argc, char** argv, Context* cxt){
 
     return 0;
 }
-//
-//extern "C" int __DLLEXPORT__ main(int argc, char** argv) {
-//
-//    puts("running");
-//    Context* cxt = new Context();
-//    cxt->log("%d %s\n", argc, argv[1]);
-//    
-//    const char* shmname;
-//    if (argc < 0)
-//        return dll_main(argc, argv, cxt);
-//    else if (argc <= 1)
-//        return test_main();
-//    else
-//        shmname = argv[1];
-//    SharedMemory shm = SharedMemory(shmname);
-//    if (!shm.pData)
-//        return 1;
-//    bool &running = static_cast<bool*>(shm.pData)[0], 
-//        &ready = static_cast<bool*>(shm.pData)[1];
-//    using namespace std::chrono_literals;
-//    cxt->log("running: %s\n", running? "true":"false");
-//    cxt->log("ready: %s\n", ready? "true":"false");
-//    while (running) {
-//        std::this_thread::sleep_for(1ms);
-//        if(ready){
-//            cxt->log("running: %s\n", running? "true":"false");
-//            cxt->log("ready: %s\n", ready? "true":"false");
-//            void* handle = dlopen("./dll.so", RTLD_LAZY);
-//            cxt->log("handle: %lx\n", handle);
-//            if (handle) {
-//                cxt->log("inner\n");
-//                code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, "dllmain"));
-//                cxt->log("routine: %lx\n", c);
-//                if (c) {
-//                    cxt->log("inner\n");
-//                    cxt->err("return: %d\n", c(cxt));
-//                }
-//            }
-//            ready = false;
-//        }
-//    }
-//    shm.FreeMemoryMap();
-//    return 0;
-//}
+
+extern "C" int __DLLEXPORT__ main(int argc, char** argv) {
+
+   puts("running");
+   Context* cxt = new Context();
+   cxt->log("%d %s\n", argc, argv[1]);
+   
+   const char* shmname;
+   if (argc < 0)
+       return dll_main(argc, argv, cxt);
+   else if (argc <= 1)
+       return test_main();
+   else
+       shmname = argv[1];
+   SharedMemory shm = SharedMemory(shmname);
+   if (!shm.pData)
+       return 1;
+   bool &running = static_cast<bool*>(shm.pData)[0], 
+       &ready = static_cast<bool*>(shm.pData)[1];
+   using namespace std::chrono_literals;
+   cxt->log("running: %s\n", running? "true":"false");
+   cxt->log("ready: %s\n", ready? "true":"false");
+   while (running) {
+       std::this_thread::sleep_for(1ms);
+       if(ready){
+           cxt->log("running: %s\n", running? "true":"false");
+           cxt->log("ready: %s\n", ready? "true":"false");
+           void* handle = dlopen("./dll.so", RTLD_LAZY);
+           cxt->log("handle: %lx\n", handle);
+           if (handle) {
+               cxt->log("inner\n");
+               code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, "dllmain"));
+               cxt->log("routine: %lx\n", c);
+               if (c) {
+                   cxt->log("inner\n");
+                   cxt->err("return: %d\n", c(cxt));
+               }
+           }
+           ready = false;
+       }
+   }
+   shm.FreeMemoryMap();
+   return 0;
+}
 #include "utils.h"
 int test_main()
 {
@@ -200,6 +210,7 @@ int test_main()
         dlclose(handle);
     }
     //static_assert(std::is_same_v<decltype(fill_integer_array<5, 1>()), std::integer_sequence<bool, 1,1,1,1,1>>, "");
+    
     return 0;
     std::unordered_map<int, int> a;
 }

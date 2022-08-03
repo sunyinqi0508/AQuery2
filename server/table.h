@@ -63,14 +63,19 @@ public:
 	using vector_type<_Ty>::operator[];
 	using vector_type<_Ty>::operator=;
 	using vector_type<_Ty>::subvec;
-	using vector_type<_Ty>::subvec_view;
+	using vector_type<_Ty>::subvec_memcpy;
 	using vector_type<_Ty>::subvec_deep;
 	ColView<_Ty> operator [](const vector_type<uint32_t>&idxs) const {
 		return ColView<_Ty>(*this, idxs);
 	}
 
 	void out(uint32_t n = 4, const char* sep = " ") const {
-		n = n > this->size ? this->size : n;
+		const char* more = "";
+		if (n < this->size)
+			more = " ... ";
+		else
+			n = this->size;
+
 		std::cout << '(';
 		if (n > 0)
 		{
@@ -79,6 +84,7 @@ public:
 				std::cout << this->operator[](i) << sep;
 			std::cout << this->operator[](i);
 		}
+		std::cout<< more;
 		std::cout << ')';
 	}
 	template<typename T>
@@ -90,7 +96,7 @@ class ColView {
 public: 
 	typedef ColRef<_Ty> Decayed_t;
 	const vector_type<uint32_t>& idxs;
-	const ColRef<_Ty>& orig;
+	const ColRef<_Ty> orig;
 	const uint32_t& size;
 	ColView(const ColRef<_Ty>& orig, const vector_type<uint32_t>& idxs) : orig(orig), idxs(idxs), size(idxs.size) {}
 	ColView(const ColView<_Ty>& orig, const vector_type<uint32_t>& idxs) : orig(orig.orig), idxs(idxs), size(idxs.size) {
@@ -135,6 +141,10 @@ public:
 			ret[i] = orig[idxs[i]];
 		return ret;
 	}
+	ColView<_Ty> subvec(uint32_t start, uint32_t end) {
+		uint32_t len = end - start;
+		return ColView<_Ty>(orig, idxs.subvec(start, end));
+	}
 	ColRef<_Ty> subvec_deep(uint32_t start, uint32_t end) {
 		uint32_t len = end - start;
 		ColRef<_Ty> subvec(len);
@@ -142,7 +152,7 @@ public:
 			subvec[i] = operator[](i);
 		return subvec;
 	}
-	inline ColRef<_Ty> subvec_deep(uint32_t start = 0) { return subvec_deep(start, size); }
+	inline ColRef<_Ty> subvec(uint32_t start = 0) { return subvec_deep(start, size); }
 };
 template <template <class...> class VT, class T>
 std::ostream& operator<<(std::ostream& os, const VT<T>& v)
@@ -150,8 +160,11 @@ std::ostream& operator<<(std::ostream& os, const VT<T>& v)
 	v.out();
 	return os;
 }
+std::ostream& operator<<(std::ostream& os, __int128 & v);
+std::ostream& operator<<(std::ostream& os, __uint128_t & v);
 template <class Type>
 struct decayed_impl<ColView, Type> { typedef ColRef<Type> type; };
+
 template<typename _Ty>
 template<typename T>
 inline ColRef<T> ColRef<_Ty>::scast()
@@ -186,6 +199,7 @@ struct is_vector_impl<vector_type<V>> : std::true_type {};
 
 template<class ...Types>
 struct TableView;
+
 template<class ...Types>
 struct TableInfo {
 	const char* name;
@@ -211,14 +225,17 @@ struct TableInfo {
 			rid.emplace_back(v);
 		}
 	};
+	
 	template<class ...Types2>
 	auto bind(TableInfo<Types2...>* table2) {
 		return lineage_t(this, table2);
 	}
+	
 	template <size_t i = 0>
 	auto& get_col() {
 		return *reinterpret_cast<ColRef<std::tuple_element_t <i, tuple_type>>*>(colrefs + i);
 	}
+
 	template <size_t j = 0>
 	typename std::enable_if<j == sizeof...(Types) - 1, void>::type print_impl(const uint32_t& i, const char* __restrict sep = " ") const;
 	template <size_t j = 0>
@@ -227,6 +244,7 @@ struct TableInfo {
 	struct GetTypes {
 		typedef typename std::tuple<typename std::tuple_element<Idxs, tuple_type>::type ...> type;
 	};
+	
 	template <size_t ...Idxs>
 	using getRecordType = typename GetTypes<Idxs...>::type;
 	TableInfo(const char* name, uint32_t n_cols);
@@ -276,9 +294,9 @@ struct TableInfo {
 		const auto& this_value = get<col>(*this)[i];
 		const auto& next = [&](auto &v) {
 			if constexpr (sizeof...(rem_cols) == 0)
-				func(args..., v);
+				func(args..., printi128(v));
 			else
-				print2_impl<rem_cols...>(func, i, args ..., v);
+				print2_impl<rem_cols...>(func, i, args ..., printi128(v));
 		};
 		if constexpr (is_vector_type<this_type>)
 			for (int j = 0; j < this_value.size; ++j)
@@ -312,12 +330,20 @@ struct TableInfo {
 			header_string.resize(header_string.size() - l_sep);
 		
 		const auto& prt_loop = [&fp, &view, &printf_string, *this](const auto& f) {
+			constexpr auto num_hge = count_type<__int128_t, __uint128_t>((tuple_type*)(0));
+			char cbuf[num_hge * 41];
+			setgbuf(cbuf);
+
 			if(view)
-				for (int i = 0; i < view->size; ++i)
+				for (int i = 0; i < view->size; ++i){
 					print2_impl<cols...>(f, (*view)[i], printf_string.c_str());
+					setgbuf();
+				}
 			else
-				for (int i = 0; i < colrefs[0].size; ++i)
+				for (int i = 0; i < colrefs[0].size; ++i){
 					print2_impl<cols...>(f, i, printf_string.c_str());		
+					setgbuf();
+				}
 		};
 
 		if (fp)
@@ -538,6 +564,13 @@ void print(const T& v, const char* delimiter = " ") {
 	std::cout<< v;
 	// printf(types::printf_str[types::Types<T>::getType()], v);
 }
+#ifdef __SIZEOF_INT128__
+template <>
+void print<__int128_t>(const __int128_t& v, const char* delimiter);
+template <>
+void print<__uint128_t>(const __uint128_t&v, const char* delimiter);
+#endif
+
 template <class T>
 void inline print_impl(const T& v, const char* delimiter, const char* endline) {
 	for (const auto& vi : v) {

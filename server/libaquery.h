@@ -48,9 +48,10 @@ struct Context{
 };
 
 #ifdef _WIN32
-#define __DLLEXPORT__  __declspec(dllexport) __stdcall
+#define __DLLEXPORT__  __declspec(dllexport) __stdcall 
 #else 
 #define __DLLEXPORT__
 #endif
 
+#define __AQEXPORT__(_Ty) extern "C" _Ty __DLLEXPORT__ 
 #endif

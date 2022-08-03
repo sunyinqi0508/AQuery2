@@ -1,6 +1,4 @@
-AGGREGATION FUNCTION add(a, b){
-    a+b
-}
+
 
 AGGREGATION FUNCTION covariances2(x, y, w){
     xmeans := 0.;
@@ -33,9 +31,9 @@ AGGREGATION FUNCTION covariances2(x, y, w){
 
 CREATE TABLE test(a INT, b INT, c INT, d INT)
 
-LOAD DATA INFILE "test.csv"
+LOAD DATA INFILE "test2.csv"
 INTO TABLE test
 FIELDS TERMINATED BY ","
 
-select covariances2(a, b, 4) from test group by c;
+select covariances2(a, b, 4), a+b from test group by c;
 

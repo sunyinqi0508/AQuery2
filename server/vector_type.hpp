@@ -145,7 +145,7 @@ public:
 		return curr;
 	}
 
-	_Ty& operator[](const uint32_t _i) const {
+	inline _Ty& operator[](const uint32_t _i) const {
 		return container[_i];
 	}
 
@@ -212,15 +212,15 @@ public:
 		size = this->size + dist;
 	}
 	void out(uint32_t n = 4, const char* sep = " ") const;
-	vector_type<_Ty> subvec(uint32_t start, uint32_t end) {
+	vector_type<_Ty> subvec_memcpy(uint32_t start, uint32_t end) const {
 		vector_type<_Ty> subvec(end - start);
 		memcpy(subvec.container, container + start, sizeof(_Ty) * (end - start));
 		return subvec;
 	}
-	inline vector_type<_Ty> subvec_view(uint32_t start, uint32_t end) {
-		return subvec(container + start, end - start);
+	inline vector_type<_Ty> subvec(uint32_t start, uint32_t end) const {
+		return vector_type<_Ty>(container + start, end - start);
 	}
-	vector_type<_Ty> subvec_deep(uint32_t start, uint32_t end) {
+	vector_type<_Ty> subvec_deep(uint32_t start, uint32_t end) const {
 		uint32_t len = end - start;
 		vector_type<_Ty> subvec(len);
 		for (uint32_t i = 0; i < len; ++i)
@@ -228,7 +228,7 @@ public:
 		return subvec;
 	}
 	inline vector_type<_Ty> subvec(uint32_t start = 0) { return subvec(start, size); }
-	inline vector_type<_Ty> subvec_view(uint32_t start = 0) { return subvec_view(start, size); }
+	inline vector_type<_Ty> subvec_memcpy(uint32_t start = 0) { return subvec_memcpy(start, size); }
 	inline vector_type<_Ty> subvec_deep(uint32_t start = 0) { return subvec_deep(start, size); }
 	
 	~vector_type() {
@@ -305,14 +305,12 @@ public:
 	void* get(uint32_t i, types::Type_t atype){
 		return static_cast<void*>(static_cast<char*>(container) + (i * types::AType_sizes[atype]));
 	}
-	void operator[](const uint32_t& i) {
-		
-	}
+	void operator[](const uint32_t& i);
 	vector_type<void> subvec(uint32_t, uint32_t);
-	vector_type<void> subvec_view(uint32_t, uint32_t);
+	vector_type<void> subvec_memcpy(uint32_t, uint32_t);
 	vector_type<void> subvec_deep(uint32_t, uint32_t);
 	vector_type<void> subvec(uint32_t);
-	vector_type<void> subvec_view(uint32_t);
+	vector_type<void> subvec_memcpy(uint32_t);
 	vector_type<void> subvec_deep(uint32_t);
 };
 #pragma pack(pop)

@@ -165,6 +165,7 @@ def init_threaded():
         server_so = ctypes.CDLL('./'+server_bin)
         global cfg, th, send
         send = server_so['receive_args']
+        aquery_config.have_hge = server_so['have_hge']()
         th = threading.Thread(target=server_so['main'], args=(-1, ctypes.POINTER(ctypes.c_char_p)(cfg.c)), daemon=True)
         th.start()
         
@@ -256,7 +257,7 @@ while test_parser:
                 sh.interact(banner = 'debugging session began.', exitmsg = 'debugging session ended.')
             except BaseException as e: 
             # don't care about anything happened in interactive console
-                print(e.with_traceback())
+                print(e)
         elif q.startswith('log'):
             qs = re.split(r'[ \t]', q)
             if len(qs) > 1:
