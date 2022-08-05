@@ -74,7 +74,6 @@ def init_ipc():
     global shm, server, basecmd, mm
     shm = base62uuid()
     if sys.platform != 'win32':
-        import readline
         shm += '.shm'
         basecmd = ['bash', '-c', 'rlwrap k']
         mm = None
@@ -166,6 +165,9 @@ def init_threaded():
         global cfg, th, send
         send = server_so['receive_args']
         aquery_config.have_hge = server_so['have_hge']()
+        if aquery_config.have_hge:
+            from engine.types import get_int128_support
+            get_int128_support()
         th = threading.Thread(target=server_so['main'], args=(-1, ctypes.POINTER(ctypes.c_char_p)(cfg.c)), daemon=True)
         th.start()
         
@@ -258,6 +260,7 @@ while test_parser:
             except BaseException as e: 
             # don't care about anything happened in interactive console
                 print(e)
+            continue
         elif q.startswith('log'):
             qs = re.split(r'[ \t]', q)
             if len(qs) > 1:
@@ -270,6 +273,28 @@ while test_parser:
             continue
         elif q == 'print':
             cxt.print(stmts)
+            continue
+        elif q.startswith('save'):
+            savecmd = re.split(r'[ \t]', q)
+            if len(savecmd) > 1:
+                fname = savecmd[1]
+            else:
+                tm = time.gmtime()
+                fname = f'{tm.tm_year}{tm.tm_mon}_{tm.tm_mday}_{tm.tm_hour}:{tm.tm_min}:{tm.tm_sec}'
+            if cxt:
+                def savefile(attr:str, desc:str):
+                    if hasattr(cxt, attr):
+                        attr : str = getattr(cxt, attr)
+                        if attr:
+                            ext = '.' + desc
+                            name = fname if fname.endswith(ext) else fname + ext
+                            with open('saves/' + name, 'wb') as cfile:
+                                cfile.write(attr.encode('utf-8'))
+                                print(f'saved {desc} code as {name}')
+                savefile('ccode', 'cpp')
+                savefile('udf', 'udf')
+                savefile('sql', 'sql')
+                
             continue
         elif q == 'keep':
             keep = not keep
@@ -285,7 +310,7 @@ while test_parser:
         elif q == 'rr': # run
             set_ready()
             continue
-        elif q.startswith('save'):
+        elif q.startswith('save2'):
             filename = re.split(r'[ \t]', q)
             if (len(filename) > 1):
                 filename = filename[1]

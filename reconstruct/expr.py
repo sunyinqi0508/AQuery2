@@ -57,6 +57,8 @@ class expr(ast_node):
         if type(c_code) is bool:
             self.c_code = c_code
         
+        self.udf_called = None
+        self.cols_mentioned : Optional[set[ColRef]] = None
         ast_node.__init__(self, parent, node, None)
 
     def init(self, _):
@@ -97,20 +99,25 @@ class expr(ast_node):
                     if key in special_func and not self.is_special:
                         self.is_special = True
                         if key in self.context.udf_map:
-                            self.root.udf = self.context.udf_map[key]
-                            if key == self.root.udf.name:
+                            self.root.udf_called = self.context.udf_map[key]
+                            if self.is_udfexpr and key == self.root.udf.name:
                                 self.root.is_recursive_call_inudf = True
+                        # TODO: make udf_called a set!
+                        p = self.parent
+                        while type(p) is expr and not p.udf_called:
+                            p.udf_called = self.udf_called
+                            p = p.parent
                         p = self.parent
                         while type(p) is expr and not p.is_special:
                             p.is_special = True
                             p = p.parent
-                    
+
                     need_decltypestr = any([e.need_decltypestr for e in exp_vals])        
-                    if need_decltypestr or (self.udf and type(op) is udf):
+                    if need_decltypestr or (self.udf_called and type(op) is udf):
                         decltypestr_vals = [e.udf_decltypecall for e in exp_vals]
                         self.udf_decltypecall = op(self.c_code, *decltypestr_vals)
 
-                        if self.udf and type(op) is udf:
+                        if self.udf_called and type(op) is udf:
                             self.udf_decltypecall = op.decltypecall(self.c_code, *decltypestr_vals)
             
                 elif self.is_udfexpr:
@@ -230,10 +237,10 @@ class expr(ast_node):
         assert(self.is_root)
         def call(decltypestr = False) -> str:
             nonlocal c_code, y, materialize_builtin
-            if self.udf is not None:
+            if self.udf_called is not None:
                 loc = locals()
-                builtin_vars = self.udf.builtin_used
-                for b in self.udf.builtin_var.all:
+                builtin_vars = self.udf_called.builtin_used
+                for b in self.udf_called.builtin_var.all:
                         exec(f'loc["{b}"] = lambda: "{{{b}()}}"')
                 if builtin_vars:
                     if type(materialize_builtin) is dict:

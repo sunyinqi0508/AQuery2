@@ -74,6 +74,7 @@ type_table = dict()
 AnyT = Types(0)
 LazyT = Types(240, name = 'Lazy', cname = '', sqlname = '', ctype_name = '')
 DoubleT = Types(17, name = 'double', cname='double', sqlname = 'DOUBLE', is_fp = True)
+LDoubleT = Types(18, name = 'long double', cname='long double', sqlname = 'LDOUBLE', is_fp = True)
 FloatT = Types(16, name = 'float', cname = 'float', sqlname = 'REAL', 
                 long_type = DoubleT, is_fp = True)
 HgeT = Types(9, name = 'int128',cname='__int128_t', sqlname = 'HUGEINT', fp_type = DoubleT)
@@ -87,12 +88,32 @@ UIntT = Types(7, name = 'uint32', sqlname = 'UINT32', long_type=ULongT, fp_type=
 UShortT = Types(6, name = 'uint16', sqlname = 'UINT16', long_type=ULongT, fp_type=FloatT)
 UByteT = Types(5, name = 'uint8', sqlname = 'UINT8', long_type=ULongT, fp_type=FloatT)
 StrT = Types(200, name = 'str', cname = 'const char*', sqlname='VARCHAR', ctype_name = 'types::STRING')
+
+
 def _ty_make_dict(fn : str, *ty : Types): 
     return {eval(fn):t for t in ty}
 
 int_types : Dict[str, Types] = _ty_make_dict('t.sqlname.lower()', LongT, ByteT, ShortT, IntT)
+uint_types : Dict[str, Types] = _ty_make_dict('t.sqlname.lower()', ULongT, UByteT, UShortT, UIntT)
 fp_types : Dict[str, Types] = _ty_make_dict('t.sqlname.lower()', FloatT, DoubleT)
 builtin_types : Dict[str, Types] = {**_ty_make_dict('t.sqlname.lower()', AnyT, StrT), **int_types, **fp_types}
+
+def get_int128_support():
+    for t in int_types.values():
+        t.long_type = HgeT
+    for t in uint_types.values():
+        t.long_type = UHgeT
+    int_types['int128'] = HgeT
+    uint_types['uint128'] = UHgeT
+    
+def revert_int128_support():
+    for t in int_types.values():
+        t.long_type = LongT
+    for t in uint_types.values():
+        t.long_type = ULongT
+    int_types.pop('int128', None)
+    uint_types.pop('uint128', None)
+    
 
 type_bylength : Dict[int, TypeCollection] = {}
 type_bylength[1] = TypeCollection(1, ByteT)

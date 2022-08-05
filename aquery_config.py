@@ -31,3 +31,6 @@ if os_platform == 'win':
     os.add_dll_directory('c:/msys64/usr/bin')  
     os.add_dll_directory(os.path.abspath('./msc-plugin'))
     print("adding path")
+else:
+    import readline
+    

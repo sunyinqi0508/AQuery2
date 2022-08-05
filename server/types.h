@@ -24,7 +24,7 @@ namespace types {
 		AINT32, AFLOAT, ASTR, ADOUBLE, ALDOUBLE, AINT64, AINT128, AINT16, ADATE, ATIME, AINT8,
 		AUINT32, AUINT64, AUINT128, AUINT16, AUINT8, VECTOR, NONE, ERROR
 	};
-	static constexpr const char* printf_str[] = { "%d", "%f", "%s", "%lf", "%llf", "%ld", "%s", "%hi", "%s", "%s", "%c",
+	static constexpr const char* printf_str[] = { "%d", "%f", "%s", "%lf", "%Lf", "%ld", "%s", "%hi", "%s", "%s", "%c",
 		"%u", "%lu", "%s", "%hu", "%hhu", "Vector<%s>", "NULL", "ERROR" };
 	// TODO: deal with data/time <=> str/uint conversion
 	struct date_t {
@@ -96,13 +96,13 @@ namespace types {
 #define __Eq(x) (sizeof(T) == sizeof(x))
 	template<class T>
 	struct GetFPTypeImpl {
-		using type = Cond(__Eq(float), float, Cond(__Eq(double), double, long double));
+		using type = Cond(__Eq(float), float, Cond(__Eq(double), double, double));
 	};
 	template<class T>
 	using GetFPType = typename GetFPTypeImpl<typename std::decay<T>::type>::type;
 	template<class T>
 	struct GetLongTypeImpl {
-		using type = Cond(__U(T), ULL_Type, Cond(Fp(T), long double, LL_Type));
+		using type = Cond(__U(T), ULL_Type, Cond(Fp(T), double, LL_Type));
 	};
 	template<class T>
 	using GetLongType = typename GetLongTypeImpl<typename std::decay<T>::type>::type;

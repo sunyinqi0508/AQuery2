@@ -43,3 +43,5 @@ server/packages/**
 *.ipynb
 *.cmake
 *.stackdump
+saves
+*.exe

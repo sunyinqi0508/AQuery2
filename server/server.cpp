@@ -62,7 +62,7 @@ extern "C" int __DLLEXPORT__ binary_info() {
 }
 
 __AQEXPORT__(bool) have_hge(){
-#if    defined(_MONETDBE_LIB_) and defined(HAVE_HGE)
+#if  defined(_MONETDBE_LIB_) and defined(HAVE_HGE)
     return HAVE_HGE;
 #else
     return false;

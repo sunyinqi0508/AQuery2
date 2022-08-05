@@ -101,7 +101,8 @@ class Context:
         self.has_dll = False
         self.dialect = 'MonetDB'
         self.have_hge = False
-        
+        self.Info = lambda *_: None
+        self.Info = lambda *_: None
         self.new()
 
         

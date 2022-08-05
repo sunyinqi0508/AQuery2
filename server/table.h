@@ -320,7 +320,6 @@ struct TableInfo {
 		
 		std::string printf_string =
 			generate_printf_string<typename std::tuple_element<cols, tuple_type>::type ...>(sep, end);
-		
 		std::string header_string = std::string();
 		constexpr static int a_cols[] = { cols... };
 		for(int i = 0; i < sizeof...(cols); ++i)
