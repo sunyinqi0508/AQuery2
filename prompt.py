@@ -227,8 +227,8 @@ while test_parser:
             cxt = xengine.exec(stmts, cxt, keep)
             if server_mode == RunType.Threaded:
                 # assignment to avoid auto gc
-                sqls =  [s.strip() for s in cxt.sql.split(';')]
-                qs = [ctypes.c_char_p(bytes(q, 'utf-8')) for q in sqls if len(q)]
+                # sqls =  [s.strip() for s in cxt.sql.split(';')]
+                qs = [ctypes.c_char_p(bytes(q, 'utf-8')) for q in cxt.queries if len(q)]
                 sz = len(qs)
                 payload = (ctypes.c_char_p*sz)(*qs)
                 try:
@@ -282,17 +282,18 @@ while test_parser:
                 tm = time.gmtime()
                 fname = f'{tm.tm_year}{tm.tm_mon}_{tm.tm_mday}_{tm.tm_hour}:{tm.tm_min}:{tm.tm_sec}'
             if cxt:
-                def savefile(attr:str, desc:str):
+                from typing import Optional
+                def savefile(attr:str, desc:str, ext:Optional[str] = None):
                     if hasattr(cxt, attr):
                         attr : str = getattr(cxt, attr)
                         if attr:
-                            ext = '.' + desc
+                            ext = ext if ext else '.' + desc
                             name = fname if fname.endswith(ext) else fname + ext
                             with open('saves/' + name, 'wb') as cfile:
                                 cfile.write(attr.encode('utf-8'))
                                 print(f'saved {desc} code as {name}')
                 savefile('ccode', 'cpp')
-                savefile('udf', 'udf')
+                savefile('udf', 'udf', '.hpp')
                 savefile('sql', 'sql')
                 
             continue

@@ -85,16 +85,25 @@ int dll_main(int argc, char** argv, Context* cxt){
 
     while(cfg->running){
         if (cfg->new_query) {
-
+            void *handle = 0;
             if (cfg->backend_type == BACKEND_MonetDB){
                 if (cxt->alt_server == 0)
                     cxt->alt_server = new Server(cxt);
                 Server* server = reinterpret_cast<Server*>(cxt->alt_server);
                 if(n_recv > 0){
+                    if (cfg->backend_type == BACKEND_AQuery || cfg->has_dll) {
+                        handle = dlopen("./dll.so", RTLD_LAZY);
+                    }
                     for(int i = 0; i < n_recv; ++i)
                     {
-                        server->exec(n_recvd[i]);
-                        printf("Exec Q%d: %s\n", i, n_recvd[i]);
+                        if (n_recvd[i][0] == 'Q'){
+                            server->exec(n_recvd[i] + 1);
+                            printf("Exec Q%d: %s\n", i, n_recvd[i]);
+                        }
+                        else if (n_recvd[i][0] == 'P' && handle) {
+                            code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, n_recvd[i]+1));
+                            c(cxt);
+                        }
                     }
                     n_recv = 0;
                 }
@@ -108,12 +117,12 @@ int dll_main(int argc, char** argv, Context* cxt){
             }
             
             // puts(cfg->has_dll ? "true" : "false");
-            if (cfg->backend_type == BACKEND_AQuery || cfg->has_dll) {
-                void* handle = dlopen("./dll.so", RTLD_LAZY);
+            if (cfg->backend_type == BACKEND_AQuery) {
+                handle = dlopen("./dll.so", RTLD_LAZY);
                 code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, "dllmain"));
                 c(cxt);
-                dlclose(handle);
             }
+            if (handle) dlclose(handle);
             cfg->new_query = 0;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(100));

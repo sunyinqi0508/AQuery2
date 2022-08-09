@@ -220,12 +220,13 @@ constexpr size_t sum_type(size_t a[], size_t sz) {
         ret += a[i];
     return ret;
 }
-template<class Types, class ...T1> constexpr size_t sum_type() {
+template<class Types, class ...T1> 
+constexpr size_t sum_type() {
     size_t t[] = {std::is_same_v<Types, T1> ...};
     return sum_type(t, sizeof...(T1));
 }
-template<class ...T1, class ...Types> constexpr
-size_t count_type(std::tuple<Types...>* ts) {
+template<class ...T1, class ...Types> 
+constexpr size_t count_type(std::tuple<Types...>* ts) {
     size_t t[] = {sum_type<Types, T1...>() ...};
     return sum_type(t, sizeof...(Types));
 }

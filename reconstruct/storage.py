@@ -87,7 +87,9 @@ class Context:
         self.finalized = False
         self.udf = None
         self.scans = []
-              
+        self.procs = []
+        self.queries = []
+        
     def __init__(self):
         self.tables_byname = dict()
         self.col_byname = dict()
@@ -101,11 +103,9 @@ class Context:
         self.has_dll = False
         self.dialect = 'MonetDB'
         self.have_hge = False
+        self.Error = lambda *args: print(*args)
         self.Info = lambda *_: None
-        self.Info = lambda *_: None
-        self.new()
 
-        
     def emit(self, sql:str):
         self.sql += sql + ' '
     def emitc(self, c:str):
@@ -118,17 +118,31 @@ class Context:
         self.emitc(str_scan)
         self.scans.remove(scan)
         
-    function_head = '''
-    extern "C" int __DLLEXPORT__ dllmain(Context* cxt) { 
-        using namespace std;
-        using namespace types;
-        auto server = static_cast<Server*>(cxt->alt_server);
-    '''
+    function_deco = '__AQEXPORT__(int) '
+    function_head = ('(Context* cxt) {\n' +
+        '\tusing namespace std;\n' +
+        '\tusing namespace types;\n' + 
+        '\tauto server = static_cast<Server*>(cxt->alt_server);\n')
+    
     udf_head = ('#pragma once\n'
         '#include \"./server/libaquery.h\"\n'
         '#include \"./server/aggregations.h\"\n\n'
         )
     
+    def sql_begin(self):
+        self.sql = ''
+
+    def sql_end(self):
+        self.queries.append('Q' + self.sql)
+        self.sql = ''    
+    def postproc_begin(self, proc_name: str):
+        self.ccode = self.function_deco + proc_name + self.function_head
+    
+    def postproc_end(self, proc_name: str):
+        self.procs.append(self.ccode + 'return 0;\n}')
+        self.ccode = ''
+        self.queries.append('P' + proc_name)
+        
     def finalize(self):
         if not self.finalized:
             headers = ''
@@ -137,6 +151,6 @@ class Context:
                     headers += '#include <' + h + '>\n'
                 else:
                     headers += '#include ' + h + '\n'
-            self.ccode = headers + self.function_head + self.ccode + 'return 0;\n}'
+            self.ccode = headers + '\n'.join(self.procs)
             self.headers = set()
         return self.ccode
