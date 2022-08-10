@@ -24,6 +24,7 @@ k
 test*.c*
 *.csv
 !test.csv
+!test2.csv
 !moving_avg.csv
 !nyctx100.csv
 *.out
