@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <string>
 #include <limits>
+#include <cstring>
 template <class ...Types>
 std::string generate_printf_string(const char* sep = " ", const char* end = "\n") {
 	std::string str;

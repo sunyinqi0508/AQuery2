@@ -5,7 +5,7 @@ ifeq ($(OS),Windows_NT)
 	OS_SUPPORT += server/winhelper.cpp
 	MonetDB_LIB += -Imonetdb/msvc msc-plugin/monetdbe.dll 
 else
-	MonetDB_LIB += -lmonetdbe
+	MonetDB_LIB += -I/usr/include/monetdb -lmonetdbe
 endif
 
 info:

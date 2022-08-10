@@ -45,3 +45,8 @@ server/packages/**
 *.stackdump
 saves
 *.exe
+out*.cpp
+udf*.hpp
+
+
+
