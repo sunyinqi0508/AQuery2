@@ -1,8 +1,4 @@
-#ifdef _WIN32
-    #include "monetdbe.h"
-#else
-    #include "monetdb/monetdbe.h"
-#endif
+#include "monetdbe.h"
 
 struct Context;
 

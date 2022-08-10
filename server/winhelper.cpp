@@ -1,3 +1,4 @@
+#ifdef _WIN32
 #include "winhelper.h"
 #include <Windows.h>
 
@@ -34,3 +35,4 @@ void SharedMemory::FreeMemoryMap()
         if (this->hFileMap)
             CloseHandle(this->hFileMap);
 }
+#endif
