@@ -3,11 +3,8 @@
 
 extern void* Aalloc(size_t sz);
 extern int Afree(void * mem);
+extern size_t register_memory(void* ptr, void(dealloc)(void*));
 
-template <typename T>
-size_t register_memory(T* ptr, void(dealloc)(void*)){
-    [](void* m){ auto _m = static_cast<T*>(m); delete _m; };
-}
 struct Session{
     struct Statistic{
         size_t total_active;

@@ -43,6 +43,7 @@ if aquery_config.rebuild_backend:
         os.remove(server_bin) 
     except Exception as e:
         print(type(e), e)
+    subprocess.call(['make', "info"])
     subprocess.call(['make', server_bin], stdout=nullstream)
     
 cleanup = True

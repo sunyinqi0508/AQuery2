@@ -6,6 +6,9 @@
 
 #include "libaquery.h"
 #include "monetdb_conn.h"
+#ifdef THREADING
+#include "threading.h"
+#endif
 #ifdef _WIN32
 #include "winhelper.h"
 #else 
@@ -54,10 +57,10 @@ extern "C" int __DLLEXPORT__ binary_info() {
 	return MSVC;
 #elif defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)
 	return MSYS;
+#elif defined(__clang__)
+	return CLANG;
 #elif defined(__GNUC__)
     return GCC;
-#else
-	return AppleClang;
 #endif
 }
 
@@ -132,11 +135,16 @@ int dll_main(int argc, char** argv, Context* cxt){
 }
 
 extern "C" int __DLLEXPORT__ main(int argc, char** argv) {
-
    puts("running");
    Context* cxt = new Context();
    cxt->log("%d %s\n", argc, argv[1]);
-   
+
+#ifdef THREADING
+    auto tp = new ThreadPool();
+    cxt->thread_pool = tp;
+#endif
+
+
    const char* shmname;
    if (argc < 0)
        return dll_main(argc, argv, cxt);

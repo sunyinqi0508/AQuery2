@@ -30,9 +30,13 @@ struct Context{
 
 	int n_buffers, *sz_bufs;
 	void **buffers;
-	
+
 	void* alt_server;
 	Log_level log_level = LOG_INFO;
+
+#ifdef THREADING
+	void* thread_pool;
+#endif	
 	printf_type print = printf;
 
 	template <class ...Types>

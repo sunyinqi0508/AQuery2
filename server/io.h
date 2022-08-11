@@ -16,10 +16,20 @@ std::string generate_printf_string(const char* sep = " ", const char* end = "\n"
 }
 
 #ifdef __SIZEOF_INT128__
+constexpr struct __int128__struct{
+    uint64_t low, high;
+	// constexpr bool operator==(__int128_t x) const{
+    //     return (x>>64) == high and (x&0xffffffffffffffffull) == low;
+    // }
+	bool operator==(__int128_t x) const{
+		return *((const __int128_t*) this) == x;
+	}
+}__int128_max_v = {0x0000000000000000ull, 0x8000000000000000ull};
+
 inline const char* get_int128str(__int128_t v, char* buf){
 	bool neg = false;
 	if (v < 0) { 
-		if(v == std::numeric_limits<__int128_t>::min())
+		if(__int128_max_v == v)
 			return "-170141183460469231731687303715884105728";
 		v = -v; 
 		neg = true; 
@@ -62,4 +72,5 @@ inline decltype(auto) printi128<__uint128_t>(const __uint128_t& v) {
 
 #else
 #define printi128(x) x
+#define setgbuf()
 #endif

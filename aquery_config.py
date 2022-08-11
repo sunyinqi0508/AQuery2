@@ -2,6 +2,7 @@
 
 import os
 # os.environ['CXX'] = 'C:/Program Files/LLVM/bin/clang.exe'
+os.environ['THREADING'] = '0'
 
 add_path_to_ldpath = True
 rebuild_backend = True

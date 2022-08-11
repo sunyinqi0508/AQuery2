@@ -165,7 +165,7 @@ public:
 	void qpop() {
 		size = size ? size - 1 : size;
 	}
-	void pop() {
+	void pop_resize() {
 		if (size) {
 			--size;
 			if (capacity > (size << 1))
@@ -178,7 +178,7 @@ public:
 			}
 		}
 	}
-	_Ty pop_back() {
+	_Ty pop() {
 		return container[--size];
 	}
 	void merge(vector_type<_Ty>& _other) {
