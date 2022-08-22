@@ -160,12 +160,10 @@ std::ostream& operator<<(std::ostream& os, const VT<T>& v)
 	v.out();
 	return os;
 }
-
 #ifdef __SIZEOF_INT128__
 std::ostream& operator<<(std::ostream& os, __int128 & v);
 std::ostream& operator<<(std::ostream& os, __uint128_t & v);
 #endif
-
 template <class Type>
 struct decayed_impl<ColView, Type> { typedef ColRef<Type> type; };
 
@@ -333,7 +331,7 @@ struct TableInfo {
 			header_string.resize(header_string.size() - l_sep);
 		
 		const auto& prt_loop = [&fp, &view, &printf_string, *this](const auto& f) {
-#ifdef __SIZEOF_INT128__ 			
+#ifdef __SIZEOF_INT128__			
 			constexpr auto num_hge = count_type<__int128_t, __uint128_t>((tuple_type*)(0));
 			char cbuf[num_hge * 41];
 			setgbuf(cbuf);
