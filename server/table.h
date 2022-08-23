@@ -8,6 +8,7 @@
 #include <iostream>
 #include <string>
 #include "io.h"
+#undef ERROR
 template <typename T>
 class vector_type;
 template <>
@@ -30,7 +31,7 @@ class ColRef : public vector_type<_Ty>
 public:
 	typedef ColRef<_Ty> Decayed_t;
 	const char* name;
-	types::Type_t ty = types::ERROR;
+	types::Type_t ty = types::Type_t::ERROR;
 	ColRef() : vector_type<_Ty>(0), name("") {}
 	ColRef(const uint32_t& size, const char* name = "") : vector_type<_Ty>(size), name(name) {}
 	ColRef(const char* name) : name(name) {}

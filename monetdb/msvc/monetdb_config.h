@@ -351,7 +351,7 @@ typedef __uint128_t uhge;
 #define __attribute__(a)
 #endif
 
-#if !defined(__cplusplus) || __cplusplus < 201103L
+#if !defined(__cplusplus) || (__cplusplus < 201103L&&(!defined(_MSC_VER)||_MSC_VER<1600))
 #ifndef static_assert
 /* static_assert is a C11/C++11 feature, defined in assert.h which also exists
  * in many other compilers we ignore it if the compiler doesn't support it
