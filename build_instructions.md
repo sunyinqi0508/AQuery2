@@ -8,8 +8,7 @@
     - os.add_dll_directory(os.path.abspath('./monetdb/msvc'))
 - gcc-mingw (link w/ mingw monetdb, can only load under mingw python):
     - $(CXX) server/server.cpp server/monetdb_conn.cpp -fPIC -shared $(OS_SUPPORT) --std=c++1z -O3 -march=native -o server.so -I./monetdb/msys64 -L./lib -lmonetdbe
-    - os.add_dll_directory('c:/msys64/usr/bin')
-    - os.add_dll_directory(os.path.abspath('./lib'))
+    - add_dll_dir(os.path.abspath('./lib'))
 - msvc:
     - D:\gg\vs22\MSBuild\Current\Bin\msbuild "d:\gg\AQuery++\server\server.vcxproj" /p:configuration=Release /p:platform=x64
     - os.add_dll_directory(os.path.abspath('./monetdb/msvc'))

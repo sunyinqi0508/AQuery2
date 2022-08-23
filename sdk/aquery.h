@@ -1,9 +1,10 @@
 #include "../server/libaquery.h"
 
+typedef void (*dealloctor_t) (void*);
 
 extern void* Aalloc(size_t sz);
-extern int Afree(void * mem);
-extern size_t register_memory(void* ptr, void(dealloc)(void*));
+extern void Afree(void * mem);
+extern size_t register_memory(void* ptr, dealloctor_t deallocator);
 
 struct Session{
     struct Statistic{

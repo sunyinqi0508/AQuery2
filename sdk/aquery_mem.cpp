@@ -5,29 +5,23 @@
 #include <unordered_map>
 
 Session* session;
-void init_session(){
 
-}
 
-void end_session(){
-
-}
-
-void* Aalloc(size_t sz){
+void* Aalloc(size_t sz, deallocator_t deallocator){
     void* mem =  malloc(sz);
-    auto memmap = (std::unordered_map<void*>*) session->memory_map;
-    memmap->insert(mem);
+    auto memmap = (std::unordered_map<void*, dealloctor_t>*) session->memory_map;
+    memmap[mem] = deallocator;
     return mem;
 }
 
-int Afree(void* mem){
-    auto memmap = (std::unordered_map<void*>*) session->memory_map;
+void Afree(void* mem){
+    auto memmap = (std::unordered_map<void*, dealloctor_t>*) session->memory_map;
+    memmap[mem](mem);
     memmap->erase(mem);
-    return free(mem);
 }
 
-void register_memory(void* ptr, void(dealloc)(void*)){
-    auto memmap = (std::unordered_map<void*>*) session->memory_map;
-    memmap->insert(ptr);
+void register_memory(void* ptr, deallocator_t deallocator){
+    auto memmap = (std::unordered_map<void*, dealloctor_t>*) session->memory_map;
+    memmap[ptr] = deallocator;
 }
 

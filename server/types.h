@@ -49,7 +49,7 @@ namespace types {
 #define ULL_Type __uint128_t
 #define LL_Type __int128_t
 #else
-#define F_INT128 
+#define F_INT128(__F_) 
 #define ULL_Type unsigned long long
 #define LL_Type long long
 #endif

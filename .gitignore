@@ -1,3 +1,4 @@
+a.out.*
 *.log
 *.pyc
 *.tab
