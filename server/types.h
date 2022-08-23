@@ -1,10 +1,10 @@
 #ifndef _TYPES_H
 #define _TYPES_H
 #include <typeinfo>
-#include <functional>
 #include <cstdint>
 #include <type_traits>
 #include <string>
+#include <tuple>
 
 #ifdef _MSC_VER
 #define __restrict__ __restrict

@@ -1,3 +1,5 @@
+#ifndef __MONETDB_CONN_H__
+#define __MONETDB_CONN_H__
 
 struct Context;
 
@@ -19,5 +21,8 @@ struct Server{
     void *getCol(int col_idx);
     void close();
     bool haserror();
+    static bool havehge();
     ~Server();
 };
+
+#endif

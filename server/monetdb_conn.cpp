@@ -140,3 +140,11 @@ void* Server::getCol(int col_idx){
 Server::~Server(){
     close();
 }
+
+bool Server::havehge() {
+#if defined(_MONETDBE_LIB_) and defined(HAVE_HGE)
+    return HAVE_HGE;
+#else
+    return false;
+#endif
+}

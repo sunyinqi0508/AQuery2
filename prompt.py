@@ -104,7 +104,7 @@ class PromptState():
     th = None
     send = None
     test_parser = True
-    server_mode : RunType = RunType.Threaded
+    server_mode: RunType = RunType.Threaded
     server_bin = 'server.bin' if server_mode == RunType.IPC else 'server.so'
     set_ready = lambda: None
     get_ready = lambda: None
@@ -381,6 +381,9 @@ def main(running = lambda:True, next = input, state = None):
             print(e)
         except (KeyboardInterrupt):
             break
+        except SystemExit:
+            print("\nBye.")
+            raise
         except:
             import code, traceback
             sh = code.InteractiveConsole({**globals(), **locals()})
