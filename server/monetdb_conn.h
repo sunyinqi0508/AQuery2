@@ -1,17 +1,16 @@
-#include "monetdbe.h"
 
 struct Context;
 
 struct Server{
-    monetdbe_database *server = 0;
+    void *server = 0;
     Context *cxt = 0;
     bool status = 0;
     char* query = 0;
     int type = 1;
 
-    monetdbe_result* res = 0;
-    monetdbe_column* ret_col = 0;
-    monetdbe_cnt cnt = 0;
+    void* res = 0;
+    void* ret_col = 0;
+    long long cnt = 0;
     char* last_error = 0;
     
     Server(Context* cxt = nullptr);
@@ -19,5 +18,6 @@ struct Server{
     void exec(const char* q);
     void *getCol(int col_idx);
     void close();
+    bool haserror();
     ~Server();
 };

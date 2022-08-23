@@ -1,6 +1,8 @@
 #include "libaquery.h"
 #include <cstdio>
 #include "monetdb_conn.h"
+#include "monetdbe.h"
+#undef static_assert
 
 const char* monetdbe_type_str[] = {
 	"monetdbe_bool", "monetdbe_int8_t", "monetdbe_int16_t", "monetdbe_int32_t", "monetdbe_int64_t",
@@ -37,6 +39,7 @@ Server::Server(Context* cxt){
 }
 
 void Server::connect(Context *cxt){
+    auto server = static_cast<monetdbe_database*>(this->server);
     if (cxt){
         cxt->alt_server = this;
         this->cxt = cxt;
@@ -47,14 +50,14 @@ void Server::connect(Context *cxt){
     }
 
     if (server){
-        printf("Error: Server %llx already connected. Restart? (Y/n). \n", server);
+        printf("Error: Server %p already connected. Restart? (Y/n). \n", server);
         char c[50];
         std::cin.getline(c, 49);
         for(int i = 0; i < 50; ++i){
             if (!c[i] || c[i] == 'y' || c[i] == 'Y'){
                 monetdbe_close(*server);
                 free(*server);
-                server = 0;
+                this->server = 0;
                 break;
             }
             else if(c[i]&&!(c[i] == ' ' || c[i] == '\t'))
@@ -64,36 +67,65 @@ void Server::connect(Context *cxt){
 
     server = (monetdbe_database*)malloc(sizeof(monetdbe_database));
     auto ret = monetdbe_open(server, nullptr, nullptr);
+    if (ret == 0){
+        status = true;
+        this->server = server;
+    }
+    else{
+        if(server)
+            free(server);
+        this->server = 0;
+        status = false;
+        puts(ret == -1 ? "Allocation Error." : "Internal Database Error.");
+    }
 }
 
 void Server::exec(const char* q){
-    auto qresult = monetdbe_query(*server, const_cast<char*>(q), &res, &cnt);
-    if (res != 0)
-        this->cnt = res->nrows;
+    auto server = static_cast<monetdbe_database*>(this->server);
+    auto _res = static_cast<monetdbe_result*>(this->res);
+    monetdbe_cnt _cnt = 0;
+    auto qresult = monetdbe_query(*server, const_cast<char*>(q), &_res, &_cnt);
+    if (_res != 0){
+        this->cnt = _res->nrows;
+        this->res = _res;
+    }
     if (qresult != nullptr){
         printf("Execution Failed. %s\n", qresult);
         last_error = qresult;
     }
 }
 
+bool Server::haserror(){
+    if (last_error){
+        last_error = 0;
+        return true;
+    }
+    else{
+        return false;
+    }
+}
+
 void Server::close(){
     if(this->server){
-        monetdbe_close(*(this->server));
-        free(this->server);
+        auto server = static_cast<monetdbe_database*>(this->server);
+        monetdbe_close(*(server));
+        free(server);
         this->server = 0;
     }
 }
 
 void* Server::getCol(int col_idx){
     if(res){
-        res->ncols;
-        auto err_msg = monetdbe_result_fetch(res, &ret_col, col_idx);
+        auto _res = static_cast<monetdbe_result*>(this->res);
+        auto err_msg = monetdbe_result_fetch(_res, 
+            reinterpret_cast<monetdbe_column**>(&ret_col), col_idx);
         if(err_msg == nullptr)
         {
-            cnt = ret_col->count;
+            auto _ret_col = static_cast<monetdbe_column*>(this->ret_col);
+            cnt = _ret_col->count;
             printf("Dbg: Getting col %s, type: %s\n", 
-                ret_col->name, monetdbe_type_str[ret_col->type]);
-            return ret_col->data;
+                _ret_col->name, monetdbe_type_str[_ret_col->type]);
+            return _ret_col->data;
         }
         else{
             printf("Error fetching result: %s\n", err_msg);

@@ -71,3 +71,21 @@ def remove_last(pattern : str, string : str, escape : Set[str] = set()) -> str:
         else:
             return string[:idx] + string[idx+1:]
     
+class _Counter:
+    def __init__(self, cnt):
+        self.cnt = cnt
+    def inc(self, cnt = 1):
+        self.cnt += cnt
+        cnt = self.cnt - cnt
+        return cnt
+
+import re
+ws = re.compile(r'\s+')
+
+def add_dll_dir(dll: str):
+    import sys, os
+    if sys.version_info.major >= 3 and sys.version_info.minor >7 and os.name == 'nt':
+        os.add_dll_directory(dll)
+    else:
+        os.environ['PATH'] = os.path.abspath(dll) + os.pathsep + os.environ['PATH']
+                    

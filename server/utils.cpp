@@ -8,7 +8,7 @@ string base62uuid(int l = 8) {
     static mt19937_64 engine(chrono::system_clock::now().time_since_epoch().count());
     static uniform_int_distribution<uint64_t> u(0x10000, 0xfffff);
     uint64_t uuid = (u(engine) << 32ull) + (chrono::system_clock::now().time_since_epoch().count() & 0xffffffff);
-    printf("%llx\n", uuid);
+    printf("%p\n", uuid);
     string ret;
     while (uuid && l-- >= 0) {
         ret = string("") + base62alp[uuid % 62] + ret;

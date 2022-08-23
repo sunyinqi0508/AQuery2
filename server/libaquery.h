@@ -21,6 +21,15 @@ struct Config{
     int buffer_sizes[];
 };
 
+struct Session{
+    struct Statistic{
+        size_t total_active;
+        size_t cnt_object;
+        size_t total_alloc;
+    };
+    void* memory_map;
+};
+
 struct Context{
     typedef int (*printf_type) (const char *format, ...);
 	std::unordered_map<const char*, void*> tables;
@@ -33,6 +42,8 @@ struct Context{
 
 	void* alt_server;
 	Log_level log_level = LOG_INFO;
+
+	Session current;
 
 #ifdef THREADING
 	void* thread_pool;
@@ -49,6 +60,8 @@ struct Context{
 		if (log_level <= LOG_ERROR)
 			print(args...);
 	}
+	void init_session();
+	void end_session();
 };
 
 #ifdef _WIN32

@@ -9,6 +9,7 @@ struct Server{
     MYSQL *server = 0;
     Context *cxt = 0;
     bool status = 0;
+    bool has_error = false;
     char* query = 0;
     int type = 0;
     

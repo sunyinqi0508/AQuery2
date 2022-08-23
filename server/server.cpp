@@ -72,6 +72,12 @@ __AQEXPORT__(bool) have_hge(){
 #endif
 }
 
+void Context::init_session(){
+    if (log_level == LOG_INFO){
+        Session::Statistic stats;
+    }
+}
+
 int dll_main(int argc, char** argv, Context* cxt){
     Config *cfg = reinterpret_cast<Config *>(argv[0]);
 
@@ -99,14 +105,19 @@ int dll_main(int argc, char** argv, Context* cxt){
                     }
                     for(int i = 0; i < n_recv; ++i)
                     {
+                        printf("%s, %d\n", n_recvd[i], n_recvd[i][0] == 'Q');
                         if (n_recvd[i][0] == 'Q'){
                             server->exec(n_recvd[i] + 1);
                             printf("Exec Q%d: %s\n", i, n_recvd[i]);
                         }
-                        else if (n_recvd[i][0] == 'P' && handle) {
+                        else if (n_recvd[i][0] == 'P' && handle && !server->haserror()) {
                             code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, n_recvd[i]+1));
                             c(cxt);
                         }
+                    }
+                    if(handle) {
+                        dlclose(handle);
+                        handle = 0;
                     }
                     n_recv = 0;
                 }
@@ -166,11 +177,11 @@ extern "C" int __DLLEXPORT__ main(int argc, char** argv) {
            cxt->log("running: %s\n", running? "true":"false");
            cxt->log("ready: %s\n", ready? "true":"false");
            void* handle = dlopen("./dll.so", RTLD_LAZY);
-           cxt->log("handle: %lx\n", handle);
+           cxt->log("handle: %p\n", handle);
            if (handle) {
                cxt->log("inner\n");
                code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, "dllmain"));
-               cxt->log("routine: %lx\n", c);
+               cxt->log("routine: %p\n", c);
                if (c) {
                    cxt->log("inner\n");
                    cxt->err("return: %d\n", c(cxt));
@@ -195,11 +206,24 @@ int test_main()
         cxt->alt_server = new Server(cxt);
     Server* server = reinterpret_cast<Server*>(cxt->alt_server);
     const char* qs[]= {
-        "CREATE TABLE tt(a INT, b INT, c INT, d INT);",
-        "COPY OFFSET 2 INTO tt FROM  'D:/gg/AQuery++/test.csv'  ON SERVER    USING DELIMITERS  ',';",
-        "CREATE TABLE sale(Mont INT, sales INT);",
-		"COPY OFFSET 2 INTO sale FROM  'D:/gg/AQuery++/moving_avg.csv'  ON SERVER    USING DELIMITERS  ',';",
-		"SELECT a FROM tt, sale WHERE a = Mont  ;"
+        "CREATE TABLE stocks(timestamp INT, price INT);",
+        "INSERT INTO stocks VALUES(1, 15);;",
+        "INSERT INTO stocks VALUES(2,19); ",
+        "INSERT INTO stocks VALUES(3,16);",
+        "INSERT INTO stocks VALUES(4,17);",
+        "INSERT INTO stocks VALUES(5,15);",
+        "INSERT INTO stocks VALUES(6,13);",
+        "INSERT INTO stocks VALUES(7,5);",
+        "INSERT INTO stocks VALUES(8,8);",
+        "INSERT INTO stocks VALUES(9,7);",
+        "INSERT INTO stocks VALUES(10,13);",
+        "INSERT INTO stocks VALUES(11,11);",
+        "INSERT INTO stocks VALUES(12,14);",
+        "INSERT INTO stocks VALUES(13,10);",
+        "INSERT INTO stocks VALUES(14,5);",
+        "INSERT INTO stocks VALUES(15,2);",
+        "INSERT INTO stocks VALUES(16,5);",
+        "SELECT price, timestamp FROM stocks WHERE (((price - timestamp) > 1)  AND  (NOT ((price * timestamp) < 100))) ;",
     };
     n_recv = sizeof(qs)/(sizeof (char*));
 	n_recvd = const_cast<char**>(qs);
@@ -215,11 +239,11 @@ int test_main()
     cxt->log_level = LOG_INFO;
     puts(cpp_17 ?"true":"false");
     void* handle = dlopen("./dll.so", RTLD_LAZY);
-    cxt->log("handle: %llx\n", handle);
+    cxt->log("handle: %p\n", handle);
     if (handle) {
         cxt->log("inner\n");
-        code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, "dllmain"));
-        cxt->log("routine: %llx\n", c);
+        code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, "dll_6EgnKh"));
+        cxt->log("routine: %p\n", c);
         if (c) {
             cxt->log("inner\n");
             cxt->log("return: %d\n", c(cxt));

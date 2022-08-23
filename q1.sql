@@ -1,10 +1,10 @@
-CREATE TABLE test(a INT, b INT, c INT, d INT)
+CREATE TABLE testq1(a INT, b INT, c INT, d INT)
 
 LOAD DATA INFILE "test.csv"
-INTO TABLE test
+INTO TABLE testq1
 FIELDS TERMINATED BY ","
 
 SELECT sum(c), b, d
-FROM test
+FROM testq1
 group by a,b,d
 order by d DESC, b ASC
