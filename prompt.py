@@ -1,10 +1,58 @@
-import os
+import aquery_config
+help_message = '''\
+======================================================
+                AQUERY COMMANDLINE HELP
+======================================================
 
-from engine.ast import Context
+Run prompt.py without supplying with any arguments to run in interactive mode.
+
+--help, -h
+    print out this help message
+    
+--version, -v
+    returns current version of AQuery
+
+--mode, -m Optional[threaded|IPC]
+    execution engine run mode:
+        threaded or 1 (default): run the execution engine and compiler/prompt in separate threads
+        IPC, standalong or 2: run the execution engine in a new process which uses shared memory to communicate with the compiler process
+
+--script, -s [SCRIPT_FILE]
+    script mode: run the aquery script file
+
+--parse-only, -p
+    parse only: parse the file and print out the AST
+'''
+
 if __name__ == '__main__':
     import mimetypes
     mimetypes._winreg = None
+    state = None
+    nextcmd = ''
+    def check_param(param, args = False) -> bool:
+        global nextcmd
+        import sys
+        for p in param:
+            if p in sys.argv:
+                if args:
+                    return True
+                pos = sys.argv.index(p)
+                if len(sys.argv) > pos + 1:
+                    nextcmd = sys.argv[pos + 1]
+                    return True
+        return False
+    
+    if check_param(['-v', '--version'], True):
+        print(aquery_config.version_string)
+        exit()
 
+    if check_param(['-h', '--help'], True):
+        print(help_message)
+        exit()
+    
+
+    
+import os
 from dataclasses import dataclass
 import enum
 from tabnanny import check
@@ -25,30 +73,11 @@ from engine.utils import base62uuid
 import atexit
 import threading
 import ctypes
-import aquery_config
 import numpy as np
 from engine.utils import ws
 from engine.utils import add_dll_dir
 
-## GLOBALS BEGIN
 nullstream = open(os.devnull, 'w')
-help_message = '''\
-Run prompt.py without supplying with any arguments to run in interactive mode.
-
---help, -h
-    print out this help message
---version, -v
-    returns current version of AQuery
---mode, -m Optional[threaded|IPC]
-    execution engine run mode:
-        threaded or 1 (default): run the execution engine and compiler/prompt in separate threads
-        IPC, standalong or 2: run the execution engine in a new process which uses shared memory to communicate with the compiler process
---script, -s [SCRIPT_FILE]
-    script mode: run the aquery script file
---parse-only, -p
-    parse only: parse the file and print out the AST
-'''
-## GLOBALS END
 
 ## CLASSES BEGIN
 class RunType(enum.Enum):
@@ -351,9 +380,19 @@ def main(running = lambda:True, next = input, state = None):
             elif q == 'rr': # run
                 state.set_ready()
                 continue
-            elif q == 'script':
-                # TODO: script mode
-                pass
+            elif q.startswith('script'):
+                qs = re.split(r'[ \t]', q)
+                if len(qs) > 1:
+                    qs = qs[1]
+                with open(qs) as file:
+                    qs = file.readline()
+                    from engine.utils import _Counter
+                    while(qs):
+                        while(not ws.sub('', qs) or qs.strip().startswith('#')):
+                            qs = file.readline()
+                        cnt = _Counter(1)
+                        main(lambda : cnt.inc(-1) > 0, lambda:qs.strip(), state)
+                        qs = file.readline()
             elif q.startswith('save2'):
                 filename = re.split(r'[ \t]', q)
                 if (len(filename) > 1):
@@ -396,29 +435,13 @@ def main(running = lambda:True, next = input, state = None):
 
 ## MAIN
 if __name__ == '__main__':
-    state = None
-    nextcmd = ''
-    def check_param(param:List[str], args = False) -> bool:
-        global nextcmd
-        for p in param:
-            if p in sys.argv:
-                if args:
-                    return True
-                pos = sys.argv.index(p)
-                if len(sys.argv) > pos + 1:
-                    nextcmd = sys.argv[pos + 1]
-                    return True
-        return False
-    if check_param(['-h', '--help'], True):
-        print(help_message)
-        exit()
-    
+
     if len(sys.argv) == 2:
         nextcmd = sys.argv[1]
         if nextcmd.startswith('-'):
             nextcmd = ''
     
-    nextcmd = 'test.aquery'
+    #nextcmd = 'test.aquery'
     if nextcmd or check_param(['-s', '--script']):
         with open(nextcmd) as file:
             nextcmd = file.readline()
@@ -444,7 +467,7 @@ if __name__ == '__main__':
         if any([s in nextcmd for s in ipc_string]):
             server_mode = RunType.IPC
         elif any([s in nextcmd for s in thread_string]):
-            server_mode = RunType.Threaded       
-                 
+            server_mode = RunType.Threaded
+    
     main(state=state)
     

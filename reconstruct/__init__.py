@@ -25,7 +25,8 @@ def exec(stmts, cxt = None, keep = False):
             generate(s, cxt)
     else:
         generate(stmts_stmts, cxt)
-    cxt.print(cxt.queries)
+    for q in cxt.queries:
+        cxt.print(q.strip())
     return cxt
     
 __all__ = ["initialize", "generate", "exec", "saved_cxt"]

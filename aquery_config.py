@@ -1,6 +1,7 @@
 # put environment specific configuration here
 
 ## GLOBAL CONFIGURATION FLAGS
+version_string = '0.3.3a'
 add_path_to_ldpath = True
 rebuild_backend = True
 run_backend = True
@@ -47,7 +48,6 @@ def init_config():
                 os_platform = 'cygwin'
         # deal with msys dependencies:
         if os_platform == 'win':
-
             add_dll_dir(cygroot)  
             add_dll_dir(os.path.abspath('./msc-plugin'))
             # print("adding path")
