@@ -3,22 +3,22 @@
 
 #include <stdint.h>
 
+typedef int(*payload_fn_t)(void*);
+struct payload_t{
+    payload_fn_t f;
+    void* args;
+    constexpr payload_t(payload_fn_t f, void* args) noexcept
+        : f(f), args(args) {}
+    constexpr payload_t() noexcept
+        : f(nullptr), args(nullptr) {};
+    bool is_empty() const { return f && args; }
+    void empty() { f = nullptr; args = nullptr; }
+    void operator()() { f(args); }
+};
+
 class ThreadPool{
 
 public:
-    typedef void(*payload_fn_t)(void*);
-
-    struct payload_t{
-        payload_fn_t f;
-        void* args;
-        constexpr payload_t(payload_fn_t f, void* args) noexcept
-            : f(f), args(args) {}
-        constexpr payload_t() noexcept
-            : f(nullptr), args(nullptr) {};
-        bool is_empty() const { return f && args; }
-        void empty() { f = nullptr; args = nullptr; }
-        void operator()() { f(args); }
-    };
     ThreadPool(uint32_t n_threads = 0);
     void enqueue_task(const payload_t& payload);
     bool busy();
@@ -37,6 +37,33 @@ private:
     void tick();
     void daemon_proc(uint32_t);
 
+};
+
+class Trigger{
+private:
+    void* triggers;  //min-heap by t-rem
+    virtual void tick() = 0;
+
+public:
+    Trigger(ThreadPool* tp);
+};
+
+class IntervalBasedTrigger : public Trigger{
+public:
+    struct timer{
+        uint32_t interval; // in milliseconds
+        uint32_t time_remaining;
+    };
+    void add_trigger();
+private:
+    void tick() override;
+};
+
+class CallbackBasedTrigger : public Trigger{
+public:
+    void add_trigger();
+private:
+    void tick() override;
 };
 
 #endif

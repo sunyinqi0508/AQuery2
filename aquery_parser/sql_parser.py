@@ -7,6 +7,7 @@
 # Contact: Kyle Lahnakoski (kyle@lahnakoski.com)
 #
 
+from sre_parse import WHITESPACE
 from mo_parsing.helpers import restOfLine
 from mo_parsing.infix import delimited_list
 from mo_parsing.whitespaces import NO_WHITESPACE, Whitespace
@@ -648,9 +649,8 @@ def parser(literal_string, ident, sqlserver=False):
             + Optional(assign("where", expr))
         ) / to_json_call
 
-        load = (
-            keyword("load")("op") 
-            + keyword("data").suppress() 
+        load_data = (
+            keyword("data").suppress() 
             + keyword("infile")("loc")  
             + literal_string ("file")
             + INTO
@@ -662,6 +662,42 @@ def parser(literal_string, ident, sqlserver=False):
                   + keyword("by").suppress() 
                   + literal_string ("term")
             )
+        )
+        
+        module_func_def = (
+            var_name("fname")
+            + LB 
+            + delimited_list(
+                (
+                    var_name("arg") 
+                    + COLON 
+                    + var_name("type")
+                )("vars")
+            ) 
+            + RB
+            + LAMBDA
+            + var_name("ret_type")
+        )
+        
+        load_module = (
+            keyword("module").suppress() 
+            + FROM 
+            + literal_string ("file")
+             + Optional(
+                keyword("FUNCTIONS").suppress()
+                 + LB
+                 + module_func_def("funcs") 
+                 + ZeroOrMore(Suppress(',') 
+                              + module_func_def("funcs"), 
+                              Whitespace()
+                            )
+                 + RB
+            )
+        )
+
+        load = (
+            keyword("load")("op") 
+            + (load_data | load_module)
         ) ("load")
 
 

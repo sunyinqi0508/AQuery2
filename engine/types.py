@@ -1,3 +1,4 @@
+from copy import deepcopy
 from engine.utils import defval
 from aquery_config import have_hge
 from typing import Dict, List
@@ -50,6 +51,12 @@ class Types:
             return self.cast_from_dict[ty.name](ty)
         else:
             raise Exception(f'Illeagal cast: from {ty.name} to {self.name}.')
+ 
+    def __call__(self, args):
+        arg_str = ', '.join([a.__str__() for a in args])
+        ret = deepcopy(self)
+        ret.sqlname = self.sqlname + f'({arg_str})'
+        return ret
 
     def __repr__(self) -> str:
         return self.sqlname
