@@ -1,3 +1,8 @@
+*.json
+!sample_ast.json
+*.o
+*.pch
+*.gch
 a.out.*
 *.log
 *.pyc

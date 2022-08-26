@@ -30,10 +30,10 @@ class ast_node:
     def add(self, code):
         self.sql += code + ' '
     def addc(self, code):
-        self.ccode += code + '\n'  
-         
+        self.ccode += code + '\n'
+
     name = 'null'
-    
+
     def init(self, _):
         if self.parent is None:
             self.context.sql_begin()
@@ -43,7 +43,7 @@ class ast_node:
         pass
     def spawn(self, _):
         pass
-    
+
     def consume(self, _):
         if self.parent is None:
             self.emit(self.sql+';\n')
@@ -245,7 +245,7 @@ class projection(ast_node):
                 if type(val[1]) is int:
                     self.context.emitc(f'{self.outtable_name}->get_col<{key}>().initfrom({vid2cname[val[1]]});')
                 else:
-            # for funcs evaluate f_i(x, ...)
+                    # for funcs evaluate f_i(x, ...)
                     self.context.emitc(f'{self.outtable_name}->get_col<{key}>() = {val[1]};')
         # print out col_is
         self.context.emitc(f'print(*{self.outtable_name});')

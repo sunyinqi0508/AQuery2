@@ -65,8 +65,8 @@ extern "C" int __DLLEXPORT__ binary_info() {
 }
 
 __AQEXPORT__(bool) have_hge(){
-#if  defined(_MONETDBE_LIB_) and defined(HAVE_HGE)
-    return HAVE_HGE;
+#if defined(__MONETDB_CONN_H__)
+    return Server::havehge();
 #else
     return false;
 #endif
@@ -105,10 +105,10 @@ int dll_main(int argc, char** argv, Context* cxt){
                     }
                     for(int i = 0; i < n_recv; ++i)
                     {
-                        printf("%s, %d\n", n_recvd[i], n_recvd[i][0] == 'Q');
+                        //printf("%s, %d\n", n_recvd[i], n_recvd[i][0] == 'Q');
                         if (n_recvd[i][0] == 'Q'){
                             server->exec(n_recvd[i] + 1);
-                            printf("Exec Q%d: %s\n", i, n_recvd[i]);
+                            printf("Exec Q%d: %s", i, n_recvd[i]);
                         }
                         else if (n_recvd[i][0] == 'P' && handle && !server->haserror()) {
                             code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, n_recvd[i]+1));
