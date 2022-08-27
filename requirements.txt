@@ -1,7 +1,7 @@
-mo-future=6.2.21303
-mo-dots=9.173.22126
-mo-parsing=8.183.22158
-mo-imports=7.169.22121
+mo-future==6.2.21303
+mo-dots==9.173.22126
+mo-parsing==8.183.22158
+mo-imports==7.169.22121
 dataclasses; python_version < '3.7'
 readline; sys_platform == 'linux'
 numpy
