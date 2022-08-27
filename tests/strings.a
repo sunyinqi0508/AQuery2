@@ -1,0 +1,7 @@
+CREATE TABLE types_test(names varchar(10), val real, id int)
+
+LOAD DATA INFILE "datatypes.csv"
+INTO TABLE types_test
+FIELDS TERMINATED BY ","
+
+select names, val * 10000 + id from types_test

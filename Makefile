@@ -18,6 +18,7 @@ info:
 	$(info $(OS)) 
 	$(info $(Threading))
 	$(info "test")
+	$(info $(CXX))
 server.bin:
 	$(CXX) server/server.cpp server/io.cpp server/table.cpp $(OS_SUPPORT) $(Threading) -flto --std=c++1z -O3 -march=native -o server.bin
 server.so:

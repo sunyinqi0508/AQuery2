@@ -153,9 +153,9 @@ extern "C" int __DLLEXPORT__ main(int argc, char** argv) {
 #ifdef THREADING
     auto tp = new ThreadPool();
     cxt->thread_pool = tp;
+    
 #endif
-
-
+    
    const char* shmname;
    if (argc < 0)
        return dll_main(argc, argv, cxt);

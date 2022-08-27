@@ -1,10 +1,12 @@
 from engine.types import *
-
+from engine.utils import enlist
 class ColRef:
-    def __init__(self, _ty, cobj, table:'TableInfo', name, id, compound = False):
+    def __init__(self, _ty, cobj, table:'TableInfo', name, id, compound = False, _ty_args = None):
         self.type : Types = AnyT
         if type(_ty) is str:
             self.type = builtin_types[_ty.lower()]
+            if _ty_args:
+                self.type = self.type(enlist(_ty_args))
         elif type(_ty) is Types:
             self.type = _ty
         self.cobj = cobj
@@ -47,9 +49,13 @@ class TableInfo:
             
     def add_col(self, c, new = True, i = 0):
         _ty = c['type']
+        _ty_args = None
+        if type(_ty) is dict:
+            _ty_val = list(_ty.keys())[0]
+            _ty_args = _ty[_ty_val]
+            _ty = _ty_val
         if new:
-            _ty = _ty if type(c) is ColRef else list(_ty.keys())[0]
-            col_object =  ColRef(_ty, c, self, c['name'], len(self.columns))
+            col_object = ColRef(_ty, c, self, c['name'], len(self.columns), _ty_args = _ty_args)
         else:
             col_object = c
             c.table = self
