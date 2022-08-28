@@ -1,18 +1,29 @@
 OS_SUPPORT = 
 MonetDB_LIB = 
 Threading = 
+CXXFLAGS = --std=c++1z
+OPTFLAGS = -O3 -flto -march=native 
+SHAREDFLAGS = -shared -fPIC
+ifeq ($(PCH), 1)
+PCHFLAGS = -include server/aggregations.h
+else
+PCHFLAGS = 
+endif
 
 ifeq ($(OS),Windows_NT)
+	NULL_DEVICE = NUL
 	OS_SUPPORT += server/winhelper.cpp
 	MonetDB_LIB += -Imonetdb/msvc msc-plugin/monetdbe.dll 
 else
+	NULL_DEVICE = /dev/null
 	MonetDB_LIB += -I/usr/local/include/monetdb -I/usr/include/monetdb -lmonetdbe
 endif
 
 ifeq ($(THREADING),1)
 	Threading += server/threading.cpp -DTHREADING
 endif
-
+pch:
+	$(CXX) -x c++-header server/aggregations.h -o server/aggregations.h.pch
 info:
 	$(info $(OS_SUPPORT))
 	$(info $(OS)) 
@@ -20,11 +31,16 @@ info:
 	$(info "test")
 	$(info $(CXX))
 server.bin:
-	$(CXX) server/server.cpp server/io.cpp server/table.cpp $(OS_SUPPORT) $(Threading) -flto --std=c++1z -O3 -march=native -o server.bin
+	$(CXX) server/server.cpp server/io.cpp server/table.cpp $(OS_SUPPORT) $(Threading) $(OPTFLAGS) $(CXXFLAGS) -o server.bin
 server.so:
 #	$(CXX) server/server.cpp server/monetdb_conn.cpp -fPIC -shared $(OS_SUPPORT) monetdb/msvc/monetdbe.dll --std=c++1z -O3 -march=native -o server.so -I./monetdb/msvc 
-	$(CXX) -shared -fPIC -flto server/server.cpp server/io.cpp server/table.cpp $(OS_SUPPORT) server/monetdb_conn.cpp $(Threading) $(MonetDB_LIB)  --std=c++1z -o server.so -O3
+	$(CXX) $(SHAREDFLAGS) server/server.cpp server/io.cpp server/table.cpp $(OS_SUPPORT) server/monetdb_conn.cpp $(Threading) $(MonetDB_LIB) $(OPTFLAGS) $(CXXFLAGS) -o server.so 
 snippet:
-	$(CXX) -shared -fPIC -flto --std=c++1z -include server/aggregations.h out.cpp server/monetdb_conn.cpp server/table.cpp server/io.cpp $(MonetDB_LIB) -O3 -march=native -o dll.so
+	$(CXX) $(SHAREDFLAGS) $(PCHFLAGS) out.cpp server/monetdb_conn.cpp server/table.cpp server/io.cpp $(MonetDB_LIB) $(OPTFLAGS) $(CXXFLAGS) -o dll.so
+docker:
+	docker build -t aquery .
+
 clean:
-	rm *.shm -rf
+	rm *.shm *.o dll.so server.so server.bin -rf 2> $(NULL_DEVICE) || true
+
+

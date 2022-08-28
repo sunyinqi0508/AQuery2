@@ -650,7 +650,7 @@ def parser(literal_string, ident, sqlserver=False):
         ) / to_json_call
 
         load_data = (
-            keyword("data").suppress() 
+            keyword("data") ("file_type")
             + keyword("infile")("loc")  
             + literal_string ("file")
             + INTO
@@ -680,7 +680,7 @@ def parser(literal_string, ident, sqlserver=False):
         )
         
         load_module = (
-            keyword("module").suppress() 
+            keyword("module") ("file_type")
             + FROM 
             + literal_string ("file")
              + Optional(
@@ -696,10 +696,9 @@ def parser(literal_string, ident, sqlserver=False):
         )
 
         load = (
-            keyword("load")("op") 
+            keyword("load")
             + (load_data | load_module)
         ) ("load")
-
 
 
         sql_stmts = delimited_list( (

@@ -20,13 +20,13 @@ covariance (x , y ) / ( sd (x) * sd (y ))
 
 CREATE TABLE tt(a INT, b INT, c INT, d INT)
 
-LOAD DATA INFILE "test.csv"
+LOAD DATA INFILE "data/test.csv"
 INTO TABLE tt
 FIELDS TERMINATED BY ","
 
 CREATE TABLE sale(Mont INT, sales INT)
 
-LOAD DATA INFILE "moving_avg.csv"
+LOAD DATA INFILE "data/moving_avg.csv"
 INTO TABLE sale
 FIELDS TERMINATED BY ","
 

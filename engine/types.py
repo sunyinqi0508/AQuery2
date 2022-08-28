@@ -62,6 +62,13 @@ class Types:
         return self.sqlname
     def __str__(self) -> str:
         return self.sqlname
+    
+    @staticmethod
+    def decode(aquery_type : str, vector_type:str = 'ColRef') -> "Types":
+        if (aquery_type.startswith('vec')):
+            return VectorT(Types.decode(aquery_type[3:]), vector_type)
+        return type_table[aquery_type]
+    
 class TypeCollection:
     def __init__(self, sz, deftype, fptype = None, utype = None, *, collection = None) -> None:
         self.size = sz
@@ -95,6 +102,28 @@ UIntT = Types(7, name = 'uint32', sqlname = 'UINT32', long_type=ULongT, fp_type=
 UShortT = Types(6, name = 'uint16', sqlname = 'UINT16', long_type=ULongT, fp_type=FloatT)
 UByteT = Types(5, name = 'uint8', sqlname = 'UINT8', long_type=ULongT, fp_type=FloatT)
 StrT = Types(200, name = 'str', cname = 'const char*', sqlname='VARCHAR', ctype_name = 'types::STRING')
+VoidT = Types(200, name = 'void', cname = 'void', sqlname='Null', ctype_name = 'types::None')
+
+class VectorT(Types):
+    def __init__(self, inner_type : Types, vector_type:str = 'ColRef'):
+        self.inner_type = inner_type
+        self.vector_type = vector_type
+        
+    @property
+    def name(self) -> str:
+        return f'{self.vector_type}<{self.inner_type.name}>'
+    @property
+    def sqlname(self) -> str:
+        return 'BINARY'
+    @property
+    def cname(self) -> str:
+        return self.name
+    @property
+    def fp_type(self) -> Types:
+        return VectorT(self.inner_type.fp_type, self.vector_type)
+    @property
+    def long_type(self):
+        return VectorT(self.inner_type.long_type, self.vector_type)
 
 
 def _ty_make_dict(fn : str, *ty : Types): 
@@ -265,6 +294,8 @@ builtin_unary_arith = _op_make_dict(opneg)
 builtin_unary_special = _op_make_dict(spnull)
 builtin_cstdlib = _op_make_dict(fnsqrt, fnlog, fnsin, fncos, fntan, fnpow)
 builtin_func = _op_make_dict(fnmax, fnmin, fnsum, fnavg, fnmaxs, fnmins, fnsums, fnavgs, fncnt)
+user_module_func = {}
 builtin_operators : Dict[str, OperatorBase] = {**builtin_binary_arith, **builtin_binary_logical, 
-    **builtin_unary_arith, **builtin_unary_logical, **builtin_unary_special, **builtin_func, **builtin_cstdlib}
+    **builtin_unary_arith, **builtin_unary_logical, **builtin_unary_special, **builtin_func, **builtin_cstdlib, 
+    **user_module_func}
     

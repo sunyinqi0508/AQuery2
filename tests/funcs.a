@@ -9,23 +9,13 @@ FUNCTION sd ( x) {
 sqrt ( covariance (x , x) )
 }
 
-AGGREGATION FUNCTION covariances(x, y, w){
-    static xmeans := 0, ymeans := 0, cnt := 0; 
-    if (cnt < w) { xmeans += x; }
-    else {       
-        xmeans += (x - x.vec[cnt - w]) / w;
-        ymeans += (y - y.vec[cnt - w]) / w;   
-    }
-    avg (( x.vec(x.len-w, x.len) - xmean ) * (y.vec(y.len - w, y.len) - ymean ))
-}
-
 FUNCTION pairCorr (x , y ) {
 covariance (x , y ) / ( sd (x) * sd (y ))
 }
 
 CREATE TABLE test1(a INT, b INT, c INT, d INT)
 
-LOAD DATA INFILE "test.csv"
+LOAD DATA INFILE "data/test.csv"
 INTO TABLE test1
 FIELDS TERMINATED BY ","
 

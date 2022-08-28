@@ -1,6 +1,6 @@
 CREATE TABLE testq1(a INT, b INT, c INT, d INT)
 
-LOAD DATA INFILE "test.csv"
+LOAD DATA INFILE "data/test.csv"
 INTO TABLE testq1
 FIELDS TERMINATED BY ","
 

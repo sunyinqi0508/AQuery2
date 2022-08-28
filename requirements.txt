@@ -1,5 +1,5 @@
 mo-future
-mo-dots==8.20.21357
+mo-dots
 mo-parsing
 mo-imports
 dataclasses; python_version < '3.7'

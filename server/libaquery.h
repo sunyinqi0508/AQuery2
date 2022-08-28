@@ -34,7 +34,7 @@ struct Context{
     typedef int (*printf_type) (const char *format, ...);
 	std::unordered_map<const char*, void*> tables;
     std::unordered_map<const char*, uColRef *> cols;
-
+	void* module_function_maps = 0;
 	Config* cfg;
 
 	int n_buffers, *sz_bufs;
@@ -62,6 +62,7 @@ struct Context{
 	}
 	void init_session();
 	void end_session();
+	void* get_module_function(const char*);
 };
 
 #ifdef _WIN32

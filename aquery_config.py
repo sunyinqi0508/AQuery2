@@ -1,7 +1,7 @@
 # put environment specific configuration here
 
 ## GLOBAL CONFIGURATION FLAGS
-version_string = '0.3.3a'
+version_string = '0.4.0a'
 add_path_to_ldpath = True
 rebuild_backend = True
 run_backend = True

@@ -1,6 +1,6 @@
 CREATE TABLE sale(Mont INT, sales INT)
 
-LOAD DATA INFILE "moving_avg.csv"
+LOAD DATA INFILE "data/moving_avg.csv"
 INTO TABLE sale
 FIELDS TERMINATED BY ","
 

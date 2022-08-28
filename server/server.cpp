@@ -77,10 +77,21 @@ void Context::init_session(){
         Session::Statistic stats;
     }
 }
+void* Context::get_module_function(const char* fname){
+    auto fmap = static_cast<std::unordered_map<std::string, void*>*>
+        (this->module_function_maps);
+    auto ret = fmap->find(fname);
+    return ret == fmap->end() ? nullptr : ret->second;
+}
 
 int dll_main(int argc, char** argv, Context* cxt){
     Config *cfg = reinterpret_cast<Config *>(argv[0]);
-
+    std::unordered_map<std::string, void*> user_module_map;
+    if (cxt->module_function_maps == 0)
+        cxt->module_function_maps = new std::unordered_map<std::string, void*>();
+    auto module_fn_map = 
+        static_cast<std::unordered_map<std::string, void*>*>(cxt->module_function_maps);
+    
     auto buf_szs = cfg->buffer_sizes;
     void** buffers = (void**)malloc(sizeof(void*) * cfg->n_buffers);
     for (int i = 0; i < cfg->n_buffers; i++) 
@@ -95,6 +106,7 @@ int dll_main(int argc, char** argv, Context* cxt){
     while(cfg->running){
         if (cfg->new_query) {
             void *handle = 0;
+            void *user_module_handle = 0;
             if (cfg->backend_type == BACKEND_MonetDB){
                 if (cxt->alt_server == 0)
                     cxt->alt_server = new Server(cxt);
@@ -106,13 +118,43 @@ int dll_main(int argc, char** argv, Context* cxt){
                     for(int i = 0; i < n_recv; ++i)
                     {
                         //printf("%s, %d\n", n_recvd[i], n_recvd[i][0] == 'Q');
-                        if (n_recvd[i][0] == 'Q'){
-                            server->exec(n_recvd[i] + 1);
-                            printf("Exec Q%d: %s", i, n_recvd[i]);
-                        }
-                        else if (n_recvd[i][0] == 'P' && handle && !server->haserror()) {
-                            code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, n_recvd[i]+1));
-                            c(cxt);
+                        switch(n_recvd[i][0]){
+                        case 'Q':
+                            {
+                                server->exec(n_recvd[i] + 1);
+                                printf("Exec Q%d: %s", i, n_recvd[i]);
+                            }
+                            break;
+                        case 'P':
+                            if(handle && !server->haserror()) {
+                                code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, n_recvd[i]+1));
+                                c(cxt);
+                            }
+                            break;
+                        case 'M':
+                            {
+                                auto mname = n_recvd[i] + 1;
+                                user_module_handle = dlopen(mname, RTLD_LAZY);
+                                user_module_map[mname] = user_module_handle;
+                            }
+                            break;
+                        case 'F':
+                            {
+                                auto fname = n_recvd[i] + 1;
+                                module_fn_map->insert_or_assign(fname, dlsym(user_module_handle, fname));
+                            }
+                            break;
+                        case 'U':
+                            {
+                                auto mname = n_recvd[i] + 1;
+                                auto it = user_module_map.find(mname);
+                                if (user_module_handle == it->second)
+                                    user_module_handle = 0;
+                                dlclose(it->second);
+                                user_module_map.erase(it);
+                            }
+                            break;
+                        
                         }
                     }
                     if(handle) {

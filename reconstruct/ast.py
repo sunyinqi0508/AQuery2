@@ -601,18 +601,62 @@ class insert(ast_node):
                 pass
         self.sql += ', '.join(list_values) + ')'
         
-        
+  
 class load(ast_node):
     name="load"
     first_order = name
-    def init(self, _):
-        if self.context.dialect == 'MonetDB':
+    def init(self, node):
+        self.module = False
+        if node['load']['file_type'] == 'module':
+            self.produce = self.produce_module
+            self.module = True
+        elif self.context.dialect == 'MonetDB':
             self.produce = self.produce_monetdb
-        else:
+        else: 
             self.produce = self.produce_aq
         if self.parent is None:
             self.context.sql_begin()
-            
+    
+    def produce_module(self, node):
+        # create command for exec engine -> done
+        # create c++ stub 
+        # create dummy udf obj for parsing
+        # def decode_type(ty : str) -> str:
+        #     ret = ''
+        #     back = ''
+        #     while(ty.startswith('vec')):
+        #         ret += 'ColRef<'
+        #         back += '>'
+        #         ty = ty[3:]
+        #     ret += ty
+        #     return ret + back
+        node = node['load']
+        file = node['file']['literal']
+        self.context.queries.append(f'M{file}')
+        self.module_name = file
+        self.functions = {}
+        if 'funcs' in node:
+            for f in enlist(node['funcs']):
+                fname = f['fname']
+                self.context.queries.append(f'F{fname}')
+                ret_type = VoidT
+                if 'ret_type' in f:
+                    ret_type = Types.decode(f['ret_type'])
+                nargs = 0
+                arglist = ''
+                if 'var' in f:
+                    arglist = []
+                    for v in enlist(f['var']):
+                        arglist.append(f'{Types.decode(v["type"]).cname} {v["arg"]}')
+                    nargs = len(arglist)
+                    arglist = ', '.join(arglist)
+                # create c++ stub 
+                cpp_stub = f'{ret_type.cname} (*{fname})({arglist});'
+                self.context.module_stubs += cpp_stub + '\n'
+                self.context.module_map[fname] = cpp_stub
+                #registration for parser
+                self.functions[fname] = user_module_function(fname, nargs, ret_type)
+   
     def produce_aq(self, node):
         node = node['load']
         s1 = 'LOAD DATA INFILE '
@@ -710,7 +754,11 @@ class udf(ast_node):
         self.var_table = {}
         self.args = []
         if self.context.udf is None:
-            self.context.udf = Context.udf_head
+            self.context.udf = (
+                Context.udf_head 
+                + self.context.module_stubs
+                + self.context.get_init_func()
+            )
             self.context.headers.add('\"./udf.hpp\"')
         self.vecs = set()
         self.code_list = []
@@ -933,6 +981,11 @@ class udf(ast_node):
         else:
             return udf.ReturnPattern.bulk_return
             
+class user_module_function(OperatorBase):
+    def __init__(self, name, nargs, ret_type):
+        super().__init__(name, nargs, lambda: ret_type, call=fn_behavior)
+        user_module_func[name] = self
+        builtin_operators[name] = self
         
 def include(objs):
     import inspect

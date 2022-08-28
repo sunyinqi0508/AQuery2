@@ -151,3 +151,18 @@ bool ThreadPool::busy(){
     }
     return true;
 }
+
+void IntervalBasedTrigger::timer::reset(){
+    time_remaining = interval;
+}
+
+bool IntervalBasedTrigger::timer::tick(uint32_t t){
+    if (time_remaining > t) {
+        time_remaining -= t;
+        return false;
+    }
+    else{
+        time_remaining = interval - t%interval;
+        return true;
+    }
+}

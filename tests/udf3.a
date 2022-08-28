@@ -31,7 +31,7 @@ AGGREGATION FUNCTION covariances2(x, y, w){
 
 CREATE TABLE test(a INT, b INT, c INT, d INT)
 
-LOAD DATA INFILE "test2.csv"
+LOAD DATA INFILE "data/test2.csv"
 INTO TABLE test
 FIELDS TERMINATED BY ","
 

@@ -53,6 +53,8 @@ public:
     struct timer{
         uint32_t interval; // in milliseconds
         uint32_t time_remaining;
+        void reset();
+        bool tick(uint32_t t); 
     };
     void add_trigger();
 private:

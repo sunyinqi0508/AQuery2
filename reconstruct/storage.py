@@ -102,6 +102,8 @@ class Context:
         self.tables = []
         self.cols = []
         self.datasource = None
+        self.module_stubs = ''
+        self.module_map = {}
         self.udf_map = dict()
         self.udf_agg_map = dict()
         self.use_columnstore = False
@@ -134,21 +136,28 @@ class Context:
         '#include \"./server/libaquery.h\"\n'
         '#include \"./server/aggregations.h\"\n\n'
         )
+    def get_init_func(self):
+        if self.module_map:
+            return ''
+        ret = 'void init(Context* cxt){\n'
+        for fname in self.module_map.keys():
+            ret += f'{fname} = (decltype({fname}))(cxt->get_module_function("{fname}"));\n'
+        return ret + '}\n'
     
     def sql_begin(self):
         self.sql = ''
 
     def sql_end(self):
         self.queries.append('Q' + self.sql)
-        self.sql = ''    
+        self.sql = ''
     def postproc_begin(self, proc_name: str):
         self.ccode = self.function_deco + proc_name + self.function_head
     
     def postproc_end(self, proc_name: str):
         self.procs.append(self.ccode + 'return 0;\n}')
         self.ccode = ''
-        self.queries.append('P' + proc_name)
-        
+        self.queries.append('P' + proc_name)    
+    
     def finalize(self):
         if not self.finalized:
             headers = ''

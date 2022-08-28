@@ -2,13 +2,23 @@
 
 f stock.a
 xexec
+
 f moving_avg.a
 xexec
+
 f q1.sql
 xexec
+
 f joins.a
 xexec
+
 f udf3.a
+xexec
+
+f strings.a
+xexec
+
+f funcs.a
 xexec
 
 exit

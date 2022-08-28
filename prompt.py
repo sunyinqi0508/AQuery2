@@ -85,7 +85,6 @@ if __name__ == '__main__':
 import os
 from dataclasses import dataclass
 import enum
-from tabnanny import check
 import time
 # import dbconn
 import re
@@ -317,7 +316,7 @@ def save(q:str, cxt: xengine.Context):
         savefile('udf', 'udf', '.hpp')
         savefile('sql', 'sql')
 
-def main(running = lambda:True, next = input, state = None):
+def prompt(running = lambda:True, next = input, state = None):
     if state is None:
         state = init_prompt()
     q = ''
@@ -442,9 +441,12 @@ def main(running = lambda:True, next = input, state = None):
             if trimed[0].startswith('f'):
                 fn = 'stock.a' if len(trimed) <= 1 or len(trimed[1]) == 0 \
                                 else trimed[1]
-                    
-                with open(fn, 'r') as file:
-                    contents = file.read()#.lower()
+                try:
+                    with open(fn, 'r') as file:
+                        contents = file.read()#.lower()
+                except FileNotFoundError:
+                    with open('tests/' + fn, 'r') as file:
+                        contents = file.read()
                 state.stmts = parser.parse(contents)
                 continue
             state.stmts = parser.parse(q)
@@ -488,7 +490,7 @@ if __name__ == '__main__':
                     while(not ws.sub('', nextcmd) or nextcmd.strip().startswith('#')):
                         nextcmd = file.readline()
                     cnt = _Counter(1)
-                    main(lambda : cnt.inc(-1) > 0, lambda:nextcmd.strip(), state)
+                    prompt(lambda : cnt.inc(-1) > 0, lambda:nextcmd.strip(), state)
                     nextcmd = file.readline()
         
     if check_param(['-p', '--parse']):
@@ -505,5 +507,5 @@ if __name__ == '__main__':
         elif any([s in nextcmd for s in thread_string]):
             server_mode = RunType.Threaded
     
-    main(state=state)
+    prompt(state=state)
     
