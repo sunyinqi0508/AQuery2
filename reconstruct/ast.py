@@ -673,6 +673,7 @@ class load(ast_node):
         s3 = ' USING DELIMITERS '
         import os
         p = os.path.abspath(node['file']['literal']).replace('\\', '/')
+        
         self.sql = f'{s1} \'{p}\' {s2} '
         if 'term' in node:
             self.sql += f' {s3} \'{node["term"]["literal"]}\''

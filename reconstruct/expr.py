@@ -201,7 +201,7 @@ class expr(ast_node):
                 if self.c_code and self.datasource is not None:
                     self.sql = f'{{y(\"{self.sql}\")}}'
         elif type(node) is bool:
-            self.type = IntT
+            self.type = ByteT
             if self.c_code:
                 self.sql = '1' if node else '0'
             else:
@@ -209,7 +209,10 @@ class expr(ast_node):
         else:
             self.sql = f'{node}'
             if type(node) is int:
-                self.type = LongT
+                if (node >= 2**63 - 1 or node <= -2**63):
+                    self.type = LongT
+                else:
+                    self.type = IntT
             elif type(node) is float:
                 self.type = DoubleT
 

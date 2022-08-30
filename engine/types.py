@@ -85,7 +85,7 @@ class TypeCollection:
                 self.all_types.append(ty)
                 
 type_table = dict()
-AnyT = Types(0)
+AnyT = Types(-1)
 LazyT = Types(240, name = 'Lazy', cname = '', sqlname = '', ctype_name = '')
 DoubleT = Types(17, name = 'double', cname='double', sqlname = 'DOUBLE', is_fp = True)
 LDoubleT = Types(18, name = 'long double', cname='long double', sqlname = 'LDOUBLE', is_fp = True)
@@ -94,6 +94,7 @@ FloatT = Types(16, name = 'float', cname = 'float', sqlname = 'REAL',
 HgeT = Types(9, name = 'int128',cname='__int128_t', sqlname = 'HUGEINT', fp_type = DoubleT)
 UHgeT = Types(10, name = 'uint128', cname='__uint128_t', sqlname = 'HUGEINT', fp_type = DoubleT)
 LongT = Types(4, name = 'int64', sqlname = 'BIGINT', fp_type = DoubleT)
+BoolT = Types(0, name = 'bool', sqlname = 'BOOL', long_type=LongT, fp_type=FloatT)
 ByteT = Types(1, name = 'int8', sqlname = 'TINYINT', long_type=LongT, fp_type=FloatT)
 ShortT = Types(2, name = 'int16', sqlname='SMALLINT', long_type=LongT, fp_type=FloatT)
 IntT = Types(3, name = 'int', cname = 'int', long_type=LongT, fp_type=FloatT)
@@ -176,8 +177,8 @@ class OperatorBase:
     def __call__(self, c_code = False, *args) -> str:
         return self.call(self, c_code, *args)
         
-    def get_return_type(self, inputs):
-        return self.return_type(inputs)
+    def get_return_type(self, *inputs):
+        return self.return_type(*inputs)
     
     def __repr__(self) -> str:
         return self.name

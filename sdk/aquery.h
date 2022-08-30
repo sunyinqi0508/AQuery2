@@ -14,4 +14,3 @@ struct Session{
     };
     void* memory_map;
 };
-#define EXPORT __DLLEXPORT__

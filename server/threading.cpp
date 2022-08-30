@@ -152,6 +152,10 @@ bool ThreadPool::busy(){
     return true;
 }
 
+Trigger::Trigger(ThreadPool* tp){
+    
+}
+
 void IntervalBasedTrigger::timer::reset(){
     time_remaining = interval;
 }

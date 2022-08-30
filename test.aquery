@@ -1,23 +1,30 @@
 #!aquery
 
+echo Testing Insert, Filters and Nested Aggregation
 f stock.a
 xexec
 
+echo Testing Incremental Group by Aggregation
 f moving_avg.a
 xexec
 
+echo Testing Standard SQL
 f q1.sql
 xexec
 
+echo Testing Joins
 f joins.a
 xexec
 
+echo Testing Complex UDF with 
 f udf3.a
 xexec
 
+echo Testing Data Types
 f strings.a
 xexec
 
+echo Testing UDF with calls to other UDFs
 f funcs.a
 xexec
 

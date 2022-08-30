@@ -330,14 +330,18 @@ def prompt(running = lambda:True, next = input, state = None):
             while state.get_ready():
                 time.sleep(.00001)
             print("> ", end="")
-            q = next().lower()
+            og_q : str = next()
+            q = og_q.lower().strip()
             if q == 'exec': # generate build and run (AQuery Engine)
                 state.cfg.backend_type = Backend_Type.BACKEND_AQuery.value
                 cxt = engine.exec(state.stmts, cxt, keep)
                 if subprocess.call(['make', 'snippet'], stdout = nullstream) == 0:
                     state.set_ready()
                 continue
-            if q.startswith('help'):
+            elif q.startswith('echo '):
+                print(og_q[5:].lstrip())
+                continue
+            elif q.startswith('help'):
                 qs = re.split(r'[ \t]', q)
                 if len(qs) > 1 and qs[1].startswith('c'):
                     print(help_message)
@@ -426,7 +430,7 @@ def prompt(running = lambda:True, next = input, state = None):
                         while(not ws.sub('', qs) or qs.strip().startswith('#')):
                             qs = file.readline()
                         cnt = _Counter(1)
-                        main(lambda : cnt.inc(-1) > 0, lambda:qs.strip(), state)
+                        prompt(lambda : cnt.inc(-1) > 0, lambda:qs.strip(), state)
                         qs = file.readline()
             elif q.startswith('save2'):
                 filename = re.split(r'[ \t]', q)
