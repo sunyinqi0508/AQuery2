@@ -42,10 +42,12 @@ class expr(ast_node):
         if(type(parent) is expr):
             self.inside_agg = parent.inside_agg
             self.is_udfexpr = parent.is_udfexpr
+            self.is_agg_func = parent.is_agg_func
             self.root : expr = parent.root
             self.c_code = parent.c_code
             self.builtin_vars = parent.builtin_vars
         else:
+            self.is_agg_func = False
             self.is_udfexpr = type(parent) is udf
             self.root : expr = self
             self.c_code = self.is_udfexpr or type(parent) is projection
@@ -71,8 +73,8 @@ class expr(ast_node):
         else:
             self.datasource = self.context.datasource
         self.udf_map = parent.context.udf_map
-        self.func_maps = {**builtin_func, **self.udf_map}
-        self.operators = {**builtin_operators, **self.udf_map}
+        self.func_maps = {**builtin_func, **self.udf_map, **user_module_func}
+        self.operators = {**builtin_operators, **self.udf_map, **user_module_func}
         
     def produce(self, node):
         from engine.utils import enlist
@@ -81,6 +83,12 @@ class expr(ast_node):
         if type(node) is dict:
             for key, val in node.items():
                 if key in self.operators:
+                    if key in builtin_func:
+                        if self.is_agg_func:
+                            self.root.is_special = True # Nested Aggregation
+                        else:
+                            self.is_agg_func = True
+                    
                     op = self.operators[key]
 
                     val = enlist(val)
@@ -95,13 +103,15 @@ class expr(ast_node):
                         self.type = AnyT
                         
                     self.sql = op(self.c_code, *str_vals)
-                    special_func = [*self.context.udf_map.keys(), "maxs", "mins", "avgs", "sums"]
+                    special_func = [*self.context.udf_map.keys(), *self.context.module_map.keys(), "maxs", "mins", "avgs", "sums"]
                     if key in special_func and not self.is_special:
                         self.is_special = True
                         if key in self.context.udf_map:
                             self.root.udf_called = self.context.udf_map[key]
                             if self.is_udfexpr and key == self.root.udf.name:
                                 self.root.is_recursive_call_inudf = True
+                        elif key in user_module_func.keys():
+                            udf.try_init_udf(self.context)                           
                         # TODO: make udf_called a set!
                         p = self.parent
                         while type(p) is expr and not p.udf_called:
@@ -201,7 +211,7 @@ class expr(ast_node):
                 if self.c_code and self.datasource is not None:
                     self.sql = f'{{y(\"{self.sql}\")}}'
         elif type(node) is bool:
-            self.type = ByteT
+            self.type = BoolT
             if self.c_code:
                 self.sql = '1' if node else '0'
             else:

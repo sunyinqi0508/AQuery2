@@ -30,6 +30,8 @@ info:
 	$(info $(Threading))
 	$(info "test")
 	$(info $(CXX))
+libaquery.a:
+	$(CXX) -c server/server.cpp server/io.cpp server/table.cpp $(OS_SUPPORT) $(Threading) $(OPTFLAGS) $(CXXFLAGS) -o server.bin
 server.bin:
 	$(CXX) server/server.cpp server/io.cpp server/table.cpp $(OS_SUPPORT) $(Threading) $(OPTFLAGS) $(CXXFLAGS) -o server.bin
 server.so:

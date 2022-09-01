@@ -136,20 +136,24 @@ class Context:
         '#include \"./server/libaquery.h\"\n'
         '#include \"./server/aggregations.h\"\n\n'
         )
+    
     def get_init_func(self):
-        if self.module_map:
+        if not self.module_map:
             return ''
-        ret = 'void init(Context* cxt){\n'
+        ret = '__AQEXPORT__(void) __builtin_init_user_module(Context* cxt){\n'
         for fname in self.module_map.keys():
             ret += f'{fname} = (decltype({fname}))(cxt->get_module_function("{fname}"));\n'
+        self.queries.insert(0, f'P__builtin_init_user_module')
         return ret + '}\n'
     
     def sql_begin(self):
         self.sql = ''
 
     def sql_end(self):
-        self.queries.append('Q' + self.sql)
+        if self.sql.strip():
+            self.queries.append('Q' + self.sql)
         self.sql = ''
+        
     def postproc_begin(self, proc_name: str):
         self.ccode = self.function_deco + proc_name + self.function_head
     
@@ -157,6 +161,16 @@ class Context:
         self.procs.append(self.ccode + 'return 0;\n}')
         self.ccode = ''
         self.queries.append('P' + proc_name)    
+    
+    def finalize_udf(self):
+        if self.udf is not None:
+            return (Context.udf_head 
+                + self.module_stubs
+                + self.get_init_func()
+                + self.udf
+            )
+        else:
+            return None
     
     def finalize(self):
         if not self.finalized:

@@ -1,5 +1,8 @@
 LOAD MODULE FROM "test.so" 
 FUNCTIONS (
-    div(a:int, b:int) -> double, 
+    mydiv(a:int, b:int) -> double, 
     mulvec(a:int, b:vecfloat) -> vecfloat
 );
+
+select mydiv(2,3);
+

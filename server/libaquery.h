@@ -32,8 +32,7 @@ struct Session{
 
 struct Context{
     typedef int (*printf_type) (const char *format, ...);
-	std::unordered_map<const char*, void*> tables;
-    std::unordered_map<const char*, uColRef *> cols;
+
 	void* module_function_maps = 0;
 	Config* cfg;
 
@@ -63,6 +62,8 @@ struct Context{
 	void init_session();
 	void end_session();
 	void* get_module_function(const char*);
+	std::unordered_map<const char*, void*> tables;
+    std::unordered_map<const char*, uColRef *> cols;
 };
 
 #ifdef _WIN32

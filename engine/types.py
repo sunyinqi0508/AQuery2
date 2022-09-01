@@ -278,6 +278,7 @@ def is_null_call_behavior(op:OperatorBase, c_code : bool, x : str):
 spnull = OperatorBase('missing', 1, logical, cname = "", sqlname = "", call = is_null_call_behavior)
 
 # cstdlib
+# If in aggregation functions, using monetdb builtins. If in nested agg, inside udfs, using cstdlib.
 fnsqrt = OperatorBase('sqrt', 1, lambda *_ : DoubleT, cname = 'sqrt', sqlname = 'SQRT', call = fn_behavior)
 fnlog = OperatorBase('log', 2, lambda *_ : DoubleT, cname = 'log', sqlname = 'LOG', call = fn_behavior)
 fnsin = OperatorBase('sin', 1, lambda *_ : DoubleT, cname = 'sin', sqlname = 'SIN', call = fn_behavior)

@@ -70,14 +70,14 @@ class projection(ast_node):
             self.context.postproc_begin(self.postproc_fname)
         
     def spawn(self, node):
-        self.datasource = None # datasource is Join instead of TableInfo
+        self.datasource = join(self, [], self.context) # datasource is Join instead of TableInfo
+        self.assumptions = []
         if 'from' in node:
             from_clause = node['from']
             self.datasource = join(self, from_clause)
             if 'assumptions' in from_clause:
                 self.assumptions = enlist(from_clause['assumptions'])
-            else:
-                self.assumptions = []
+        
         if self.datasource is not None:
             self.datasource_changed = True
             self.prev_datasource = self.context.datasource
@@ -157,7 +157,6 @@ class projection(ast_node):
         def finialize(astnode:ast_node):
             if(astnode is not None):
                 self.add(astnode.sql)
-        self.add('FROM')
         finialize(self.datasource)                
         finialize(self.where)
         if self.group_node and not self.group_node.use_sp_gb:
@@ -469,6 +468,7 @@ class join(ast_node):
         self.tables : List[TableInfo] = []
         self.tables_dir = dict()
         self.rec = None
+        self.top_level = self.parent and type(self.parent) is projection
         # self.tmp_name = 'join_' + base62uuid(4)
         # self.datasource = TableInfo(self.tmp_name, [], self.context)
     def append(self, tbls, __alias = ''):
@@ -547,9 +547,12 @@ class join(ast_node):
     @property
     def all_cols(self):
         return set([c for t in self.tables for c in t.columns])
-    def consume(self, _):
+    def consume(self, node):
         self.sql = ', '.join(self.joins)
-        return super().consume(_)
+        if node and self.sql and self.top_level:
+            self.sql = ' FROM ' + self.sql 
+        return super().consume(node)
+    
     def __str__(self):
         return ', '.join(self.joins)
     def __repr__(self):
@@ -644,18 +647,18 @@ class load(ast_node):
                     ret_type = Types.decode(f['ret_type'])
                 nargs = 0
                 arglist = ''
-                if 'var' in f:
+                if 'vars' in f:
                     arglist = []
-                    for v in enlist(f['var']):
+                    for v in enlist(f['vars']):
                         arglist.append(f'{Types.decode(v["type"]).cname} {v["arg"]}')
                     nargs = len(arglist)
                     arglist = ', '.join(arglist)
                 # create c++ stub 
-                cpp_stub = f'{ret_type.cname} (*{fname})({arglist});'
+                cpp_stub = f'{ret_type.cname} (*{fname})({arglist}) = nullptr;'
                 self.context.module_stubs += cpp_stub + '\n'
                 self.context.module_map[fname] = cpp_stub
                 #registration for parser
-                self.functions[fname] = user_module_function(fname, nargs, ret_type)
+                self.functions[fname] = user_module_function(fname, nargs, ret_type, self.context)
    
     def produce_aq(self, node):
         node = node['load']
@@ -723,6 +726,12 @@ class outfile(ast_node):
 class udf(ast_node):
     name = 'udf'
     first_order = name
+    @staticmethod
+    def try_init_udf(context : Context):
+        if context.udf is None:
+            context.udf = '/*UDF Start*/\n'
+            context.headers.add('\"./udf.hpp\"')
+            
     @dataclass
     class builtin_var:
         enabled : bool = False
@@ -754,13 +763,7 @@ class udf(ast_node):
         }
         self.var_table = {}
         self.args = []
-        if self.context.udf is None:
-            self.context.udf = (
-                Context.udf_head 
-                + self.context.module_stubs
-                + self.context.get_init_func()
-            )
-            self.context.headers.add('\"./udf.hpp\"')
+        udf.try_init_udf(self.context)
         self.vecs = set()
         self.code_list = []
         self.builtin_used = None
@@ -983,10 +986,11 @@ class udf(ast_node):
             return udf.ReturnPattern.bulk_return
             
 class user_module_function(OperatorBase):
-    def __init__(self, name, nargs, ret_type):
-        super().__init__(name, nargs, lambda: ret_type, call=fn_behavior)
+    def __init__(self, name, nargs, ret_type, context : Context):
+        super().__init__(name, nargs, lambda *_: ret_type, call=fn_behavior)
         user_module_func[name] = self
-        builtin_operators[name] = self
+        # builtin_operators[name] = self
+        udf.try_init_udf(context)
         
 def include(objs):
     import inspect

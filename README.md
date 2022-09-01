@@ -4,6 +4,8 @@
 AQuery++ Database is a cross-platform, In-Memory Column-Store Database that incorporates compiled query execution.
 
 ## Architecture 
+![Architecture](./docs/arch-hybrid.svg)
+
 ### AQuery Compiler
 - The query is first processed by the AQuery Compiler which is composed of a frontend that parses the query into AST and a backend that generates target code that delivers the query.
 - Front end of AQuery++ Compiler is built on top of [mo-sql-parsing](https://github.com/klahnakoski/mo-sql-parsing) with modifications to handle AQuery dialect and extension.

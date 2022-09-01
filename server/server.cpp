@@ -248,6 +248,7 @@ int test_main()
         cxt->alt_server = new Server(cxt);
     Server* server = reinterpret_cast<Server*>(cxt->alt_server);
     const char* qs[]= {
+        "SELECT MIN(3)-MAX(2);",
         "CREATE TABLE stocks(timestamp INT, price INT);",
         "INSERT INTO stocks VALUES(1, 15);;",
         "INSERT INTO stocks VALUES(2,19); ",

@@ -348,7 +348,7 @@ def prompt(running = lambda:True, next = input, state = None):
                 else:
                     print(prompt_help)
                 continue
-            elif q == 'xexec': # generate build and run (MonetDB Engine)
+            elif q.startswith('xexec'): # generate build and run (MonetDB Engine)
                 state.cfg.backend_type = Backend_Type.BACKEND_MonetDB.value
                 cxt = xengine.exec(state.stmts, cxt, keep)
                 if state.server_mode == RunType.Threaded:
@@ -362,18 +362,23 @@ def prompt(running = lambda:True, next = input, state = None):
                         state.send(sz, payload)
                     except TypeError as e:
                         print(e)
-                if cxt.udf is not None:
+                this_udf = cxt.finalize_udf()
+                
+                if this_udf:
                     with open('udf.hpp', 'wb') as outfile:
-                        outfile.write(cxt.udf.encode('utf-8'))
-                    
+                        outfile.write(this_udf.encode('utf-8'))
+                qs = re.split(r'[ \t]', q)
+                build_this = not(len(qs) > 1 and qs[1].startswith('n'))
                 if cxt.has_dll:
                     with open('out.cpp', 'wb') as outfile:
                         outfile.write((cxt.finalize()).encode('utf-8'))
-                    subprocess.call(['make', 'snippet'], stdout = nullstream)
-                    state.cfg.has_dll = 1
+                    if build_this:
+                        subprocess.call(['make', 'snippet'], stdout = nullstream)
+                        state.cfg.has_dll = 1
                 else:
                     state.cfg.has_dll = 0
-                state.set_ready()
+                if build_this:
+                    state.set_ready()
                 
                 continue
             
@@ -465,13 +470,14 @@ def prompt(running = lambda:True, next = input, state = None):
         except SystemExit:
             print("\nBye.")
             raise
-        except:
+        except BaseException as e:
             import code, traceback
             sh = code.InteractiveConsole({**globals(), **locals()})
             sh.interact(banner = traceback.format_exc(), exitmsg = 'debugging session ended.')
             save('', cxt)
             rm(state)
-            raise
+            raise e
+        
     rm(state)
 ## FUNCTIONS END
 
