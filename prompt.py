@@ -351,6 +351,12 @@ def prompt(running = lambda:True, next = input, state = None):
             elif q.startswith('xexec'): # generate build and run (MonetDB Engine)
                 state.cfg.backend_type = Backend_Type.BACKEND_MonetDB.value
                 cxt = xengine.exec(state.stmts, cxt, keep)
+                
+                this_udf = cxt.finalize_udf()
+                if this_udf:
+                    with open('udf.hpp', 'wb') as outfile:
+                        outfile.write(this_udf.encode('utf-8'))
+                        
                 if state.server_mode == RunType.Threaded:
                     # assignment to avoid auto gc
                     # sqls =  [s.strip() for s in cxt.sql.split(';')]
@@ -362,11 +368,7 @@ def prompt(running = lambda:True, next = input, state = None):
                         state.send(sz, payload)
                     except TypeError as e:
                         print(e)
-                this_udf = cxt.finalize_udf()
-                
-                if this_udf:
-                    with open('udf.hpp', 'wb') as outfile:
-                        outfile.write(this_udf.encode('utf-8'))
+
                 qs = re.split(r'[ \t]', q)
                 build_this = not(len(qs) > 1 and qs[1].startswith('n'))
                 if cxt.has_dll:
@@ -472,11 +474,14 @@ def prompt(running = lambda:True, next = input, state = None):
             raise
         except BaseException as e:
             import code, traceback
+            raise_exception = True
             sh = code.InteractiveConsole({**globals(), **locals()})
             sh.interact(banner = traceback.format_exc(), exitmsg = 'debugging session ended.')
             save('', cxt)
             rm(state)
-            raise e
+            # control whether to raise exception in interactive console
+            if raise_exception:
+                raise e
         
     rm(state)
 ## FUNCTIONS END

@@ -95,6 +95,7 @@ class Context:
         self.scans = []
         self.procs = []
         self.queries = []
+        self.module_init_loc = 0
         
     def __init__(self):
         self.tables_byname = dict()
@@ -143,14 +144,18 @@ class Context:
         ret = '__AQEXPORT__(void) __builtin_init_user_module(Context* cxt){\n'
         for fname in self.module_map.keys():
             ret += f'{fname} = (decltype({fname}))(cxt->get_module_function("{fname}"));\n'
-        self.queries.insert(0, f'P__builtin_init_user_module')
+        self.queries.insert(self.module_init_loc, 'P__builtin_init_user_module')
         return ret + '}\n'
     
     def sql_begin(self):
         self.sql = ''
 
     def sql_end(self):
-        if self.sql.strip():
+        # eliminate empty queries
+        s = self.sql.strip()
+        while(s and s[-1] == ';'):
+            s = s[:-1].strip()
+        if s and s.lower() != 'select':
             self.queries.append('Q' + self.sql)
         self.sql = ''
         

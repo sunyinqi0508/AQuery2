@@ -28,4 +28,8 @@ echo Testing UDF with calls to other UDFs
 f funcs.a
 xexec
 
+echo Testing User Modules
+f modules.a
+xexec
+
 exit

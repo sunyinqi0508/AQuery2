@@ -39,10 +39,6 @@ struct Context{
 
 	Session current;
 
-#ifdef THREADING
-	void* thread_pool;
-#endif	
-	printf_type print = printf;
 
 	template <class ...Types>
 	void log(Types... args) {
@@ -57,7 +53,7 @@ struct Context{
 	void init_session();
 	void end_session();
 	void* get_module_function(const char*);
-    char remainder[];
+    char remainder[]; 
 };
 
 #ifdef _WIN32
@@ -68,10 +64,10 @@ struct Context{
 
 #define __AQEXPORT__(_Ty) extern "C" _Ty __DLLEXPORT__ 
 
-typedef void (*dealloctor_t) (void*);
+typedef void (*deallocator_t) (void*);
 
-extern void* Aalloc(size_t sz);
+extern void* Aalloc(unsigned long long sz);
 extern void Afree(void * mem);
-extern size_t register_memory(void* ptr, dealloctor_t deallocator);
+extern void register_memory(void* ptr, deallocator_t deallocator);
 
 #endif

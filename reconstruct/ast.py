@@ -659,7 +659,8 @@ class load(ast_node):
                 self.context.module_map[fname] = cpp_stub
                 #registration for parser
                 self.functions[fname] = user_module_function(fname, nargs, ret_type, self.context)
-   
+        self.context.module_init_loc = len(self.context.queries)
+        
     def produce_aq(self, node):
         node = node['load']
         s1 = 'LOAD DATA INFILE '
