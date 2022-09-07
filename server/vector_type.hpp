@@ -255,17 +255,17 @@ public:
 #define Ops(o, x) \
 	template<typename T>\
 	vector_type<typename types::Coercion<_Ty, T>::type> operator o (const vector_type<T>& r) const {\
-		[[likely]] if (r.size == size) {\
+		/*[[likely]] if (r.size == size) {*/\
 			return x(r);\
-		}\
+		/*}*/\
 	}
 
 #define Opseq(o, x) \
 	template<typename T>\
 	vector_type<typename types::Coercion<_Ty, T>::type> operator o##= (const vector_type<T>& r) {\
-		[[likely]] if (r.size == size) {\
+		/*[[likely]] if (r.size == size) {*/\
 			return x##eq(r);\
-		}\
+		/*}*/\
 	}
 
 #define _Make_Ops(M) \

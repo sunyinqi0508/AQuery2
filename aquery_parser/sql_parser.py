@@ -401,6 +401,7 @@ def parser(literal_string, ident, sqlserver=False):
         unordered_sql = Group(
             values
             | selection
+            + Optional(INTO + table_source("into"))
             + Optional(
                 (FROM + delimited_list(table_source) + ZeroOrMore(join))("from")
                 + Optional(WHERE + expr("where"))

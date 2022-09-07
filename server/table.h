@@ -90,6 +90,15 @@ public:
 	}
 	template<typename T>
 	ColRef<T> scast();
+	
+	ColRef<_Ty>* rename(const char* name) {
+		this->name = name;
+		return this;
+	}
+
+	// defined in table_ext_monetdb.hpp
+	void* monetdb_get_col();
+	
 };
 
 template<typename _Ty>
@@ -297,9 +306,9 @@ struct TableInfo {
 		const auto& this_value = get<col>(*this)[i];
 		const auto& next = [&](auto &v) {
 			if constexpr (sizeof...(rem_cols) == 0)
-				func(args..., printi128(v));
+				func(args..., print_hook(v));
 			else
-				print2_impl<rem_cols...>(func, i, args ..., printi128(v));
+				print2_impl<rem_cols...>(func, i, args ..., print_hook(v));
 		};
 		if constexpr (is_vector_type<this_type>)
 			for (int j = 0; j < this_value.size; ++j)
@@ -368,6 +377,13 @@ struct TableInfo {
 		const vector_type<uint32_t>* __restrict view = nullptr, FILE* __restrict fp = nullptr) {
 		applyIntegerSequence<sizeof...(Types), applier>::apply(*this, sep, end, view, fp);
 	}
+
+	TableInfo< Types... >* rename(const char* name) {
+		this->name = name;
+		return this;
+	}
+	// defined in monetdb_conn.cpp
+	void monetdb_append_table(void* srv, const char* alt_name = nullptr);
 };
 
 
@@ -399,14 +415,14 @@ constexpr static inline bool is_vector(const vector_type<T>&) {
 template<class ...Types>
 TableInfo<Types...>::TableInfo(const char* name, uint32_t n_cols) : name(name), n_cols(n_cols) {
 	this->colrefs = (ColRef<void>*)malloc(sizeof(ColRef<void>) * n_cols);
-	for (int i = 0; i < n_cols; ++i) {
+	for (uint32_t i = 0; i < n_cols; ++i) {
 		this->colrefs[i].init();
 	}
 }
 template<class ...Types>
 TableInfo<Types...>::TableInfo(const char* name) : name(name), n_cols(sizeof...(Types)) {
 	this->colrefs = (ColRef<void>*)malloc(sizeof(ColRef<void>) * this->n_cols);
-	for (int i = 0; i < n_cols; ++i) {
+	for (uint32_t i = 0; i < n_cols; ++i) {
 		this->colrefs[i].init();
 	}
 }
@@ -573,6 +589,8 @@ void print<__int128_t>(const __int128_t& v, const char* delimiter);
 template <>
 void print<__uint128_t>(const __uint128_t&v, const char* delimiter);
 #endif
+template <>
+void print<bool>(const bool&v, const char* delimiter);
 
 template <class T>
 void inline print_impl(const T& v, const char* delimiter, const char* endline) {
@@ -591,4 +609,5 @@ print(const VT<T>& v, const char* delimiter = " ", const char* endline = "\n") {
 	print_impl(v, delimiter, endline);
 }
  
+
 #endif

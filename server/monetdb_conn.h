@@ -25,4 +25,10 @@ struct Server{
     ~Server();
 };
 
+struct monetdbe_table_data{
+    const char* table_name;
+    const char* create_table_sql;
+    void* cols;
+};
+
 #endif

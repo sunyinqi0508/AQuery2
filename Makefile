@@ -15,6 +15,8 @@ ifeq ($(OS),Windows_NT)
 	OS_SUPPORT += server/winhelper.cpp
 	MonetDB_LIB += -Imonetdb/msvc msc-plugin/monetdbe.dll 
 else
+	UNAME_S = $(shell uname -s)
+	UNAME_M = $(shell uname -m)
 	NULL_DEVICE = /dev/null
 	MonetDB_LIB += -I/usr/local/include/monetdb -I/usr/include/monetdb -lmonetdbe
 endif

@@ -81,9 +81,9 @@ void* Context::get_module_function(const char* fname){
     auto fmap = static_cast<std::unordered_map<std::string, void*>*>
         (this->module_function_maps);
     //printf("%p\n", fmap->find("mydiv")->second);
-    for (const auto& [key, value] : *fmap){
-        printf("%s %p\n", key.c_str(), value);
-    }
+    // for (const auto& [key, value] : *fmap){
+    //     printf("%s %p\n", key.c_str(), value);
+    // }
     auto ret = fmap->find(fname);
     return ret == fmap->end() ? nullptr : ret->second;
 }
@@ -145,9 +145,9 @@ int dll_main(int argc, char** argv, Context* cxt){
                         case 'F':
                             {
                                 auto fname = n_recvd[i] + 1;
-                                printf("%s: %p, %p\n", fname, user_module_handle, dlsym(user_module_handle, fname));
+                                //printf("%s: %p, %p\n", fname, user_module_handle, dlsym(user_module_handle, fname));
                                 module_fn_map->insert_or_assign(fname, dlsym(user_module_handle, fname));
-                                printf("%p\n", module_fn_map->find("mydiv") != module_fn_map->end() ? module_fn_map->find("mydiv")->second : nullptr);
+                                //printf("%p\n", module_fn_map->find("mydiv") != module_fn_map->end() ? module_fn_map->find("mydiv")->second : nullptr);
                             }
                             break;
                         case 'U':
@@ -193,6 +193,16 @@ int dll_main(int argc, char** argv, Context* cxt){
     return 0;
 }
 
+int launcher(int argc, char** argv){
+    std::string str = " ";
+    for (int i = 0; i < argc; i++){
+        str += argv[i];
+        str += " ";
+    }
+    str = std::string("python3 prompt.py ") + str;
+    return system(str.c_str());
+}
+
 extern "C" int __DLLEXPORT__ main(int argc, char** argv) {
    puts("running");
    Context* cxt = new Context();
@@ -201,14 +211,17 @@ extern "C" int __DLLEXPORT__ main(int argc, char** argv) {
 #ifdef THREADING
     auto tp = new ThreadPool();
     cxt->thread_pool = tp;
-    
 #endif
     
    const char* shmname;
    if (argc < 0)
-       return dll_main(argc, argv, cxt);
+        return dll_main(argc, argv, cxt);
    else if (argc <= 1)
-       return test_main();
+#ifdef __AQ__TESTING__
+        return test_main();
+#else
+        return launcher(argc, argv);
+#endif
    else
        shmname = argv[1];
    SharedMemory shm = SharedMemory(shmname);
@@ -241,18 +254,29 @@ extern "C" int __DLLEXPORT__ main(int argc, char** argv) {
    shm.FreeMemoryMap();
    return 0;
 }
+
 #include "utils.h"
+#include "table_ext_monetdb.hpp"
 int test_main()
 {
-    //vector_type<int> t;
-    //t = 1;
-    //t.emplace_back(2);
-    //print(t);
-    //return 0;
     Context* cxt = new Context();
     if (cxt->alt_server == 0)
         cxt->alt_server = new Server(cxt);
     Server* server = reinterpret_cast<Server*>(cxt->alt_server);
+ 
+
+    TableInfo<int, float> table("sibal");
+    int col0[] = { 1,2,3,4,5 };
+    float col1[] = { 5.f, 4.f, 3.f, 2.f, 1.f };
+    table.get_col<0>().initfrom(5, col0, "a");
+    table.get_col<1>().initfrom(5, col1, "b");
+    table.monetdb_append_table(server);
+    
+    server->exec("select * from sibal;");
+    auto aa = server->getCol(0);
+    auto bb = server->getCol(1);
+    printf("sibal: %p %p\n", aa, bb);
+
     const char* qs[]= {
         "SELECT MIN(3)-MAX(2);",
         "CREATE TABLE stocks(timestamp INT, price INT);",
@@ -302,6 +326,5 @@ int test_main()
     //static_assert(std::is_same_v<decltype(fill_integer_array<5, 1>()), std::integer_sequence<bool, 1,1,1,1,1>>, "");
     
     return 0;
-    std::unordered_map<int, int> a;
 }
 

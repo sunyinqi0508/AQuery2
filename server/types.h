@@ -22,19 +22,23 @@ constexpr static bool is_vector_type = is_vector_impl<T>::value;
 namespace types {
 	enum Type_t {
 		AINT32, AFLOAT, ASTR, ADOUBLE, ALDOUBLE, AINT64, AINT128, AINT16, ADATE, ATIME, AINT8,
-		AUINT32, AUINT64, AUINT128, AUINT16, AUINT8, VECTOR, NONE, ERROR
+		AUINT32, AUINT64, AUINT128, AUINT16, AUINT8, ABOOL, VECTOR, NONE, ERROR
 	};
-	static constexpr const char* printf_str[] = { "%d", "%f", "%s", "%lf", "%Lf", "%ld", "%s", "%hi", "%s", "%s", "%c",
-		"%u", "%lu", "%s", "%hu", "%hhu", "Vector<%s>", "NULL", "ERROR" };
+	static constexpr const char* printf_str[] = { "%d", "%f", "%s", "%lf", "%Lf", "%ld", "%d", "%hi", "%s", "%s", "%c",
+		"%u", "%lu", "%s", "%hu", "%hhu", "%s", "%s", "Vector<%s>", "NULL", "ERROR" };
+	static constexpr const char* SQL_Type[] = { "INT", "REAL", "TEXT", "DOUBLE", "DOUBLE", "BIGINT", "HUGEINT", "SMALLINT", "DATE", "TIME", "TINYINT",
+		"INT", "BIGINT", "HUGEINT", "SMALLINT", "TINYINT", "BIGINT", "BOOL", "BIGINT", "NULL", "ERROR"};
+	
+	
 	// TODO: deal with data/time <=> str/uint conversion
 	struct date_t {
-		uint32_t val;
+		uint32_t val = 0;
 		date_t(const char* d) {
 		}
 		std::string toString() const;
 	};
 	struct time_t {
-		uint32_t val;
+		uint32_t val = 0;
 		time_t(const char* d) {
 		}
 		std::string toString() const;
@@ -69,6 +73,7 @@ namespace types {
 		f(unsigned long, AUINT64) \
 		f(unsigned short, AUINT16) \
 		f(unsigned char, AUINT8) \
+		f(bool, ABOOL) \
 		F_INT128(f)
 
 		inline constexpr static Type_t getType() {

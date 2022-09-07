@@ -91,7 +91,12 @@ class projection(ast_node):
 
     def consume(self, node):
         # deal with projections
-        self.out_table = TableInfo('out_'+base62uuid(4), [], self.context)
+        if 'into' not in node:
+            out_table_name = 'out_'+base62uuid(6)
+        else:
+            out_table_name = node['into']
+            
+        self.out_table : TableInfo = TableInfo(out_table_name, [], self.context)
         cols = []
         self.col_ext : Set[ColRef]= set()
         col_exprs : List[Tuple[str, Types]] = []
@@ -138,6 +143,8 @@ class projection(ast_node):
             self.datasource.rec = None
             # TODO: Type deduction in Python
             cols.append(ColRef(this_type, self.out_table, None, disp_name, i, compound=compound))
+        
+        self.out_table.add_cols(cols, new = False)
         
         if 'groupby' in node:
             self.group_node = groupby(self, node['groupby'])
@@ -200,7 +207,7 @@ class projection(ast_node):
             self.context.emitc(f'auto {vname} = ColRef<{typenames[idx].cname}>({length_name}, server->getCol({idx}));')
             vid2cname[idx] = vname
         # Create table into context
-        self.outtable_name = 'out_' + base62uuid(6)
+        self.outtable_name = self.out_table.table_name
         out_typenames = [None] * len(proj_map)
         
         for key, val in proj_map.items():
@@ -240,9 +247,11 @@ class projection(ast_node):
                 gb_cexprs.append((col_name, val[2]))
             self.group_node.finalize(gb_cexprs, gb_vartable)
         else:
-            for key, val in proj_map.items():
+            for i, (key, val) in enumerate(proj_map.items()):
                 if type(val[1]) is int:
-                    self.context.emitc(f'{self.outtable_name}->get_col<{key}>().initfrom({vid2cname[val[1]]});')
+                    self.context.emitc(
+                        f'{self.outtable_name}->get_col<{key}>().initfrom({vid2cname[val[1]]}, "{cols[i].name}");'
+                    )
                 else:
                     # for funcs evaluate f_i(x, ...)
                     self.context.emitc(f'{self.outtable_name}->get_col<{key}>() = {val[1]};')
@@ -251,13 +260,40 @@ class projection(ast_node):
         
         if self.outfile:
             self.outfile.finalize()
+
+        if 'into' in node:
+            self.context.emitc(select_into(self, node['into']).ccode)
+        
         self.context.emitc(f'puts("done.");')
 
         if self.parent is None:
             self.context.sql_end()
             self.context.postproc_end(self.postproc_fname)
-            
         
+
+
+class select_into(ast_node):
+    def init(self, node):
+        if type(self.parent) is projection:
+            if self.context.has_dll:
+                # has postproc put back to monetdb
+                self.produce = self.produce_cpp
+            else:
+                self.produce = self.produce_sql
+        else:
+            raise ValueError('parent must be projection')
+    def produce_cpp(self, node):
+        assert(type(self.parent) is projection)
+        if not hasattr(self.parent, 'out_table'):
+            raise Exception('No out_table found.')
+        else:
+            self.context.headers.add('"./server/table_ext_monetdb.hpp"')
+            self.ccode = f'{self.parent.out_table.table_name}->monetdb_append_table(cxt->alt_server, \"{node}\");'
+            
+    def produce_sql(self, node):
+        self.sql = f' INTO {node}'
+    
+
 class orderby(ast_node):
     name = 'order by'
     def produce(self, node):

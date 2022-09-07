@@ -1,9 +1,9 @@
 # put environment specific configuration here
 
 ## GLOBAL CONFIGURATION FLAGS
-version_string = '0.4.1a'
+version_string = '0.4.2a'
 add_path_to_ldpath = True
-rebuild_backend = True
+rebuild_backend = False
 run_backend = True
 have_hge = False
 os_platform = 'unkown'
@@ -15,6 +15,8 @@ class Build_Config:
     def __init__(self) -> None:
         self.OptimizationLv = '4' # [O0, O1, O2, O3, Ofast]
         self.Platform = 'x64'
+        self.PCH = ''
+        self.StaticLib = ''
         self.fLTO = True
         self.fmarchnative = True
         

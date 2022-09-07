@@ -1,5 +1,7 @@
 from engine.types import *
 from engine.utils import enlist
+from typing import List, Dict, Set
+
 class ColRef:
     def __init__(self, _ty, cobj, table:'TableInfo', name, id, compound = False, _ty_args = None):
         self.type : Types = AnyT
@@ -30,10 +32,10 @@ class ColRef:
 class TableInfo:
     def __init__(self, table_name, cols, cxt:'Context'):
         # statics
-        self.table_name = table_name
-        self.alias = set([table_name])
-        self.columns_byname = dict() # column_name, type
-        self.columns = []
+        self.table_name : str= table_name
+        self.alias : Set[str] = set([table_name])
+        self.columns_byname : Dict[str, ColRef] = dict() # column_name, type
+        self.columns : List[ColRef] = []
         self.cxt = cxt
         # keep track of temp vars
         self.rec = None 

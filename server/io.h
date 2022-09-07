@@ -15,6 +15,16 @@ std::string generate_printf_string(const char* sep = " ", const char* end = "\n"
 	return str;
 }
 
+template<class T>
+inline decltype(auto) print_hook(const T& v){
+    return v;
+}
+
+template<>
+inline decltype(auto) print_hook<bool>(const bool& v) {
+	return v? "true" : "false";
+}
+
 #ifdef __SIZEOF_INT128__
 constexpr struct __int128__struct{
     uint64_t low, high;
@@ -53,24 +63,19 @@ extern char* gbuf;
 
 void setgbuf(char* buf = 0);
 
-template<class T>
-inline decltype(auto) printi128(const T& v){
-    return v;
-}
-
 template<>
-inline decltype(auto) printi128<__int128_t>(const __int128_t& v) {
+inline decltype(auto) print_hook<__int128_t>(const __int128_t& v) {
     *(gbuf+=40) = 0;
     return get_int128str(v, gbuf++);
 }
 
 template<>
-inline decltype(auto) printi128<__uint128_t>(const __uint128_t& v) {
+inline decltype(auto) print_hook<__uint128_t>(const __uint128_t& v) {
     *(gbuf+=40) = 0;
     return get_uint128str(v, gbuf++);
 }
 
 #else
-#define printi128(x) x
+
 #define setgbuf()
 #endif

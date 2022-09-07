@@ -48,6 +48,7 @@ AQuery++ Database is a cross-platform, In-Memory Column-Store Database that inco
 - [x] Bug fixes: type deduction misaligned in Hybrid Engine
 - [ ] Investigation: Using postproc only for q1 in Hybrid Engine (make is_special always on)
 - [ ] Limitation: putting ColRefs back to monetdb. 
+- [ ] Limitation: String operations and Date/Time data type. 
 - [ ] C++ Meta-Programming: Eliminate template recursions as much as possible.
 
 # Installation

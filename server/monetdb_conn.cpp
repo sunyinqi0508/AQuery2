@@ -2,6 +2,7 @@
 #include <cstdio>
 #include "monetdb_conn.h"
 #include "monetdbe.h"
+#include "table.h"
 #undef static_assert
 
 const char* monetdbe_type_str[] = {
@@ -16,6 +17,7 @@ const char* monetdbe_type_str[] = {
 	// should be last:
 	"monetdbe_type_unknown"
 } ;
+
 const unsigned char monetdbe_type_szs[] = {
     sizeof(monetdbe_column_bool::null_value), sizeof(monetdbe_column_int8_t::null_value), 
     sizeof(monetdbe_column_int16_t::null_value), sizeof(monetdbe_column_int32_t::null_value), 
@@ -31,11 +33,13 @@ const unsigned char monetdbe_type_szs[] = {
     // should be last:
     1
 };
+
+
+
 Server::Server(Context* cxt){
     if (cxt){
         connect(cxt);
     } 
-    
 }
 
 void Server::connect(Context *cxt){

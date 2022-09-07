@@ -1,3 +1,4 @@
+from multiprocessing.sharedctypes import Value
 import aquery_config
 help_message = '''\
 ======================================================
@@ -472,7 +473,7 @@ def prompt(running = lambda:True, next = input, state = None):
         except SystemExit:
             print("\nBye.")
             raise
-        except BaseException as e:
+        except ValueError as e:
             import code, traceback
             raise_exception = True
             sh = code.InteractiveConsole({**globals(), **locals()})
