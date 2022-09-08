@@ -18,6 +18,15 @@ else
 	UNAME_S = $(shell uname -s)
 	UNAME_M = $(shell uname -m)
 	NULL_DEVICE = /dev/null
+	MonetDB_LIB = 
+	ifeq ($(UNAME_S),Darwin)
+		MonetDB_LIB += -L`brew --prefix monetdb`/lib 
+		ifneq ($(UNAME_M),arm64)
+			OPTFLAGS += -march=native
+		endif
+	else
+		OPTFLAGS += -march=native
+	endif
 	MonetDB_LIB += -I/usr/local/include/monetdb -I/usr/include/monetdb -lmonetdbe
 endif
 

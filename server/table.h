@@ -260,7 +260,7 @@ struct TableInfo {
 	template <size_t ...Idxs>
 	using getRecordType = typename GetTypes<Idxs...>::type;
 	TableInfo(const char* name, uint32_t n_cols);
-	TableInfo(const char* name = "");
+	TableInfo(const char* name = "", const char **col_names = nullptr);
 	template <int prog = 0>
 	inline void materialize(const vector_type<uint32_t>& idxs, TableInfo<Types...>* tbl = nullptr) { // inplace materialize
 		if constexpr(prog == 0) tbl = (tbl == 0 ? this : tbl);
@@ -319,8 +319,8 @@ struct TableInfo {
 	std::string get_header_string(const char* __restrict sep, const char* __restrict end) const{
 		std::string header_string = std::string();
 		for (int i = 0; i < sizeof...(Types); ++i)
-			header_string += std::string(this->colrefs[i].name) + sep;
-		const size_t l_sep = strlen(sep);
+			header_string += std::string(this->colrefs[i].name) + sep + '|' + sep;
+		const size_t l_sep = strlen(sep) + 1;
 		if (header_string.size() - l_sep >= 0)
 			header_string.resize(header_string.size() - l_sep);
 		header_string += end + std::string(header_string.size(), '=') + end;
@@ -420,10 +420,10 @@ TableInfo<Types...>::TableInfo(const char* name, uint32_t n_cols) : name(name), 
 	}
 }
 template<class ...Types>
-TableInfo<Types...>::TableInfo(const char* name) : name(name), n_cols(sizeof...(Types)) {
+TableInfo<Types...>::TableInfo(const char* name, const char** col_names) : name(name), n_cols(sizeof...(Types)) {
 	this->colrefs = (ColRef<void>*)malloc(sizeof(ColRef<void>) * this->n_cols);
 	for (uint32_t i = 0; i < n_cols; ++i) {
-		this->colrefs[i].init();
+		this->colrefs[i].init(col_names? col_names[i] : "");
 	}
 }
 template <class ...Types>

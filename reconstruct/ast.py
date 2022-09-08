@@ -91,12 +91,15 @@ class projection(ast_node):
 
     def consume(self, node):
         # deal with projections
-        if 'into' not in node:
-            out_table_name = 'out_'+base62uuid(6)
-        else:
+        out_table_varname = 'out_'+base62uuid(6)
+        if 'into' in node:
             out_table_name = node['into']
+        else:
+            out_table_name = out_table_varname
             
         self.out_table : TableInfo = TableInfo(out_table_name, [], self.context)
+        self.out_table.contextname_cpp = out_table_varname
+        
         cols = []
         self.col_ext : Set[ColRef]= set()
         col_exprs : List[Tuple[str, Types]] = []
@@ -117,24 +120,27 @@ class projection(ast_node):
                     name = proj_expr.sql
                     compound = True # compound column
                     proj_expr.cols_mentioned = self.datasource.rec
+                    alias = ''
+                    if 'name' in proj: # renaming column by AS keyword
+                        alias = proj['name']
+                    
                     if not proj_expr.is_special:
                         y = lambda x:x
                         name = eval('f\'' + name + '\'')
                         if name not in self.var_table:
                             self.var_table[name] = len(col_exprs)
                         proj_map[i] = [this_type, len(col_exprs), proj_expr]
-                        col_exprs.append((name, proj_expr.type))
+                        col_expr = name + ' AS ' + alias if alias else name
+                        if alias:
+                            self.var_table[alias] = len(col_exprs)
+                        col_exprs.append((col_expr, proj_expr.type))
                     else:
                         self.context.headers.add('"./server/aggregations.h"')
                         if self.datasource.rec is not None:
                             self.col_ext = self.col_ext.union(self.datasource.rec)
                         proj_map[i] = [this_type, proj_expr.sql, proj_expr]
-                    if 'name' in proj: # renaming column by AS keyword
-                        name += ' AS ' +  proj['name']
-                        if not proj_expr.is_special:
-                            self.var_table[proj['name']] = len(col_exprs)
-                    
-                    disp_name = get_legal_name(name)
+
+                    disp_name = get_legal_name(alias if alias else name)
                     
             elif type(proj) is str:
                 col = self.datasource.get_col(proj)
@@ -207,7 +213,6 @@ class projection(ast_node):
             self.context.emitc(f'auto {vname} = ColRef<{typenames[idx].cname}>({length_name}, server->getCol({idx}));')
             vid2cname[idx] = vname
         # Create table into context
-        self.outtable_name = self.out_table.table_name
         out_typenames = [None] * len(proj_map)
         
         for key, val in proj_map.items():
@@ -232,9 +237,12 @@ class projection(ast_node):
                         self.datasource.all_cols.difference(self.group_node.refs))
                     ):
                     out_typenames[key] = f'ColRef<{out_typenames[key]}>'
-            
+        
+        outtable_col_nameslist = ', '.join([f'"{c.name}"' for c in self.out_table.columns])
+        self.outtable_col_names = 'names_' + base62uuid(4)
+        self.context.emitc(f'const char* {self.outtable_col_names}[] = {{{outtable_col_nameslist}}};')
         # out_typenames = [v[0].cname for v in proj_map.values()]
-        self.context.emitc(f'auto {self.outtable_name} = new TableInfo<{",".join(out_typenames)}>("{self.outtable_name}");')
+        self.context.emitc(f'auto {self.out_table.contextname_cpp} = new TableInfo<{",".join(out_typenames)}>("{self.out_table.table_name}", {self.outtable_col_names});')
         # TODO: Inject custom group by code here and flag them in proj_map
         # Type of UDFs? Complex UDFs, ones with static vars?
         if self.group_node is not None and self.group_node.use_sp_gb:
@@ -243,20 +251,20 @@ class projection(ast_node):
             
             for key, val in proj_map.items():
                 col_name = 'col_' + base62uuid(6)
-                self.context.emitc(f'decltype(auto) {col_name} = {self.outtable_name}->get_col<{key}>();')
+                self.context.emitc(f'decltype(auto) {col_name} = {self.out_table.contextname_cpp}->get_col<{key}>();')
                 gb_cexprs.append((col_name, val[2]))
             self.group_node.finalize(gb_cexprs, gb_vartable)
         else:
             for i, (key, val) in enumerate(proj_map.items()):
                 if type(val[1]) is int:
                     self.context.emitc(
-                        f'{self.outtable_name}->get_col<{key}>().initfrom({vid2cname[val[1]]}, "{cols[i].name}");'
+                        f'{self.out_table.contextname_cpp}->get_col<{key}>().initfrom({vid2cname[val[1]]}, "{cols[i].name}");'
                     )
                 else:
                     # for funcs evaluate f_i(x, ...)
-                    self.context.emitc(f'{self.outtable_name}->get_col<{key}>() = {val[1]};')
+                    self.context.emitc(f'{self.out_table.contextname_cpp}->get_col<{key}>() = {val[1]};')
         # print out col_is
-        self.context.emitc(f'print(*{self.outtable_name});')
+        self.context.emitc(f'print(*{self.out_table.contextname_cpp});')
         
         if self.outfile:
             self.outfile.finalize()
@@ -756,7 +764,7 @@ class outfile(ast_node):
         sep = ',' if 'term' not in self.node else self.node['term']['literal']
         file_pointer = 'fp_' + base62uuid(6)
         self.addc(f'FILE* {file_pointer} = fopen("{filename}", "w");')
-        self.addc(f'{self.parent.outtable_name}->printall("{sep}", "\\n", nullptr, {file_pointer});')
+        self.addc(f'{self.parent.out_table.contextname_cpp}->printall("{sep}", "\\n", nullptr, {file_pointer});')
         self.addc(f'fclose({file_pointer});')  
         self.context.ccode += self.ccode
 

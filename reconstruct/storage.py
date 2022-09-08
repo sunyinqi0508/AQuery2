@@ -32,7 +32,8 @@ class ColRef:
 class TableInfo:
     def __init__(self, table_name, cols, cxt:'Context'):
         # statics
-        self.table_name : str= table_name
+        self.table_name : str = table_name
+        self.contextname_cpp : str = ''
         self.alias : Set[str] = set([table_name])
         self.columns_byname : Dict[str, ColRef] = dict() # column_name, type
         self.columns : List[ColRef] = []
