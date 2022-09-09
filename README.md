@@ -30,24 +30,24 @@ AQuery++ Database is a cross-platform, In-Memory Column-Store Database that inco
    -  [x] Assumption
    -  [x] Flatten
    -  [x] UDFs (Hybrid Engine only)
-   -  [ ] User Module
+   -  [x] User Module
    -  [ ] Triggers 
    -  [x] Join (Hybrid Engine only)
    -  [ ] Subqueries 
-- [ ] Query Optimization
+- [x] Query Optimization
   - [x] Selection/Order by push-down
-  - [ ] Join Optimization
+  - [x] Join Optimization (Only in Hybrid Engine)
 
 ## TODO:
 
 - [x] User Module load syntax parsing (fn definition/registration)
-- [ ] User Module initialize location
-- [ ] User Module test
-- [ ] Interval based triggers
-- [ ] Optimize Compilation Process, using static libraries, hot reloading server binary
+- [x] User Module initialize location
+   -> User Module test
+   -> Interval based triggers
+   -> Optimize Compilation Process, using static libraries, hot reloading server binary
 - [x] Bug fixes: type deduction misaligned in Hybrid Engine
-- [ ] Investigation: Using postproc only for q1 in Hybrid Engine (make is_special always on)
-- [ ] Limitation: putting ColRefs back to monetdb. 
+   -> Investigation: Using postproc only for q1 in Hybrid Engine (make is_special always on)
+- [x] Limitation: putting ColRefs back to monetdb. 
 - [ ] Limitation: String operations and Date/Time data type. 
 - [ ] C++ Meta-Programming: Eliminate template recursions as much as possible.
 

@@ -99,7 +99,9 @@ class expr(ast_node):
                         self.type = op.return_type(*type_vals)
                     except AttributeError as e:
                         if type(self.root) is not udf:
-                            print(f'alert: {e}')
+                            # TODO: do something when this is not an error
+                            # print(f'alert: {e}')
+                            pass
                         self.type = AnyT
                         
                     self.sql = op(self.c_code, *str_vals)
@@ -142,7 +144,9 @@ class expr(ast_node):
                         else:
                             return var_table[node]
                     if vec[0] not in _vars:
-                        print(f'Use of undefined variable {vec[0]}')
+                        # print(f'Use of undefined variable {vec[0]}')
+                        # TODO: do something when this is not an error
+                        pass
                     else:
                         vname = get_vname(vec[0])
                         val = enlist(val)

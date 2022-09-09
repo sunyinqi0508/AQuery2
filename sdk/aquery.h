@@ -69,5 +69,7 @@ typedef void (*deallocator_t) (void*);
 extern void* Aalloc(unsigned long long sz);
 extern void Afree(void * mem);
 extern void register_memory(void* ptr, deallocator_t deallocator);
+extern void init_session(Context* cxt);
 
+#define __AQ_NO_SESSION__ void init_session(Context*) {}
 #endif

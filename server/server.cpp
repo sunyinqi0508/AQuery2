@@ -32,14 +32,10 @@ struct SharedMemory
 };
 #endif
 
-struct thread_context{
-
-}v;
-void daemon(thread_context* c) {
-
-}
 #include "aggregations.h"
 typedef int (*code_snippet)(void*);
+typedef void (*module_init_fn)(Context*);
+
 int test_main();
 
 int n_recv = 0;
@@ -49,9 +45,11 @@ extern "C" void __DLLEXPORT__ receive_args(int argc, char**argv){
     n_recv = argc;
     n_recvd = argv;
 }
+
 enum BinaryInfo_t {
 	MSVC, MSYS, GCC, CLANG, AppleClang
 };
+
 extern "C" int __DLLEXPORT__ binary_info() {
 #if defined(_MSC_VER) && !defined (__llvm__)
 	return MSVC;
@@ -71,12 +69,30 @@ __AQEXPORT__(bool) have_hge(){
     return false;
 #endif
 }
-
+Context::Context() {
+    current.memory_map = new std::unordered_map<void*, deallocator_t>;
+    init_session();
+}
+Context::~Context() {
+    auto memmap = (std::unordered_map<void*, deallocator_t>*) this->current.memory_map;
+    delete memmap;
+}
 void Context::init_session(){
     if (log_level == LOG_INFO){
-        Session::Statistic stats;
+        memset(&(this->current.stats), 0, sizeof(Session::Statistic));
     }
+    auto memmap = (std::unordered_map<void*, deallocator_t>*) this->current.memory_map;
+    memmap->clear();
 }
+
+void Context::end_session(){
+    auto memmap = (std::unordered_map<void*, deallocator_t>*) this->current.memory_map;
+    for (auto& mem : *memmap) {
+        mem.second(mem.first);
+    }
+    memmap->clear();
+}
+
 void* Context::get_module_function(const char* fname){
     auto fmap = static_cast<std::unordered_map<std::string, void*>*>
         (this->module_function_maps);
@@ -86,6 +102,16 @@ void* Context::get_module_function(const char* fname){
     // }
     auto ret = fmap->find(fname);
     return ret == fmap->end() ? nullptr : ret->second;
+}
+
+void initialize_module(const char* module_name, void* module_handle, Context* cxt){
+    auto _init_module = reinterpret_cast<module_init_fn>(dlsym(module_handle, "init_session"));
+    if (_init_module) {
+        _init_module(cxt);
+    }
+    else {
+        printf("Warning: module %s have no session support.\n", module_name);
+    }
 }
 
 int dll_main(int argc, char** argv, Context* cxt){
@@ -119,30 +145,35 @@ int dll_main(int argc, char** argv, Context* cxt){
                     if (cfg->backend_type == BACKEND_AQuery || cfg->has_dll) {
                         handle = dlopen("./dll.so", RTLD_LAZY);
                     }
+                    for (const auto& module : user_module_map){
+                        initialize_module(module.first.c_str(), module.second, cxt);
+                    }
+                    cxt->init_session();
                     for(int i = 0; i < n_recv; ++i)
                     {
                         //printf("%s, %d\n", n_recvd[i], n_recvd[i][0] == 'Q');
                         switch(n_recvd[i][0]){
-                        case 'Q':
+                        case 'Q': // SQL query for monetdbe
                             {
                                 server->exec(n_recvd[i] + 1);
                                 printf("Exec Q%d: %s", i, n_recvd[i]);
                             }
                             break;
-                        case 'P':
+                        case 'P': // Postprocessing procedure 
                             if(handle && !server->haserror()) {
                                 code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, n_recvd[i]+1));
                                 c(cxt);
                             }
                             break;
-                        case 'M':
+                        case 'M': // Load Module
                             {
                                 auto mname = n_recvd[i] + 1;
                                 user_module_handle = dlopen(mname, RTLD_LAZY);
                                 user_module_map[mname] = user_module_handle;
+                                initialize_module(mname, user_module_handle, cxt);
                             }
                             break;
-                        case 'F':
+                        case 'F': // Register Function in Module
                             {
                                 auto fname = n_recvd[i] + 1;
                                 //printf("%s: %p, %p\n", fname, user_module_handle, dlsym(user_module_handle, fname));
@@ -150,7 +181,7 @@ int dll_main(int argc, char** argv, Context* cxt){
                                 //printf("%p\n", module_fn_map->find("mydiv") != module_fn_map->end() ? module_fn_map->find("mydiv")->second : nullptr);
                             }
                             break;
-                        case 'U':
+                        case 'U': // Unload Module
                             {
                                 auto mname = n_recvd[i] + 1;
                                 auto it = user_module_map.find(mname);
@@ -160,17 +191,17 @@ int dll_main(int argc, char** argv, Context* cxt){
                                 user_module_map.erase(it);
                             }
                             break;
-                        
                         }
                     }
                     if(handle) {
                         dlclose(handle);
                         handle = 0;
                     }
+                    cxt->end_session();
                     n_recv = 0;
                 }
                 if(server->last_error == nullptr){
-                    
+                    // TODO: Add feedback to prompt.
                 }   
                 else{
                     server->last_error = nullptr;

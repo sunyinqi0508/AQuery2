@@ -1,4 +1,3 @@
-from multiprocessing.sharedctypes import Value
 import aquery_config
 help_message = '''\
 ======================================================
@@ -122,13 +121,15 @@ class Backend_Type(enum.Enum):
 class Config:
     __all_attrs__ = ['running', 'new_query', 'server_mode', 'backend_type', 'has_dll', 'n_buffers']
     __init_attributes__ = False
+    
+    @staticmethod
     def __init_self__():
         if not Config.__init_attributes__:
             from functools import partial
             for _i, attr in enumerate(Config.__all_attrs__):
                 if not hasattr(Config, attr):
                     setattr(Config, attr, property(partial(Config.getter, i = _i), partial(Config.setter, i = _i)))
-            __init_attributes__ = True
+            Config.__init_attributes__ = True
             
     def __init__(self, mode, nq = 0, n_bufs = 0, bf_szs = []) -> None:
         Config.__init_self__()

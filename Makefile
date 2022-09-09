@@ -5,9 +5,9 @@ CXXFLAGS = --std=c++1z
 OPTFLAGS = -O3 -flto -march=native 
 SHAREDFLAGS = -shared -fPIC
 ifeq ($(PCH), 1)
-PCHFLAGS = -include server/aggregations.h
+	PCHFLAGS = -include server/aggregations.h
 else
-PCHFLAGS = 
+	PCHFLAGS = 
 endif
 
 ifeq ($(OS),Windows_NT)

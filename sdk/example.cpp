@@ -1,4 +1,5 @@
 #include "aquery.h"
+__AQ_NO_SESSION__
 #include "../server/table.h"
 
 __AQEXPORT__(ColRef<float>) mulvec(int a, ColRef<float> b){

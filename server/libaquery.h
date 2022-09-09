@@ -26,7 +26,7 @@ struct Session{
         size_t total_active;
         size_t cnt_object;
         size_t total_alloc;
-    };
+    } stats;
     void* memory_map;
 };
 
@@ -48,7 +48,8 @@ struct Context{
 	void* thread_pool;
 #endif	
 	printf_type print = printf;
-
+	Context();
+	virtual ~Context();
 	template <class ...Types>
 	void log(Types... args) {
 		if (log_level == LOG_INFO)
@@ -73,4 +74,6 @@ struct Context{
 #endif
 
 #define __AQEXPORT__(_Ty) extern "C" _Ty __DLLEXPORT__ 
+typedef void (*deallocator_t) (void*);
+
 #endif

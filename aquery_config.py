@@ -1,7 +1,7 @@
 # put environment specific configuration here
 
 ## GLOBAL CONFIGURATION FLAGS
-version_string = '0.4.2a'
+version_string = '0.4.3a'
 add_path_to_ldpath = True
 rebuild_backend = False
 run_backend = True
@@ -58,4 +58,3 @@ def init_config():
             if os_platform == 'cygwin':
                 add_dll_dir('./lib')
         __config_initialized__ = True
-        

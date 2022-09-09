@@ -30,7 +30,7 @@ public:
 		this->size = vt.size;
 		this->capacity = vt.capacity;
 		if (capacity) {
-			puts("copy");
+			// puts("copy");
 			this->container = (_Ty*)malloc(size * sizeof(_Ty));
 			memcpy(container, vt.container, sizeof(_Ty) * size);
 		}
@@ -44,7 +44,7 @@ public:
 		this->size = vt.size;
 		this->capacity = vt.capacity;
 		this->container = vt.container;
-		puts("move");
+		// puts("move");
 		vt.size = vt.capacity = 0;	
 		vt.container = 0;
 	}
