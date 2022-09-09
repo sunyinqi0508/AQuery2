@@ -1,6 +1,6 @@
 
 
-AGGREGATION FUNCTION covariances2(x, y, w){
+AGGREGATION FUNCTION covariances2(x, y, win){
     xmeans := 0.;
     ymeans := 0.;
     l := _builtin_len;
@@ -11,6 +11,7 @@ AGGREGATION FUNCTION covariances2(x, y, w){
         ymeans := y[0];
         _builtin_ret[0] := 0.;
     }
+    w := win;
     if (w > l)
         w := l;
     for (i := 1, j:= 0; i < w; i := i+1) {

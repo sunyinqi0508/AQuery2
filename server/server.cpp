@@ -278,25 +278,9 @@ int test_main()
     printf("sibal: %p %p\n", aa, bb);
 
     const char* qs[]= {
-        "SELECT MIN(3)-MAX(2);",
-        "CREATE TABLE stocks(timestamp INT, price INT);",
-        "INSERT INTO stocks VALUES(1, 15);;",
-        "INSERT INTO stocks VALUES(2,19); ",
-        "INSERT INTO stocks VALUES(3,16);",
-        "INSERT INTO stocks VALUES(4,17);",
-        "INSERT INTO stocks VALUES(5,15);",
-        "INSERT INTO stocks VALUES(6,13);",
-        "INSERT INTO stocks VALUES(7,5);",
-        "INSERT INTO stocks VALUES(8,8);",
-        "INSERT INTO stocks VALUES(9,7);",
-        "INSERT INTO stocks VALUES(10,13);",
-        "INSERT INTO stocks VALUES(11,11);",
-        "INSERT INTO stocks VALUES(12,14);",
-        "INSERT INTO stocks VALUES(13,10);",
-        "INSERT INTO stocks VALUES(14,5);",
-        "INSERT INTO stocks VALUES(15,2);",
-        "INSERT INTO stocks VALUES(16,5);",
-        "SELECT price, timestamp FROM stocks WHERE (((price - timestamp) > 1)  AND  (NOT ((price * timestamp) < 100))) ;",
+        "CREATE TABLE test1(a INT, b INT, c INT, d INT);",
+        "COPY OFFSET 2 INTO test1 FROM  'W:/gg/AQuery++/data/test.csv'  ON SERVER    USING DELIMITERS  ',';",
+        "SELECT sum(a), b, c, d  FROM test1 GROUP BY c, b, d  ORDER BY b  ;",
     };
     n_recv = sizeof(qs)/(sizeof (char*));
 	n_recvd = const_cast<char**>(qs);

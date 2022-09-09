@@ -29,9 +29,14 @@ public:
 		
 		this->size = vt.size;
 		this->capacity = vt.capacity;
-		this->container = (_Ty*)malloc(size * sizeof(_Ty));
-
-		memcpy(container, vt.container, sizeof(_Ty) * size);
+		if (capacity) {
+			puts("copy");
+			this->container = (_Ty*)malloc(size * sizeof(_Ty));
+			memcpy(container, vt.container, sizeof(_Ty) * size);
+		}
+		else {
+			this->container = vt.container;
+		}
 	}
 	void inline _move(vector_type<_Ty>&& vt) {
 		if (capacity > 0) free(container);
@@ -39,7 +44,7 @@ public:
 		this->size = vt.size;
 		this->capacity = vt.capacity;
 		this->container = vt.container;
-
+		puts("move");
 		vt.size = vt.capacity = 0;	
 		vt.container = 0;
 	}
@@ -60,7 +65,7 @@ public:
 	}
 	constexpr vector_type() noexcept : size(0), capacity(0), container(0) {};
 	constexpr vector_type(_Ty* container, uint32_t len) noexcept : size(len), capacity(0), container(container) {};
-	constexpr vector_type(const vector_type<_Ty>& vt) noexcept : capacity(0) {
+	constexpr explicit vector_type(const vector_type<_Ty>& vt) noexcept : capacity(0) {
 		_copy(vt);
 	}
 	constexpr vector_type(vector_type<_Ty>&& vt) noexcept : capacity(0) {
@@ -107,17 +112,25 @@ public:
 		
 		return *this;
 	}
-	void emplace_back(_Ty _val) {
+	inline void grow() {
 		if (size >= capacity) { // geometric growth
 			uint32_t new_capacity = size + 1 + (size >> 1);
 			_Ty* n_container = (_Ty*)malloc(new_capacity * sizeof(_Ty));
 			memcpy(n_container, container, sizeof(_Ty) * size);
+			memset(n_container + size, 0, sizeof(_Ty) * (new_capacity - size));
 			if (capacity)
 				free(container);
 			container = n_container;
 			capacity = new_capacity;
 		}
+	}
+	void emplace_back(const _Ty& _val) {
+		grow();
 		container[size++] = _val;
+	}
+	void emplace_back(_Ty&& _val) {
+		grow();
+		container[size++] = std::move(_val);
 	}
 	iterator_t erase(iterator_t _it) {
 #ifdef DEBUG 

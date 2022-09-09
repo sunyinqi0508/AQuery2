@@ -32,6 +32,8 @@ public:
 	typedef ColRef<_Ty> Decayed_t;
 	const char* name;
 	types::Type_t ty = types::Type_t::ERROR;
+	ColRef(const ColRef<_Ty>& vt) : vector_type<_Ty>(vt) {} 
+	ColRef(ColRef<_Ty>&& vt) : vector_type<_Ty>(std::move(vt)) {}
 	ColRef() : vector_type<_Ty>(0), name("") {}
 	ColRef(const uint32_t& size, const char* name = "") : vector_type<_Ty>(size), name(name) {}
 	ColRef(const char* name) : name(name) {}
@@ -62,10 +64,22 @@ public:
 	}
 	ColRef(const char* name, types::Type_t ty) : name(name), ty(ty) {}
 	using vector_type<_Ty>::operator[];
-	using vector_type<_Ty>::operator=;
+	//using vector_type<_Ty>::operator=;
 	using vector_type<_Ty>::subvec;
 	using vector_type<_Ty>::subvec_memcpy;
 	using vector_type<_Ty>::subvec_deep;
+	ColRef<_Ty>& operator= (const _Ty& vt){
+		vector_type<_Ty>::operator=(vt);
+		return *this;
+	}
+	ColRef<_Ty>& operator =(const ColRef<_Ty>& vt) {
+		vector_type<_Ty>::operator=(vt);
+		return *this;
+	}
+	ColRef<_Ty>& operator =(ColRef<_Ty>&& vt) {
+		vector_type<_Ty>::operator=(std::move(vt));
+		return *this;
+	}
 	ColView<_Ty> operator [](const vector_type<uint32_t>&idxs) const {
 		return ColView<_Ty>(*this, idxs);
 	}
@@ -100,6 +114,8 @@ public:
 	void* monetdb_get_col();
 	
 };
+template<>
+class ColRef<void> : public ColRef<int>{};
 
 template<typename _Ty>
 class ColView {
@@ -151,11 +167,11 @@ public:
 			ret[i] = orig[idxs[i]];
 		return ret;
 	}
-	ColView<_Ty> subvec(uint32_t start, uint32_t end) {
+	ColView<_Ty> subvec(uint32_t start, uint32_t end) const {
 		uint32_t len = end - start;
 		return ColView<_Ty>(orig, idxs.subvec(start, end));
 	}
-	ColRef<_Ty> subvec_deep(uint32_t start, uint32_t end) {
+	ColRef<_Ty> subvec_deep(uint32_t start, uint32_t end) const{
 		uint32_t len = end - start;
 		ColRef<_Ty> subvec(len);
 		for (uint32_t i = 0; i < len; ++i)

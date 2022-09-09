@@ -24,11 +24,11 @@ LOAD DATA INFILE "data/test.csv"
 INTO TABLE tt
 FIELDS TERMINATED BY ","
 
-CREATE TABLE sale(Mont INT, sales INT)
+CREATE TABLE sale1(Mont INT, sales INT)
 
 LOAD DATA INFILE "data/moving_avg.csv"
-INTO TABLE sale
+INTO TABLE sale1
 FIELDS TERMINATED BY ","
 
-select sd(a) + sales from tt, sale where tt.a = sale.Mont
+select sd(a) + sales from tt, sale1 where tt.a = sale1.Mont
 

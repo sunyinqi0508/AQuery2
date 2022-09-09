@@ -930,7 +930,7 @@ class udf(ast_node):
                 cname = get_legal_name(args)
                 self.var_table[args] = cname
                 self.args.append(cname)
-        front = [*self.code_list, ', '.join([f'auto {a}' for a in self.args])]
+        front = [*self.code_list, ', '.join([f'const auto& {a}' for a in self.args])]
         self.code_list = []
         
         self.with_storage = False
