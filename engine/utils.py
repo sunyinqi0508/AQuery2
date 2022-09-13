@@ -81,11 +81,13 @@ class _Counter:
 
 import re
 ws = re.compile(r'\s+')
+import os
 
 def add_dll_dir(dll: str):
-    import sys, os
+    import sys
     if sys.version_info.major >= 3 and sys.version_info.minor >7 and os.name == 'nt':
         os.add_dll_directory(dll)
     else:
         os.environ['PATH'] = os.path.abspath(dll) + os.pathsep + os.environ['PATH']
-                    
+        
+nullstream = open(os.devnull, 'w')

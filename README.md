@@ -50,7 +50,8 @@ AQuery++ Database is a cross-platform, In-Memory Column-Store Database that inco
 - [x] Limitation: putting ColRefs back to monetdb. 
 - [ ] Limitation: String operations and Date/Time data type. 
 - [ ] C++ Meta-Programming: Eliminate template recursions as much as possible.
-
+- [ ] Limitation: Date and Time, String operations, Funcs in groupby agg.
+  
 # Installation
 ## Requirements
 1. Recent version of Linux, Windows or MacOS, with recent C++ compiler that has C++17 (1z) support.

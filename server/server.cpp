@@ -1,7 +1,6 @@
 #include "../csv.h"
 #include <iostream>
 #include <string>
-//#include <thread>
 #include <chrono>
 
 #include "libaquery.h"
@@ -69,14 +68,17 @@ __AQEXPORT__(bool) have_hge(){
     return false;
 #endif
 }
+
 Context::Context() {
     current.memory_map = new std::unordered_map<void*, deallocator_t>;
     init_session();
 }
+
 Context::~Context() {
     auto memmap = (std::unordered_map<void*, deallocator_t>*) this->current.memory_map;
     delete memmap;
 }
+
 void Context::init_session(){
     if (log_level == LOG_INFO){
         memset(&(this->current.stats), 0, sizeof(Session::Statistic));
@@ -226,7 +228,7 @@ int dll_main(int argc, char** argv, Context* cxt){
 
 int launcher(int argc, char** argv){
     std::string str = " ";
-    for (int i = 0; i < argc; i++){
+    for (int i = 1; i < argc; i++){
         str += argv[i];
         str += " ";
     }
@@ -235,6 +237,9 @@ int launcher(int argc, char** argv){
 }
 
 extern "C" int __DLLEXPORT__ main(int argc, char** argv) {
+#ifdef __AQ_BUILD_LAUNCHER__
+   return launcher(argc, argv);
+#endif
    puts("running");
    Context* cxt = new Context();
    cxt->log("%d %s\n", argc, argv[1]);
@@ -248,11 +253,7 @@ extern "C" int __DLLEXPORT__ main(int argc, char** argv) {
    if (argc < 0)
         return dll_main(argc, argv, cxt);
    else if (argc <= 1)
-#ifdef __AQ__TESTING__
         return test_main();
-#else
-        return launcher(argc, argv);
-#endif
    else
        shmname = argv[1];
    SharedMemory shm = SharedMemory(shmname);

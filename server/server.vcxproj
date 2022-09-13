@@ -255,7 +255,7 @@
   <ItemGroup>
     <Media Include="..\out.cpp" />
     <ClCompile Include="monetdb_conn.cpp" />
-    <ClCompile Include="table.cpp" />
+    <ClCompile Include="io.cpp" />
     <ClCompile Include="server.cpp" />
     <ClCompile Include="types.cpp" />
     <ClCompile Include="utils.cpp" />

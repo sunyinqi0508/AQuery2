@@ -1,3 +1,6 @@
+libaquery.a
+aq
+.cached
 *.json
 !sample_ast.json
 *.o

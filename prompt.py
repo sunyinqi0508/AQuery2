@@ -105,8 +105,8 @@ import ctypes
 import numpy as np
 from engine.utils import ws
 from engine.utils import add_dll_dir
-
-nullstream = open(os.devnull, 'w')
+from engine.utils import nullstream
+from build import build_manager
 
 ## CLASSES BEGIN
 class RunType(enum.Enum):
@@ -179,6 +179,7 @@ class PromptState():
     init : Callable[['PromptState'], None] = lambda _:None
     stmts = ['']
     payloads = {}
+    buildmgr : Optional[build_manager]= None
 ## CLASSES END
 
 ## FUNCTIONS BEGIN
@@ -263,14 +264,15 @@ def init_prompt() -> PromptState:
     aquery_config.init_config()
     
     state = PromptState()
-    if aquery_config.rebuild_backend:
-        try:
-            os.remove(state.server_bin) 
-        except Exception as e:
-            print(type(e), e)
-        subprocess.call(['make', "info"])
-        subprocess.call(['make', state.server_bin], stdout=nullstream)
-        
+    # if aquery_config.rebuild_backend:
+    #     try:
+    #         os.remove(state.server_bin) 
+    #     except Exception as e:
+    #         print(type(e), e)
+    #     subprocess.call(['make', "info"])
+    #     subprocess.call(['make', state.server_bin], stdout=nullstream)
+    state.buildmgr = build_manager()  
+    state.buildmgr.build_caches()  
     state.cfg = Config(state.server_mode)
         
     if state.server_mode == RunType.IPC:
@@ -337,7 +339,7 @@ def prompt(running = lambda:True, next = input, state = None):
             if q == 'exec': # generate build and run (AQuery Engine)
                 state.cfg.backend_type = Backend_Type.BACKEND_AQuery.value
                 cxt = engine.exec(state.stmts, cxt, keep)
-                if subprocess.call(['make', 'snippet'], stdout = nullstream) == 0:
+                if state.buildmgr.build_dll() == 0:
                     state.set_ready()
                 continue
             elif q.startswith('echo '):
@@ -377,7 +379,7 @@ def prompt(running = lambda:True, next = input, state = None):
                     with open('out.cpp', 'wb') as outfile:
                         outfile.write((cxt.finalize()).encode('utf-8'))
                     if build_this:
-                        subprocess.call(['make', 'snippet'], stdout = nullstream)
+                        state.buildmgr.build_dll()
                         state.cfg.has_dll = 1
                 else:
                     state.cfg.has_dll = 0

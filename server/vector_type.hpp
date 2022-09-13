@@ -10,12 +10,7 @@
 #include <cstdlib>
 #include <cstdint>
 
-#include <algorithm>
 #include <initializer_list>
-#include <vector>
-#include <stdarg.h>
-#include <limits>
-#include <deque>
 #include "types.h"
 
 #pragma pack(push, 1)

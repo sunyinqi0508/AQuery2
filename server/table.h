@@ -7,6 +7,7 @@
 #include "vector_type.hpp"
 #include <iostream>
 #include <string>
+#include <algorithm>
 #include "io.h"
 #undef ERROR
 template <typename T>

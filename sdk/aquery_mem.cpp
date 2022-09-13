@@ -25,7 +25,6 @@ void register_memory(void* ptr, deallocator_t deallocator){
     memmap->operator[](ptr) = deallocator;
 }
 
-void init_session(Context* cxt){
+__AQEXPORT__(void) init_session(Context* cxt){
     session = &cxt->current;
-   // session->memory_map = new std::unordered_map<void*, deallocator_t>();
 }

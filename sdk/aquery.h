@@ -1,5 +1,6 @@
 #ifndef _AQUERY_H
 #define _AQUERY_H
+
 enum Log_level {
 	LOG_INFO,
 	LOG_ERROR,
@@ -11,6 +12,7 @@ enum Backend_Type {
 	BACKEND_MonetDB,
 	BACKEND_MariaDB
 };
+
 struct Config{
     int running, new_query, server_mode,
 	 	backend_type, has_dll, n_buffers;
@@ -71,5 +73,5 @@ extern void Afree(void * mem);
 extern void register_memory(void* ptr, deallocator_t deallocator);
 extern void init_session(Context* cxt);
 
-#define __AQ_NO_SESSION__ void init_session(Context*) {}
+#define __AQ_NO_SESSION__ __AQEXPORT__(void) init_session(Context*) {}
 #endif

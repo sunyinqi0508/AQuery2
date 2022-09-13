@@ -296,7 +296,7 @@ class select_into(ast_node):
             raise Exception('No out_table found.')
         else:
             self.context.headers.add('"./server/table_ext_monetdb.hpp"')
-            self.ccode = f'{self.parent.out_table.table_name}->monetdb_append_table(cxt->alt_server, \"{node}\");'
+            self.ccode = f'{self.parent.out_table.contextname_cpp}->monetdb_append_table(cxt->alt_server, \"{node}\");'
             
     def produce_sql(self, node):
         self.sql = f' INTO {node}'

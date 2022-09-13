@@ -11,19 +11,6 @@ cygroot = 'c:/msys64/usr/bin'
 msbuildroot = 'd:/gg/vs22/MSBuild/Current/Bin'
 __config_initialized__ = False
 
-class Build_Config:
-    def __init__(self) -> None:
-        self.OptimizationLv = '4' # [O0, O1, O2, O3, Ofast]
-        self.Platform = 'x64'
-        self.PCH = ''
-        self.StaticLib = ''
-        self.fLTO = True
-        self.fmarchnative = True
-        
-    def configure(self):
-        pass
-
-
 def init_config():
     global __config_initialized__, os_platform
 ## SETUP ENVIRONMENT VARIABLES

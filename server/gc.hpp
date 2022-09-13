@@ -1,29 +1,28 @@
 #pragma once
-#include <vector>
+#include <vector_type>
 #include <utility>
 #include <thread>
 #include <chrono>
 class GC {
 	template<class T>
-	using vector = std::vector<T>;
+	using vector = vector_type<T>;
 	template<class ...T>
 	using tuple = std::tuple<T...>;
 	size_t current_size, max_size, interval, forced_clean;
 	bool running, alive;
 //  ptr, dealloc, ref, sz
-	vector<tuple<void*, void (*)(void*), uint32_t, uint32_t>> q;
+	vector<tuple<void*, void (*)(void*)>> q;
 	std::thread handle;
 	void gc()
 	{
 		
 	}
-	template <class T>
-	void reg(T* v, uint32_t ref, uint32_t sz, 
-		void(*f)(void*) = [](void* v) {delete[] ((T*)v); }) {
+	void reg(void* v, uint32_t ref, uint32_t sz, 
+		void(*f)(void*) = [](void* v) {free (v); }) {
 		current_size += sz;
 		if (current_size > max_size)
 			gc();
-		q.push_back({ v, f, ref, sz });
+		q.push_back({ v, f });
 	}
 	void daemon() {
 		using namespace std::chrono;
