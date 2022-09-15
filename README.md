@@ -54,10 +54,10 @@ AQuery++ Database is a cross-platform, In-Memory Column-Store Database that inco
   
 # Installation
 ## Requirements
-1. Recent version of Linux, Windows or MacOS, with recent C++ compiler that has C++17 (1z) support.
-     - GCC: 9.0 or above (g++ 7.x, 8.x fail to handle variadic template expansion due to a compiler bug)
+1. Recent version of Linux, Windows or MacOS, with recent C++ compiler that has C++17 (1z) support. (however c++20 is recommended if available for heterogeneous lookup on unordered containers)
+     - GCC: 9.0 or above (g++ 7.x, 8.x fail to handle fold-expressions due to a compiler bug)
      - Clang: 5.0 or above (Recommended)
-     - MSVC: 2017 or later
+     - MSVC: 2017 or later (2022 or above is recommended)
 
 2. Monetdb for Hybrid Engine
    - On windows, the required libraries and headers are already included in the repo.

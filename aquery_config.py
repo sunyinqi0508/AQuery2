@@ -10,7 +10,7 @@ have_hge = False
 cygroot = 'c:/msys64/usr/bin'
 msbuildroot = ''
 os_platform = 'unknown'
-build_driver = 'MSBuild'
+build_driver = 'Makefile'
 
 def init_config():
     global __config_initialized__, os_platform, msbuildroot
