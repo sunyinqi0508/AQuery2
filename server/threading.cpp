@@ -105,7 +105,7 @@ ThreadPool::ThreadPool(uint32_t n_threads)
     current_payload = new payload_t[n_threads];
 
     for (uint32_t i = 0; i < n_threads; ++i){
-        atomic_init(tf + i, 0b10);
+        atomic_init(tf + i, static_cast<unsigned char>(0b10));
         th[i] = thread(&ThreadPool::daemon_proc, this, i);
     }
 

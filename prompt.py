@@ -320,7 +320,7 @@ def save(q:str, cxt: xengine.Context):
         savefile('udf', 'udf', '.hpp')
         savefile('sql', 'sql')
 
-def prompt(running = lambda:True, next = input, state = None):
+def prompt(running = lambda:True, next = lambda:input('> '), state = None):
     if state is None:
         state = init_prompt()
     q = ''
@@ -333,7 +333,6 @@ def prompt(running = lambda:True, next = input, state = None):
                 state.init()
             while state.get_ready():
                 time.sleep(.00001)
-            print("> ", end="")
             og_q : str = next()
             q = og_q.lower().strip()
             if q == 'exec': # generate build and run (AQuery Engine)

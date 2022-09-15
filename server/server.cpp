@@ -227,12 +227,25 @@ int dll_main(int argc, char** argv, Context* cxt){
 }
 
 int launcher(int argc, char** argv){
+#ifdef _WIN32
+    constexpr char sep = '\\';
+#else
+    constexpr char sep = '/';
+#endif
     std::string str = " ";
+    std::string pwd = "";
+    if (argc > 0)
+        pwd = argv[0];
+    
+    auto pos = pwd.find_last_of(sep);
+    if (pos == std::string::npos)
+        pos = 0;
+    pwd = pwd.substr(0, pos);
     for (int i = 1; i < argc; i++){
         str += argv[i];
         str += " ";
     }
-    str = std::string("python3 prompt.py ") + str;
+    str = std::string("cd ") + pwd + std::string("&& python3 ./prompt.py ") + str;
     return system(str.c_str());
 }
 

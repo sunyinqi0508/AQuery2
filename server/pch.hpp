@@ -1,4 +1,5 @@
-#pragma once
+#ifndef __AQ_PCH_H__
+#define __AQ_PCH_H__
 
 #include "libaquery.h"
 #include "aggregations.h"
@@ -14,4 +15,6 @@
 #include <dlfcn.h>
 #include <fcntl.h>
 #include <sys/mman.h>
+#endif
+
 #endif

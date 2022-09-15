@@ -3,12 +3,15 @@ MonetDB_LIB =
 MonetDB_INC = 
 Threading = 
 CXXFLAGS = --std=c++1z
-OPTFLAGS = -O3 
+OPTFLAGS = -O3 -fno-semantic-interposition
 LINKFLAGS = -flto
-SHAREDFLAGS = -shared -fPIC
-LIBTOOL = $(shell $(CXX) --version | grep -q 'clang' && echo "libtool -static -o"|| echo "ar rcs")
-USELIB_FLAG = $(shell $(CXX) --version | grep -q 'clang' && echo "-Wl,-force_load"|| echo "-Wl,--whole-archive")
+SHAREDFLAGS = -shared  
+FPIC = -fPIC
+COMPILER = $(shell $(CXX) --version | grep -q 'clang' && echo "clang"|| echo "gcc") 
+LIBTOOL = 
+USELIB_FLAG = -Wl,--whole-archive,libaquery.a -Wl,-no-whole-archive
 LIBAQ_SRC = server/server.cpp server/monetdb_conn.cpp server/io.cpp 
+
 ifeq ($(PCH), 1)
 	PCHFLAGS = -include server/pch.hpp
 else
@@ -20,14 +23,20 @@ ifeq ($(OS),Windows_NT)
 	OS_SUPPORT += server/winhelper.cpp
 	MonetDB_LIB += msc-plugin/monetdbe.dll 
 	MonetDB_INC +=  -Imonetdb/msvc
+	LIBTOOL = gcc-ar rcs
 else
 	UNAME_S = $(shell uname -s)
 	UNAME_M = $(shell uname -m)
 	NULL_DEVICE = /dev/null
 	MonetDB_LIB = 
+	LIBTOOL = ar rcs
 	ifeq ($(UNAME_S),Darwin)
+		USELIB_FLAG = -Wl,-force_load
 		MonetDB_LIB += -L$(shell brew --prefix monetdb)/lib 
 		MonetDB_INC += -I$(shell brew --prefix monetdb)/include/monetdb
+		ifeq ($(COMPILER), clang)
+			LIBTOOL = libtool -static -o
+		endif
 		ifneq ($(UNAME_M),arm64)
 			OPTFLAGS += -march=native
 		endif
@@ -43,6 +52,8 @@ ifeq ($(THREADING),1)
 	Threading +=  -DTHREADING
 endif
 
+SHAREDFLAGS += $(FPIC)
+
 info:
 	$(info $(OS_SUPPORT))
 	$(info $(OS)) 
@@ -52,9 +63,9 @@ info:
 	$(info $(MonetDB_INC))
 	$(info $(CXX))
 pch:
-	$(CXX) -x c++-header server/pch.hpp $(MonetDB_INC) $(OPTFLAGS) $(CXXFLAGS) $(Threading)
+	$(CXX) -x c++-header server/pch.hpp $(FPIC) $(MonetDB_INC) $(OPTFLAGS) $(CXXFLAGS) $(Threading)
 libaquery.a:
-	$(CXX) -c $(PCHFLAGS) $(LIBAQ_SRC) $(MonetDB_INC) $(MonetDB_LIB) $(OS_SUPPORT) $(Threading) $(OPTFLAGS) $(LINKFLAGS) $(CXXFLAGS) &&\
+	$(CXX) -c $(FPIC) $(PCHFLAGS) $(LIBAQ_SRC) $(MonetDB_INC) $(MonetDB_LIB) $(OS_SUPPORT) $(Threading) $(OPTFLAGS) $(LINKFLAGS) $(CXXFLAGS) &&\
 	$(LIBTOOL) libaquery.a *.o &&\
 	ranlib libaquery.a
 
@@ -77,6 +88,6 @@ docker:
 	docker build -t aquery .
 
 clean:
-	rm *.shm *.o dll.so server.so server.bin -rf 2> $(NULL_DEVICE) || true
+	rm *.shm *.o dll.so server.so server.bin libaquery.a .cached -rf 2> $(NULL_DEVICE) || true
 
 
