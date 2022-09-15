@@ -11,6 +11,7 @@ COMPILER = $(shell $(CXX) --version | grep -q 'clang' && echo "clang"|| echo "gc
 LIBTOOL = 
 USELIB_FLAG = -Wl,--whole-archive,libaquery.a -Wl,-no-whole-archive
 LIBAQ_SRC = server/server.cpp server/monetdb_conn.cpp server/io.cpp 
+LIBAQ_OBJ = server.o monetdb_conn.o io.o 
 
 ifeq ($(PCH), 1)
 	PCHFLAGS = -include server/pch.hpp
@@ -21,6 +22,7 @@ endif
 ifeq ($(OS),Windows_NT)
 	NULL_DEVICE = NUL
 	OS_SUPPORT += server/winhelper.cpp
+	LIBAQ_OBJ += winhelper.o
 	MonetDB_LIB += msc-plugin/monetdbe.dll 
 	MonetDB_INC +=  -Imonetdb/msvc
 	LIBTOOL = gcc-ar rcs
@@ -49,6 +51,7 @@ endif
 
 ifeq ($(THREADING),1)
 	LIBAQ_SRC += server/threading.cpp
+	LIBAQ_OBJ += threading.o
 	Threading +=  -DTHREADING
 endif
 
@@ -66,7 +69,7 @@ pch:
 	$(CXX) -x c++-header server/pch.hpp $(FPIC) $(MonetDB_INC) $(OPTFLAGS) $(CXXFLAGS) $(Threading)
 libaquery.a:
 	$(CXX) -c $(FPIC) $(PCHFLAGS) $(LIBAQ_SRC) $(MonetDB_INC) $(MonetDB_LIB) $(OS_SUPPORT) $(Threading) $(OPTFLAGS) $(LINKFLAGS) $(CXXFLAGS) &&\
-	$(LIBTOOL) libaquery.a *.o &&\
+	$(LIBTOOL) libaquery.a $(LIBAQ_OBJ) &&\
 	ranlib libaquery.a
 
 server.bin:
