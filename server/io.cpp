@@ -1,19 +1,23 @@
+#include "pch.hpp"
+
 #include "io.h"
 
-char* gbuf = 0;
 
-void setgbuf(char* buf){
-	static char* b = 0;
-	if (buf == 0)
-		gbuf = b;
-	else
-		gbuf = buf;
-}	
 
 #include "table.h"
 
 
 #ifdef __SIZEOF_INT128__
+char* gbuf = nullptr;
+
+void setgbuf(char* buf) {
+	static char* b = 0;
+	if (buf == 0)
+		gbuf = b;
+	else
+		gbuf = buf;
+}
+
 template <>
 void print<__int128_t>(const __int128_t& v, const char* delimiter){
 	char s[41];
@@ -51,8 +55,6 @@ namespace types {
 	using namespace chrono;
 	string date_t::toString() const {
 		uint32_t curr_v = val;
-		tm;
-		time_t;
 		return string() + string("/") + string() + string("/") + string();
 	}
 	string time_t::toString() const {
@@ -71,7 +73,7 @@ string base62uuid(int l = 8) {
     static mt19937_64 engine(chrono::system_clock::now().time_since_epoch().count());
     static uniform_int_distribution<uint64_t> u(0x10000, 0xfffff);
     uint64_t uuid = (u(engine) << 32ull) + (chrono::system_clock::now().time_since_epoch().count() & 0xffffffff);
-    printf("%p\n", uuid);
+    printf("%llu\n", uuid);
     string ret;
     while (uuid && l-- >= 0) {
         ret = string("") + base62alp[uuid % 62] + ret;

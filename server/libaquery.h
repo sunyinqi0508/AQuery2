@@ -39,7 +39,7 @@ struct Context{
 	int n_buffers, *sz_bufs;
 	void **buffers;
 
-	void* alt_server;
+	void* alt_server = 0;
 	Log_level log_level = LOG_INFO;
 
 	Session current;

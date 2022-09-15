@@ -15,3 +15,6 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #endif
+
+#undef max
+#undef min

@@ -1,5 +1,10 @@
 libaquery.a
+libaquery.lib
+server.lib
+server.exp
+*.idb
 aq
+aq.exe
 .cached
 *.json
 !sample_ast.json

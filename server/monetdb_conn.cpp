@@ -1,3 +1,5 @@
+#include "pch.hpp"
+
 #include "libaquery.h"
 #include <cstdio>
 #include "monetdb_conn.h"
@@ -127,8 +129,8 @@ void* Server::getCol(int col_idx){
         {
             auto _ret_col = static_cast<monetdbe_column*>(this->ret_col);
             cnt = _ret_col->count;
-            // printf("Dbg: Getting col %s, type: %s\n", 
-            //     _ret_col->name, monetdbe_type_str[_ret_col->type]);
+             printf("Dbg: Getting col %s, type: %s\n", 
+                 _ret_col->name, monetdbe_type_str[_ret_col->type]);
             return _ret_col->data;
         }
         else{
@@ -147,8 +149,10 @@ Server::~Server(){
 
 bool Server::havehge() {
 #if defined(_MONETDBE_LIB_) and defined(HAVE_HGE)
+    puts("true");
     return HAVE_HGE;
 #else
+    puts("false");
     return false;
 #endif
 }

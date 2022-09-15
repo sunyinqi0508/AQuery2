@@ -254,7 +254,7 @@ def init_threaded(state : PromptState):
         server_so = ctypes.CDLL('./'+state.server_bin)
         state.send = server_so['receive_args']
         aquery_config.have_hge = server_so['have_hge']()
-        if aquery_config.have_hge:
+        if aquery_config.have_hge != 0:
             from engine.types import get_int128_support
             get_int128_support()
         state.th = threading.Thread(target=server_so['main'], args=(-1, ctypes.POINTER(ctypes.c_char_p)(state.cfg.c)), daemon=True)
@@ -327,6 +327,7 @@ def prompt(running = lambda:True, next = input, state = None):
     payload = None
     keep = True
     cxt = engine.initialize()
+
     while running():
         try:
             if state.server_status():
