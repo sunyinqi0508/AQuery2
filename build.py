@@ -89,7 +89,7 @@ class build_manager:
             os.environ['CXX'] = mgr.cxx if mgr.cxx else 'c++'
         
         def libaquery_a(self):
-            self.build_cmd = [['rm', 'libaquery.lib'],['make', 'libaquery.a']]
+            self.build_cmd = [['rm', 'libaquery.a'],['make', 'libaquery.a']]
             return self.build()
         def pch(self):
             self.build_cmd = [['rm', 'server/pch.hpp.gch'], ['make', 'pch']]

@@ -75,4 +75,15 @@ extern void register_memory(void* ptr, deallocator_t deallocator);
 __AQEXPORT__(void) init_session(Context* cxt);
 
 #define __AQ_NO_SESSION__ __AQEXPORT__(void) init_session(Context*) {}
+void* memcpy(void*, void*, unsigned long long);
+struct ColRef_storage {
+	void* container;
+	unsigned int capacity, size;
+	const char* name;
+	int ty; // what if enum is not int?
+	template <class Ty, template <typename> class VT>
+	ColRef_storage(const VT<Ty>& vt) {
+		memcpy(this, &vt, sizeof(ColRef_storage));
+	}
+};
 #endif

@@ -1,3 +1,6 @@
+test.lib
+test.exp
+*.pdb
 libaquery.a
 libaquery.lib
 server.lib
