@@ -357,7 +357,7 @@ def prompt(running = lambda:True, next = lambda:input('> '), state = None):
                 cxt = xengine.exec(state.stmts, cxt, keep)
                 
                 this_udf = cxt.finalize_udf()
-                if this_udf:
+                if False and this_udf:
                     with open('udf.hpp', 'wb') as outfile:
                         outfile.write(this_udf.encode('utf-8'))
                         

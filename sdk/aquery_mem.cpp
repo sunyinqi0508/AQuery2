@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <cstdlib>
+#include <cstring>
 #include <unordered_map>
 
 Session* session;

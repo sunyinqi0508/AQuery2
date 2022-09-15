@@ -100,10 +100,10 @@ void Context::end_session(){
 void* Context::get_module_function(const char* fname){
     auto fmap = static_cast<std::unordered_map<std::string, void*>*>
         (this->module_function_maps);
-    //printf("%p\n", fmap->find("mydiv")->second);
-    // for (const auto& [key, value] : *fmap){
-    //     printf("%s %p\n", key.c_str(), value);
-    // }
+    printf("%p\n", fmap->find("mydiv")->second);
+     for (const auto& [key, value] : *fmap){
+         printf("%s %p\n", key.c_str(), value);
+     }
     auto ret = fmap->find(fname);
     return ret == fmap->end() ? nullptr : ret->second;
 }
@@ -173,6 +173,12 @@ int dll_main(int argc, char** argv, Context* cxt){
                             {
                                 auto mname = n_recvd[i] + 1;
                                 user_module_handle = dlopen(mname, RTLD_LAZY);
+                                //getlasterror
+                                
+#ifndef _MSC_VER
+                                if (!user_module_handle)
+                                    puts(dlerror());
+#endif
                                 user_module_map[mname] = user_module_handle;
                                 initialize_module(mname, user_module_handle, cxt);
                             }
@@ -180,9 +186,9 @@ int dll_main(int argc, char** argv, Context* cxt){
                         case 'F': // Register Function in Module
                             {
                                 auto fname = n_recvd[i] + 1;
-                                //printf("%s: %p, %p\n", fname, user_module_handle, dlsym(user_module_handle, fname));
+                                printf("F:: %s: %p, %p\n", fname, user_module_handle, dlsym(user_module_handle, fname));
                                 module_fn_map->insert_or_assign(fname, dlsym(user_module_handle, fname));
-                                //printf("%p\n", module_fn_map->find("mydiv") != module_fn_map->end() ? module_fn_map->find("mydiv")->second : nullptr);
+                                printf("F::: %p\n", module_fn_map->find("mydiv") != module_fn_map->end() ? module_fn_map->find("mydiv")->second : nullptr);
                             }
                             break;
                         case 'U': // Unload Module

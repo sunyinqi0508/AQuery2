@@ -1,4 +1,4 @@
-LOAD MODULE FROM "test.so" 
+LOAD MODULE FROM "./test.so" 
 FUNCTIONS (
     mydiv(a:int, b:int) -> double, 
     mulvec(a:int, b:vecfloat) -> vecfloat

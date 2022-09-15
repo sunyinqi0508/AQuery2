@@ -3,7 +3,7 @@ MonetDB_LIB =
 MonetDB_INC = 
 Threading = 
 CXXFLAGS = --std=c++1z
-OPTFLAGS = -O3 -fno-semantic-interposition
+OPTFLAGS = -g3 #-O3 -fno-semantic-interposition
 LINKFLAGS = -flto
 SHAREDFLAGS = -shared  
 FPIC = -fPIC
