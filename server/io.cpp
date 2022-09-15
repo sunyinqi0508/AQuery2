@@ -1,19 +1,23 @@
+#include "pch.hpp"
+
 #include "io.h"
 
-char* gbuf = 0;
 
-void setgbuf(char* buf){
-	static char* b = 0;
-	if (buf == 0)
-		gbuf = b;
-	else
-		gbuf = buf;
-}	
 
 #include "table.h"
 
 
 #ifdef __SIZEOF_INT128__
+char* gbuf = nullptr;
+
+void setgbuf(char* buf) {
+	static char* b = 0;
+	if (buf == 0)
+		gbuf = b;
+	else
+		gbuf = buf;
+}
+
 template <>
 void print<__int128_t>(const __int128_t& v, const char* delimiter){
 	char s[41];

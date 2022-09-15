@@ -1,3 +1,5 @@
+#include "pch.hpp"
+
 #ifdef _WIN32
 #include "winhelper.h"
 #include <Windows.h>

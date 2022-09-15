@@ -17,4 +17,5 @@
 #include <sys/mman.h>
 #endif
 
-#endif
+#undef max
+#undef min

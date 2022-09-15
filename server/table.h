@@ -122,9 +122,10 @@ template<typename _Ty>
 class ColView {
 public: 
 	typedef ColRef<_Ty> Decayed_t;
-	const vector_type<uint32_t>& idxs;
+	const uint32_t size;
 	const ColRef<_Ty> orig;
-	const uint32_t& size;
+	vector_type<uint32_t> idxs;
+	ColView(const ColRef<_Ty>& orig, vector_type<uint32_t>&& idxs) : orig(orig), size(idxs.size), idxs(std::move(idxs)) {}
 	ColView(const ColRef<_Ty>& orig, const vector_type<uint32_t>& idxs) : orig(orig), idxs(idxs), size(idxs.size) {}
 	ColView(const ColView<_Ty>& orig, const vector_type<uint32_t>& idxs) : orig(orig.orig), idxs(idxs), size(idxs.size) {
 		for (uint32_t i = 0; i < size; ++i) 

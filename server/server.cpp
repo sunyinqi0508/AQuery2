@@ -1,3 +1,5 @@
+#include "pch.hpp"
+
 #include "../csv.h"
 #include <iostream>
 #include <string>
@@ -310,22 +312,22 @@ int test_main()
     Server* server = reinterpret_cast<Server*>(cxt->alt_server);
  
 
-    TableInfo<int, float> table("sibal");
-    int col0[] = { 1,2,3,4,5 };
-    float col1[] = { 5.f, 4.f, 3.f, 2.f, 1.f };
-    table.get_col<0>().initfrom(5, col0, "a");
-    table.get_col<1>().initfrom(5, col1, "b");
-    table.monetdb_append_table(server);
-    
-    server->exec("select * from sibal;");
-    auto aa = server->getCol(0);
-    auto bb = server->getCol(1);
-    printf("sibal: %p %p\n", aa, bb);
+    //TableInfo<int, float> table("sibal");
+    //int col0[] = { 1,2,3,4,5 };
+    //float col1[] = { 5.f, 4.f, 3.f, 2.f, 1.f };
+    //table.get_col<0>().initfrom(5, col0, "a");
+    //table.get_col<1>().initfrom(5, col1, "b");
+    //table.monetdb_append_table(server);
+    //
+    //server->exec("select * from sibal;");
+    //auto aa = server->getCol(0);
+    //auto bb = server->getCol(1);
+    //printf("sibal: %p %p\n", aa, bb);
 
     const char* qs[]= {
-        "CREATE TABLE test1(a INT, b INT, c INT, d INT);",
-        "COPY OFFSET 2 INTO test1 FROM  'W:/gg/AQuery++/data/test.csv'  ON SERVER    USING DELIMITERS  ',';",
-        "SELECT sum(a), b, c, d  FROM test1 GROUP BY c, b, d  ORDER BY b  ;",
+        "CREATE TABLE test(a INT, b INT, c INT, d INT);",
+        "COPY OFFSET 2 INTO test FROM  'c:/Users/sunyi/Desktop/AQuery2/data/test2.csv'  ON SERVER    USING DELIMITERS  ',';",
+        "SELECT (a + b), a,b,c  FROM test ;",
     };
     n_recv = sizeof(qs)/(sizeof (char*));
 	n_recvd = const_cast<char**>(qs);
@@ -344,7 +346,7 @@ int test_main()
     cxt->log("handle: %p\n", handle);
     if (handle) {
         cxt->log("inner\n");
-        code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, "dll_6EgnKh"));
+        code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, "dll_ZF5Shg"));
         cxt->log("routine: %p\n", c);
         if (c) {
             cxt->log("inner\n");

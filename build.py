@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum, auto
-from tabnanny import check
-from aquery_config import *
+import aquery_config
 import sys
 import os
 import subprocess
@@ -9,13 +8,14 @@ import hashlib
 import pickle
 from engine.utils import nullstream
 from typing import Dict, Optional, Set, Union
+
 @dataclass
 class checksums:
     libaquery_a : Optional[Union[bytes, bool]] = None
     pch_hpp_gch : Optional[Union[bytes, bool]] = None
     server : Optional[Union[bytes, bool]] = None
     sources : Union[Dict[str, bytes], bool] = None
-    def calc(self, libaquery_a = 'libaquery.a', 
+    def calc(self, libaquery_a = 'libaquery.a' , 
                 pch_hpp_gch = 'server/pch.hpp.gch', 
                 server = 'server.so'
         ):
@@ -69,14 +69,18 @@ class build_manager:
     class DriverBase:
         def __init__(self, mgr : 'build_manager') -> None:
             self.mgr = mgr
-            self.build_cmd = ['']
+            self.build_cmd = []
         def libaquery_a(self) :
             pass
         def pch(self):
             pass
         def build(self, stdout = sys.stdout, stderr = sys.stderr):
             for c in self.build_cmd:
-                subprocess.call(c, stdout = stdout, stderr = stderr)
+                if c:
+                    try:
+                        subprocess.call(c, stdout = stdout, stderr = stderr)
+                    except (FileNotFoundError):
+                        pass
                 
     class MakefileDriver(DriverBase):
         def __init__(self, mgr : 'build_manager') -> None:
@@ -85,7 +89,7 @@ class build_manager:
             os.environ['CXX'] = mgr.cxx if mgr.cxx else 'c++'
         
         def libaquery_a(self):
-            self.build_cmd = [['rm', 'libaquery.a'],['make', 'libaquery.a']]
+            self.build_cmd = [['rm', 'libaquery.lib'],['make', 'libaquery.a']]
             return self.build()
         def pch(self):
             self.build_cmd = [['rm', 'server/pch.hpp.gch'], ['make', 'pch']]
@@ -103,27 +107,61 @@ class build_manager:
             else:
                 self.build_cmd = [['rm', 'dll.so'], ['make', 'snippet']]
             return self.build()
-        
-    class PythonDriver(DriverBase):
-        def __init__(self, mgr : 'build_manager') -> None:
-            super().__init__(mgr)
+
+    class MSBuildDriver(DriverBase):
+        platform_map = {'amd64':'x64', 'arm64':'arm64', 'x86':'win32'}
+        opt_map = {'0':'Debug', '1':'RelWithDebugInfo', '2':'Release', '3':'Release', '4':'Release'}
+        def get_flags(self):
+            self.platform = self.platform_map[self.mgr.Platform]
+            self.platform = f'/p:platform={self.platform}'
+            self.opt = self.opt_map[self.mgr.OptimizationLv]
+            self.opt = f'/p:configuration={self.opt}'
+
+        def libaquery_a(self):
+            loc = os.path.abspath('./msc-plugin/libaquery.vcxproj')
+            self.get_flags()
+            self.build_cmd = [['del', 'libaquery.lib'], [aquery_config.msbuildroot, loc, self.opt, self.platform]]
+            self.build()
+
+        def pch(self):
+            pass
+
+        def server(self):
+            loc = os.path.abspath('./msc-plugin/server.vcxproj')
+            self.get_flags()
+            self.build_cmd = [['del', 'server.so'], [aquery_config.msbuildroot, loc, self.opt, self.platform]]
+            self.build()
+
+        def snippet(self):
+            loc = os.path.abspath('./msc-plugin/msc-plugin.vcxproj')
+            self.get_flags()
+            self.build_cmd = [[aquery_config.msbuildroot, loc, self.opt, self.platform]]
+            self.build()
+
+    #class PythonDriver(DriverBase):
+    #    def __init__(self, mgr : 'build_manager') -> None:
+    #        super().__init__(mgr)
             
-    class Driver(Enum):
-        Makefile = auto()
-        Python = auto()
-        CMake = auto() 
-        MSBuild = auto()
- 
+    #@property
+    #def MSBuild(self):
+    #    return MSBuildDriver(self)
+    #@property
+    #def Makefile(self):
+    #    return MakefileDriver(self)
+
     def __init__(self) -> None:
         self.method = 'make'
         self.cxx = ''
         self.OptimizationLv = '4' # [O0, O1, O2, O3, Ofast]
-        self.Platform = 'x64'
+        self.Platform = 'amd64'
         self.PCH = 1
         self.StaticLib = 1
         self.fLTO = 1
         self.fmarchnative = 1
-        self.driver = build_manager.MakefileDriver(self)
+        if aquery_config.build_driver == 'MSBuild':
+            self.driver = build_manager.MSBuildDriver(self) 
+        elif aquery_config.build_driver == 'Makefile':
+            self.driver = build_manager.MakefileDriver(self)
         self.cache_status = checksums()
         
     def build_dll(self):
@@ -132,7 +170,8 @@ class build_manager:
     def build_caches(self, force = False):
         cached = checksums()
         current = checksums()
-        current.calc()
+        libaquery_a = 'libaquery.lib' if aquery_config.os_platform else 'libaquery.a'
+        current.calc(libaquery_a)
         try:
             with open('.cached', 'rb') as cache_sig:
                 cached = pickle.loads(cache_sig.read())
@@ -151,7 +190,7 @@ class build_manager:
                 self.driver.pch()
             if self.cache_status.server:
                 self.driver.server()
-        current.calc()
+        current.calc(libaquery_a)
         with open('.cached', 'wb') as cache_sig:
             cache_sig.write(pickle.dumps(current))
             

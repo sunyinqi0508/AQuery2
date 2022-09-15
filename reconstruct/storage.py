@@ -91,6 +91,7 @@ class Context:
     def new(self):
         self.headers = set(['\"./server/libaquery.h\"', 
                             '\"./server/monetdb_conn.h\"'])
+
         self.ccode = ''
         self.sql = ''  
         self.finalized = False
@@ -114,6 +115,7 @@ class Context:
         self.print = print
         self.has_dll = False
         self.dialect = 'MonetDB'
+        self.is_msvc = False
         self.have_hge = False
         self.Error = lambda *args: print(*args)
         self.Info = lambda *_: None
@@ -181,13 +183,21 @@ class Context:
             return None
     
     def finalize(self):
+        from aquery_config import build_driver, os_platform
         if not self.finalized:
             headers = ''
+            if build_driver == 'MSBuild':
+                headers ='#include \"./server/pch.hpp\"\n'
+             
             for h in self.headers:
                 if h[0] != '"':
                     headers += '#include <' + h + '>\n'
                 else:
                     headers += '#include ' + h + '\n'
+            if os_platform == 'win':
+                headers += '#undef max\n'
+                headers += '#undef min\n'
+
             self.ccode = headers + '\n'.join(self.procs)
             self.headers = set()
         return self.ccode
