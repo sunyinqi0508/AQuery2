@@ -43,7 +43,7 @@ class groupby(ast_node):
             f'transTypes<{self.group_type}, hasher>> {self.group};')
         self.n_grps = len(node)
         self.scanner = scan(self, self.datasource, expr.toCExpr(first_col)()+'.size')
-        self.scanner.add(f'{self.group}[forward_as_tuple({g_contents(self.scanner.it_ver)})].emplace_back({self.scanner.it_ver});')
+        self.scanner.add(f'{self.group}[forward_as_tuple({g_contents(self.scanner.it_var)})].emplace_back({self.scanner.it_var});')
 
         
     def consume(self, _):
@@ -54,7 +54,7 @@ class groupby(ast_node):
     def deal_with_assumptions(self, assumption:assumption, out:TableInfo):
         gscanner = scan(self, self.group)
         val_var = 'val_'+base62uuid(7)
-        gscanner.add(f'auto &{val_var} = {gscanner.it_ver}.second;')
+        gscanner.add(f'auto &{val_var} = {gscanner.it_var}.second;')
         gscanner.add(f'{self.datasource.cxt_name}->order_by<{assumption.result()}>(&{val_var});')
         gscanner.finalize()
         
@@ -63,8 +63,8 @@ class groupby(ast_node):
         key_var = 'key_'+base62uuid(7)
         val_var = 'val_'+base62uuid(7)
         
-        gscanner.add(f'auto &{key_var} = {gscanner.it_ver}.first;')
-        gscanner.add(f'auto &{val_var} = {gscanner.it_ver}.second;')
+        gscanner.add(f'auto &{key_var} = {gscanner.it_var}.first;')
+        gscanner.add(f'auto &{val_var} = {gscanner.it_var}.second;')
         gscanner.add(';\n'.join([f'{out.columns[i].reference()}.emplace_back({ce(x=val_var, y=key_var)})' for i, ce in enumerate(cexprs)])+';')
         
         gscanner.finalize()

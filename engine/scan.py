@@ -20,25 +20,25 @@ class scan(ast_node):
         self.mode = None
         self.filters = []
         scan_vars = set(s.it_var for s in self.context.scans)
-        self.it_ver = 'i' + base62uuid(2)
-        while(self.it_ver in scan_vars):
-            self.it_ver = 'i' + base62uuid(6)
+        self.it_var = 'i' + base62uuid(2)
+        while(self.it_var in scan_vars):
+            self.it_var = 'i' + base62uuid(6)
         self.parent.context.scans.append(self)
     def produce(self, node):
         if type(node) is ColRef:
             self.colref = node
             if self.size is None:
                 self.mode = ["col", node.table]
-                self.start += f'for ({self.const}auto& {self.it_ver} : {node.reference()}) {{\n'
+                self.start += f'for ({self.const}auto& {self.it_var} : {node.reference()}) {{\n'
             else:
                 self.mode = ["idx", node.table]
-                self.start += f"for (uint32_t {self.it_ver} = 0; {self.it_ver} < {node.reference()}.size; ++{self.it_ver}){{\\n"
+                self.start += f"for (uint32_t {self.it_var} = 0; {self.it_var} < {node.reference()}.size; ++{self.it_var}){{\\n"
         elif type(node) is str:
             self.mode = ["idx", None]
-            self.start+= f'for({self.const}auto& {self.it_ver} : {node}) {{\n'
+            self.start+= f'for({self.const}auto& {self.it_var} : {node}) {{\n'
         else:
             self.mode = ["idx", node] # Node is the TableInfo
-            self.start += f"for (uint32_t {self.it_ver} = 0; {self.it_ver} < {self.size}; ++{self.it_ver}){{\n"
+            self.start += f"for (uint32_t {self.it_var} = 0; {self.it_var} < {self.size}; ++{self.it_var}){{\n"
             
     def add(self, stmt, position = "body"):
         if position == "body":
@@ -95,5 +95,5 @@ class filter(ast_node):
         if self.scanner is None:
             self.scanner = scan(self, self.datasource, self.datasource.get_size())
         self.expr = expr(self, self.modified_node)
-        self.scanner.filters.append(f'if ({self.expr.cexpr(self.scanner.it_ver)}) {{\n')
+        self.scanner.filters.append(f'if ({self.expr.cexpr(self.scanner.it_var)}) {{\n')
     

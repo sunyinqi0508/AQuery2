@@ -55,7 +55,7 @@ class create_table(ast_node):
                     self.lineage = f"{lineage_var}.rid"
                 for i, c in enumerate(tbl.columns):
                     scanner.add(f'{c.cxt_name}.init("{c.name}");', "init")
-                    scanner.add(f"{c.cxt_name} = {self.cexprs[i](scanner.it_ver)};")
+                    scanner.add(f"{c.cxt_name} = {self.cexprs[i](scanner.it_var)};")
                     
 class insert(ast_node):
     name = 'insert'

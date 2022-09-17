@@ -75,6 +75,7 @@ class expr(ast_node):
         self.udf_map = parent.context.udf_map
         self.func_maps = {**builtin_func, **self.udf_map, **user_module_func}
         self.operators = {**builtin_operators, **self.udf_map, **user_module_func}
+        self.ext_aggfuncs = ['sum', 'avg', 'count', 'min', 'max']
         
     def produce(self, node):
         from engine.utils import enlist
@@ -105,7 +106,11 @@ class expr(ast_node):
                         self.type = AnyT
                         
                     self.sql = op(self.c_code, *str_vals)
-                    special_func = [*self.context.udf_map.keys(), *self.context.module_map.keys(), "maxs", "mins", "avgs", "sums"]
+                    special_func = [*self.context.udf_map.keys(), *self.context.module_map.keys(), 
+                                    "maxs", "mins", "avgs", "sums", "deltas", "last"]
+                    if self.context.special_gb:
+                        special_func = [*special_func, *self.ext_aggfuncs]
+                        
                     if key in special_func and not self.is_special:
                         self.is_special = True
                         if key in self.context.udf_map:

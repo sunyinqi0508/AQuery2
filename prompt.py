@@ -424,6 +424,15 @@ def prompt(running = lambda:True, next = lambda:input('> '), state = None):
                 rm(state)
                 exit()
             elif q == 'r': # build and run
+                if state.server_mode == RunType.Threaded:
+                    qs = [ctypes.c_char_p(bytes(q, 'utf-8')) for q in cxt.queries if len(q)]
+                    sz = len(qs)
+                    payload = (ctypes.c_char_p*sz)(*qs)
+                    state.payload = payload
+                    try:
+                        state.send(sz, payload)
+                    except TypeError as e:
+                        print(e)
                 if subprocess.call(['make', 'snippet']) == 0:
                     state.set_ready()
                 continue
@@ -525,6 +534,12 @@ if __name__ == '__main__':
             server_mode = RunType.IPC
         elif any([s in nextcmd for s in thread_string]):
             server_mode = RunType.Threaded
+    
+    if check_param(['-r', '--rebuild']):
+        try:
+            os.remove('./.cached')
+        except FileNotFoundError:
+            pass
     
     prompt(state=state)
     

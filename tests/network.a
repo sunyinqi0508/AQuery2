@@ -1,0 +1,13 @@
+CREATE TABLE network(src varchar(3), dst varchar(3), len int, _time int)
+
+
+LOAD DATA INFILE "data/network.csv"
+INTO TABLE network
+FIELDS TERMINATED BY ","
+
+SELECT	 src, dst,  avg(len) 
+FROM	 network
+	     ASSUMING ASC src, ASC dst, ASC _time 
+GROUP BY src, dst, sums (deltas(_time) > 120)
+
+

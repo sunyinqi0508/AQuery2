@@ -15,6 +15,7 @@ class Types:
         self.priority : int= 0
         self.cast_to_dict = dict()
         self.cast_from_dict = dict()
+        
     def __init__(self, priority = 0, *, 
                  name = None, cname = None, sqlname = None,
                  ctype_name = None, null_value = None,
@@ -87,6 +88,9 @@ class TypeCollection:
 type_table = dict()
 AnyT = Types(-1)
 LazyT = Types(240, name = 'Lazy', cname = '', sqlname = '', ctype_name = '')
+LazyT = Types(200, name = 'DATE', cname = 'types::date_t', sqlname = 'DATE', ctype_name = 'types::ADATE')
+LazyT = Types(201, name = 'TIME', cname = 'types::time_t', sqlname = 'TIME', ctype_name = 'types::ATIME')
+LazyT = Types(202, name = 'TIMESTAMP', cname = 'types::timestamp_t', sqlname = 'TIMESTAMP', ctype_name = 'ATIMESTAMP')
 DoubleT = Types(17, name = 'double', cname='double', sqlname = 'DOUBLE', is_fp = True)
 LDoubleT = Types(18, name = 'long double', cname='long double', sqlname = 'LDOUBLE', is_fp = True)
 FloatT = Types(16, name = 'float', cname = 'float', sqlname = 'REAL', 
@@ -102,7 +106,7 @@ ULongT = Types(8, name = 'uint64', sqlname = 'UINT64', fp_type=DoubleT)
 UIntT = Types(7, name = 'uint32', sqlname = 'UINT32', long_type=ULongT, fp_type=FloatT)
 UShortT = Types(6, name = 'uint16', sqlname = 'UINT16', long_type=ULongT, fp_type=FloatT)
 UByteT = Types(5, name = 'uint8', sqlname = 'UINT8', long_type=ULongT, fp_type=FloatT)
-StrT = Types(200, name = 'str', cname = 'const char*', sqlname='VARCHAR', ctype_name = 'types::STRING')
+StrT = Types(200, name = 'str', cname = 'const char*', sqlname='VARCHAR', ctype_name = 'types::ASTR')
 VoidT = Types(200, name = 'void', cname = 'void', sqlname='Null', ctype_name = 'types::None')
 
 class VectorT(Types):
@@ -212,6 +216,11 @@ def logical(*_ : Types) -> Types:
     return ByteT
 def int_return(*_ : Types) -> Types:
     return IntT
+def long_return(*_ : Types) -> Types:
+    return LongT.long_type
+def lfp_return(*_ : Types) -> Types:
+    return LongT.fp_type
+
 def as_is (t: Types) -> Types:
     return t
 
@@ -262,8 +271,12 @@ opnot = OperatorBase('not', 1, logical, cname = '!', sqlname = 'NOT', call = una
 # functional
 fnmax = OperatorBase('max', 1, as_is, cname = 'max', sqlname = 'MAX', call = fn_behavior)
 fnmin = OperatorBase('min', 1, as_is, cname = 'min', sqlname = 'MIN', call = fn_behavior)
-fnsum = OperatorBase('sum', 1, ext(auto_extension), cname = 'sum', sqlname = 'SUM', call = fn_behavior)
-fnavg = OperatorBase('avg', 1, fp(ext(auto_extension)), cname = 'avg', sqlname = 'AVG', call = fn_behavior)
+fndeltas = OperatorBase('deltas', 1, as_is, cname = 'deltas', sqlname = 'DELTAS', call = fn_behavior)
+fnlast = OperatorBase('last', 1, as_is, cname = 'last', sqlname = 'LAST', call = fn_behavior)
+#fnsum = OperatorBase('sum', 1, ext(auto_extension), cname = 'sum', sqlname = 'SUM', call = fn_behavior)
+#fnavg = OperatorBase('avg', 1, fp(ext(auto_extension)), cname = 'avg', sqlname = 'AVG', call = fn_behavior)
+fnsum = OperatorBase('sum', 1, long_return, cname = 'sum', sqlname = 'SUM', call = fn_behavior)
+fnavg = OperatorBase('avg', 1, lfp_return, cname = 'avg', sqlname = 'AVG', call = fn_behavior)
 fnmaxs = OperatorBase('maxs', [1, 2], ty_clamp(as_is, -1), cname = 'maxs', sqlname = 'MAXS', call = windowed_fn_behavor)
 fnmins = OperatorBase('mins', [1, 2], ty_clamp(as_is, -1), cname = 'mins', sqlname = 'MINS', call = windowed_fn_behavor)
 fnsums = OperatorBase('sums', [1, 2], ext(ty_clamp(auto_extension, -1)), cname = 'sums', sqlname = 'SUMS', call = windowed_fn_behavor)
@@ -295,7 +308,7 @@ builtin_unary_logical = _op_make_dict(opnot)
 builtin_unary_arith = _op_make_dict(opneg)
 builtin_unary_special = _op_make_dict(spnull)
 builtin_cstdlib = _op_make_dict(fnsqrt, fnlog, fnsin, fncos, fntan, fnpow)
-builtin_func = _op_make_dict(fnmax, fnmin, fnsum, fnavg, fnmaxs, fnmins, fnsums, fnavgs, fncnt)
+builtin_func = _op_make_dict(fnmax, fnmin, fnsum, fnavg, fnmaxs, fnmins, fndeltas, fnlast, fnsums, fnavgs, fncnt)
 user_module_func = {}
 builtin_operators : Dict[str, OperatorBase] = {**builtin_binary_arith, **builtin_binary_logical, 
     **builtin_unary_arith, **builtin_unary_logical, **builtin_unary_special, **builtin_func, **builtin_cstdlib, 

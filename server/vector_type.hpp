@@ -9,7 +9,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <cstdint>
-
+#include <iterator>
 #include <initializer_list>
 #include "types.h"
 
@@ -243,6 +243,21 @@ public:
 		if (capacity > 0) free(container);
 		container = 0; size = capacity = 0;
 	}
+#define Compare(_op) \
+	template<typename T> \
+	inline vector_type<bool> operator _op (const T& v){ \
+		vector_type<bool> res(size); \
+		for (uint32_t i = 0; i < size; ++i) \
+			res[i] = container[i] > v; \
+		return res; \
+	} 
+	// template <typename T> 
+	Compare(>)
+	Compare(<)
+	Compare(>=)
+	Compare(<=)
+	Compare(==)
+	Compare(!=)
 #define Op(o, x) \
 	template<typename T>\
 	vector_type<typename types::Coercion<_Ty, T>::type> inline x(const vector_type<T>& r) const {\

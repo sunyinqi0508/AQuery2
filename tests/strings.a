@@ -5,3 +5,5 @@ INTO TABLE types_test
 FIELDS TERMINATED BY ","
 
 select names, val * 10000 + id from types_test
+
+create table date_time(id int, _date date, _time time, _timestamp timestamp);

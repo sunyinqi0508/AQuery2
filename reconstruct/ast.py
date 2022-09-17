@@ -88,6 +88,8 @@ class projection(ast_node):
         else:
             self.where = None    
 
+        if 'groupby' in node:
+            self.context.special_gb = groupby.check_special(self, node['groupby'])
 
     def consume(self, node):
         # deal with projections
@@ -190,7 +192,9 @@ class projection(ast_node):
                 self.sql += self.outfile.sql
         else:
             self.outfile = None
-            
+        
+        # reset special_gb in case of subquery.
+        self.context.special_gb = False
         if self.parent is None:
             self.emit(self.sql+';\n')
         else: 
@@ -333,30 +337,28 @@ class scan(ast_node):
         foreach = auto()
         
     name = 'scan'
-    def __init__(self, parent: "ast_node", node, loop_style = 'for', context: Context = None, const = False):
+    def __init__(self, parent: "ast_node", node, loop_style = 'for', context: Context = None, const = False, it_name = None):
+        self.it_var = it_name
         self.const = "const " if const else ""
         self.loop_style = loop_style
         super().__init__(parent, node, context)
         
     def init(self, _):
+        self.it_var = self.context.get_scan_var() if not self.it_var else self.it_var
         self.datasource = self.context.datasource
         self.initializers = ''
         self.start = ''
         self.front = ''
         self.body = ''
         self.end = '}'
-        scan_vars = set(s.it_var for s in self.context.scans)
-        self.it_ver = 'i' + base62uuid(2)
-        while(self.it_ver in scan_vars):
-            self.it_ver = 'i' + base62uuid(6)
         self.parent.context.scans.append(self)
         
     def produce(self, node):
         if self.loop_style == 'for_each':
             self.colref = node
-            self.start += f'for ({self.const}auto& {self.it_ver} : {node}) {{\n'
+            self.start += f'for ({self.const}auto& {self.it_var} : {node}) {{\n'
         else:
-            self.start += f"for (uint32_t {self.it_ver} = 0; {self.it_ver} < {node}; ++{self.it_ver}){{\n"
+            self.start += f"for (uint32_t {self.it_var} = 0; {self.it_var} < {node}; ++{self.it_var}){{\n"
             
     def add(self, stmt, position = "body"):
         if position == "body":
@@ -387,25 +389,30 @@ class groupby_c(ast_node):
         g_contents = ''
         g_contents_list = []
         first_col = ''
-        
+        scanner_itname = self.context.get_scan_var()
         for g in self.glist:
             e = expr(self, g[0].node, c_code=True)
             g_str = e.eval(c_code = True, y = lambda c: self.proj.pyname2cname[c])
             # if v is compound expr, create tmp cols
-            if e.is_ColExpr:
+            if not e.is_ColExpr:
+                self.context.headers.add('"./server/aggregations.h"')                    
                 tmpcol = 't' + base62uuid(7)
                 self.context.emitc(f'auto {tmpcol} = {g_str};')
                 e = tmpcol
+            else:
+                e = g_str
             g_contents_list.append(e)
         first_col = g_contents_list[0]
         g_contents_decltype = [f'decays<decltype({c})::value_t>' for c in g_contents_list]
-        g_contents = ','.join(g_contents_list)
+        g_contents = ', '.join(
+            [f'{c}[{scanner_itname}]' for c in g_contents_list]
+        )
         self.context.emitc(f'typedef record<{",".join(g_contents_decltype)}> {self.group_type};')
         self.context.emitc(f'unordered_map<{self.group_type}, vector_type<uint32_t>, '
             f'transTypes<{self.group_type}, hasher>> {self.group};')
         self.n_grps = len(self.glist)
-        self.scanner = scan(self, first_col + '.size')
-        self.scanner.add(f'{self.group}[forward_as_tuple({g_contents}[{self.scanner.it_ver}])].emplace_back({self.scanner.it_ver});')
+        self.scanner = scan(self, first_col + '.size', it_name=scanner_itname)
+        self.scanner.add(f'{self.group}[forward_as_tuple({g_contents})].emplace_back({self.scanner.it_var});')
 
     def consume(self, _):
         self.scanner.finalize()
@@ -413,7 +420,7 @@ class groupby_c(ast_node):
     # def deal_with_assumptions(self, assumption:assumption, out:TableInfo):
     #     gscanner = scan(self, self.group)
     #     val_var = 'val_'+base62uuid(7)
-    #     gscanner.add(f'auto &{val_var} = {gscanner.it_ver}.second;')
+    #     gscanner.add(f'auto &{val_var} = {gscanner.it_var}.second;')
     #     gscanner.add(f'{self.datasource.cxt_name}->order_by<{assumption.result()}>(&{val_var});')
     #     gscanner.finalize()
         
@@ -422,8 +429,8 @@ class groupby_c(ast_node):
         key_var = 'key_'+base62uuid(7)
         val_var = 'val_'+base62uuid(7)
         
-        gscanner.add(f'auto &{key_var} = {gscanner.it_ver}.first;', position = 'front')
-        gscanner.add(f'auto &{val_var} = {gscanner.it_ver}.second;', position = 'front')
+        gscanner.add(f'auto &{key_var} = {gscanner.it_var}.first;', position = 'front')
+        gscanner.add(f'auto &{val_var} = {gscanner.it_var}.second;', position = 'front')
         len_var = None
         def define_len_var():
             nonlocal len_var
@@ -444,6 +451,14 @@ class groupby_c(ast_node):
             else:
                 return f'get<{var}>({key_var})'
         
+        def get_var_names_ex (varex : expr):
+            sql_code = varex.eval(c_code = False)
+            if (sql_code in var_table):
+                return get_var_names(sql_code)
+            else:
+                return varex.eval(c_code=True, y = get_var_names, 
+                        materialize_builtin = materialize_builtin)
+                
         for ce in cexprs:
             ex = ce[1]
             materialize_builtin = {}
@@ -457,7 +472,7 @@ class groupby_c(ast_node):
                     materialize_builtin['_builtin_ret'] = f'{ce[0]}.back()'
                     gscanner.add(f'{ex.eval(c_code = True, y=get_var_names, materialize_builtin = materialize_builtin)};\n')
                     continue
-            gscanner.add(f'{ce[0]}.emplace_back({ex.eval(c_code = True, y=get_var_names, materialize_builtin = materialize_builtin)});\n')
+            gscanner.add(f'{ce[0]}.emplace_back({get_var_names_ex(ex)});\n')
         
         gscanner.finalize()
         
@@ -466,6 +481,17 @@ class groupby_c(ast_node):
             
 class groupby(ast_node):
     name = 'group by'
+    
+    @staticmethod
+    def check_special(parent, node):
+        node = enlist(node)
+        for g in node:
+            if ('value' in g and 
+                expr(parent, g['value']).is_special
+            ):
+                return True
+        return False
+
     def produce(self, node):
         if type(self.parent) is not projection:
             raise ValueError('groupby can only be used in projection')
@@ -478,6 +504,7 @@ class groupby(ast_node):
         for g in node:
             self.datasource.rec = set()
             g_expr = expr(self, g['value'])
+            self.use_sp_gb = self.use_sp_gb or g_expr.is_special
             refs : Set[ColRef] = self.datasource.rec
             self.datasource.rec = None
             if self.parent.col_ext:

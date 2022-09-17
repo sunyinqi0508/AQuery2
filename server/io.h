@@ -25,7 +25,27 @@ inline decltype(auto) print_hook<bool>(const bool& v) {
 	return v? "true" : "false";
 }
 
-#ifdef __SIZEOF_INT128__
+extern char* gbuf;
+
+void setgbuf(char* buf = 0);
+
+template<>
+inline decltype(auto) print_hook<types::date_t>(const types::date_t& v) {
+	*(gbuf += types::date_t::string_length()) = 0;
+
+	return v.toString(gbuf);
+}
+template<>
+inline decltype(auto) print_hook<types::time_t>(const types::time_t& v) {
+	*(gbuf += types::time_t::string_length()) = 0;
+	return v.toString(gbuf);
+}
+template<>
+inline decltype(auto) print_hook<types::timestamp_t>(const types::timestamp_t& v) {
+	*(gbuf += types::timestamp_t::string_length()) = 0;
+	return v.toString(gbuf);
+}
+#ifdef __AQ__HAS__INT128__
 constexpr struct __int128__struct{
     uint64_t low, high;
 	// constexpr bool operator==(__int128_t x) const{
@@ -59,9 +79,7 @@ inline const char* get_uint128str(__uint128_t v, char* buf){
 	} while(v);
 	return buf;
 }
-extern char* gbuf;
 
-void setgbuf(char* buf = 0);
 
 template<>
 inline decltype(auto) print_hook<__int128_t>(const __int128_t& v) {
@@ -77,5 +95,4 @@ inline decltype(auto) print_hook<__uint128_t>(const __uint128_t& v) {
 
 #else
 
-#define setgbuf()
 #endif

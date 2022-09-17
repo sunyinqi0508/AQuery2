@@ -15,10 +15,13 @@ class checksums:
     pch_hpp_gch : Optional[Union[bytes, bool]] = None
     server : Optional[Union[bytes, bool]] = None
     sources : Union[Dict[str, bytes], bool] = None
+    env : str = ''
     def calc(self, libaquery_a = 'libaquery.a' , 
                 pch_hpp_gch = 'server/pch.hpp.gch', 
                 server = 'server.so'
         ):
+        from platform import machine
+        self.env = aquery_config.os_platform + machine() + aquery_config.build_driver
         for key in self.__dict__.keys():
             try:
                 with open(eval(key), 'rb') as file:
@@ -38,7 +41,10 @@ class checksums:
         ret = checksums()
         for key in self.__dict__.keys():
             try:
-                ret.__dict__[key] = self.__dict__[key] != __o.__dict__[key]
+                ret.__dict__[key] = (
+                    self.__dict__[key] and __o.__dict__[key] and
+                    self.__dict__[key] != __o.__dict__[key]
+                )
             except KeyError:
                 ret.__dict__[key] = True
         return ret
@@ -47,7 +53,10 @@ class checksums:
         ret = checksums()
         for key in self.__dict__.keys():
             try:
-                ret.__dict__[key] = self.__dict__[key] == __o.__dict__[key]
+                ret.__dict__[key] = (
+                    not (self.__dict__[key] and __o.__dict__[key]) or
+                    self.__dict__[key] == __o.__dict__[key]
+                )
             except KeyError:
                 ret.__dict__[key] = False
         return ret
@@ -55,7 +64,9 @@ class checksums:
         
         
 class build_manager:
-    sourcefiles = ['server/server.cpp', 'server/io.cpp', 
+    sourcefiles = [
+                   'build.py', 
+                   'server/server.cpp', 'server/io.cpp',  
                    'server/monetdb_conn.cpp', 'server/threading.cpp',
                    'server/winhelper.cpp'
                    ]

@@ -16,14 +16,16 @@ constexpr static inline size_t count(const T&) { return 1; }
 
 // TODO: Specializations for dt/str/none
 template<class T, template<typename ...> class VT>
-types::GetLongType<T> sum(const VT<T>& v) {
+// types::GetLongType<T> 
+LL_Type sum(const VT<T>& v) {
 	types::GetLongType<T> ret = 0;
 	for (const auto& _v : v)
 		ret += _v;
 	return ret;
 }
 template<class T, template<typename ...> class VT>
-types::GetFPType<T> avg(const VT<T>& v) {
+//types::GetFPType<T> 
+double avg(const VT<T>& v) {
 	return static_cast<types::GetFPType<T>>(
 		sum<T>(v) / static_cast<long double>(v.size));
 }
@@ -156,6 +158,31 @@ decayed_t<VT, types::GetFPType<types::GetLongType<T>>> avgw(uint32_t w, const VT
 	return ret;
 }
 
+// use getSignedType
+template<class T, template<typename ...> class VT>
+decayed_t<VT, T> deltas(const VT<T>& arr) {
+	const uint32_t& len = arr.size;
+	decayed_t<VT, T> ret(len);
+	uint32_t i = 0;
+	if(len) ret[i++] = 0;
+	for (; i < len; ++i) 
+		ret[i] = arr[i] - arr[i-1];
+	return ret;
+}
+
+template<class T, template<typename ...> class VT>
+T last(const VT<T>& arr) {
+	const uint32_t& len = arr.size;
+	decayed_t<VT, T> ret(len);
+	uint32_t i = 0;
+	if (len)
+		ret[i++] = arr[0];
+	for (; i < len; ++i) 
+		ret[i] = arr[i-1];
+	return ret;
+}
+
+// wrong behavior with count(0)
 template <class T> constexpr inline T count(const T& v) { return 1; }
 template <class T> constexpr inline T max(const T& v) { return v; }
 template <class T> constexpr inline T min(const T& v) { return v; }
@@ -169,3 +196,5 @@ template <class T> constexpr inline T maxs(const T& v) { return v; }
 template <class T> constexpr inline T mins(const T& v) { return v; }
 template <class T> constexpr inline T avgs(const T& v) { return v; }
 template <class T> constexpr inline T sums(const T& v) { return v; }
+template <class T> constexpr inline T last(const T& v) { return v; }
+template <class T> constexpr inline T daltas(const T& v) { return 0; }

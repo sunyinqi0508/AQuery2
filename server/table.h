@@ -188,7 +188,10 @@ std::ostream& operator<<(std::ostream& os, const VT<T>& v)
 	v.out();
 	return os;
 }
-#ifdef __SIZEOF_INT128__
+std::ostream& operator<<(std::ostream& os, types::date_t & v);
+std::ostream& operator<<(std::ostream& os, types::time_t & v);
+std::ostream& operator<<(std::ostream& os, types::timestamp_t & v);
+#ifdef __AQ__HAS__INT128__
 std::ostream& operator<<(std::ostream& os, __int128 & v);
 std::ostream& operator<<(std::ostream& os, __uint128_t & v);
 #endif
@@ -329,14 +332,14 @@ struct TableInfo {
 				print2_impl<rem_cols...>(func, i, args ..., print_hook(v));
 		};
 		if constexpr (is_vector_type<this_type>)
-			for (int j = 0; j < this_value.size; ++j)
+			for (uint32_t j = 0; j < this_value.size; ++j)
 				next(this_value[j]);
 		else
 			next(this_value);
 	}
 	std::string get_header_string(const char* __restrict sep, const char* __restrict end) const{
 		std::string header_string = std::string();
-		for (int i = 0; i < sizeof...(Types); ++i)
+		for (uint32_t i = 0; i < sizeof...(Types); ++i)
 			header_string += std::string(this->colrefs[i].name) + sep + '|' + sep;
 		const size_t l_sep = strlen(sep) + 1;
 		if (header_string.size() - l_sep >= 0)
@@ -359,18 +362,27 @@ struct TableInfo {
 			header_string.resize(header_string.size() - l_sep);
 		
 		const auto& prt_loop = [&fp, &view, &printf_string, *this](const auto& f) {
-#ifdef __SIZEOF_INT128__			
+#ifdef __AQ__HAS__INT128__			
 			constexpr auto num_hge = count_type<__int128_t, __uint128_t>((tuple_type*)(0));
-			char cbuf[num_hge * 41];
-			setgbuf(cbuf);
+#else
+			constexpr auto num_hge = 0;
 #endif
+			constexpr auto num_date = count_type<types::date_t>((tuple_type*)(0));
+			constexpr auto num_time = count_type<types::time_t>((tuple_type*)(0));
+			constexpr auto num_timestamp = count_type<types::timestamp_t>((tuple_type*)(0));
+			char cbuf[ num_hge * 41 
+				+ num_time * types::time_t::string_length() 
+				+ num_date * types::date_t::string_length() 
+				+ num_timestamp * types::timestamp_t::string_length() 
+			];
+			setgbuf(cbuf);
 			if(view)
-				for (int i = 0; i < view->size; ++i){
+				for (uint32_t i = 0; i < view->size; ++i){
 					print2_impl<cols...>(f, (*view)[i], printf_string.c_str());
 					setgbuf();
 				}
 			else
-				for (int i = 0; i < colrefs[0].size; ++i){
+				for (uint32_t i = 0; i < colrefs[0].size; ++i){
 					print2_impl<cols...>(f, i, printf_string.c_str());		
 					setgbuf();
 				}
@@ -465,10 +477,10 @@ inline void TableView<Types...>::print(const char* __restrict sep, const char* _
 	std::string header_string = info.get_header_string(sep, end);
 	std::cout << header_string.c_str();
 	
-	int n_rows = 0;
+	uint32_t n_rows = 0;
 	if (info.colrefs[0].size > 0)
 		n_rows = info.colrefs[0].size;
-	for (int i = 0; i < n_rows; ++i) {
+	for (uint32_t i = 0; i < n_rows; ++i) {
 		print_impl(i);
 		std::cout << end;
 	}
@@ -495,10 +507,10 @@ inline void TableInfo<Types...>::print(const char* __restrict sep, const char* _
 	std::string header_string = get_header_string(sep, end);
 	std::cout << header_string.c_str();
 	
-	int n_rows = 0;
+	uint32_t n_rows = 0;
 	if (n_cols > 0 && colrefs[0].size > 0)
 		n_rows = colrefs[0].size;
-	for (int i = 0; i < n_rows; ++i) {
+	for (uint32_t i = 0; i < n_rows; ++i) {
 		print_impl(i);
 		std::cout << end;
 	}
@@ -506,87 +518,111 @@ inline void TableInfo<Types...>::print(const char* __restrict sep, const char* _
 template <class T1, class T2, template<typename ...> class VT, template<typename ...> class VT2>
 decayed_t<VT, typename types::Coercion<T1, T2>::type> operator -(const VT<T1>& lhs, const VT2<T2>& rhs) {
 	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size);
-	for (int i = 0; i < lhs.size; ++i)
+	for (uint32_t i = 0; i < lhs.size; ++i)
 		ret[i] = lhs[i] - rhs[i];
 	return ret;
 }
 template <class T1, class T2, template<typename ...> class VT>
 decayed_t<VT, typename types::Coercion<T1, T2>::type> operator -(const VT<T1>& lhs, const T2& rhs) {
 	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size);
-	for (int i = 0; i < lhs.size; ++i)
+	for (uint32_t i = 0; i < lhs.size; ++i)
 		ret[i] = lhs[i] - rhs;
 	return ret;
 }
 template <class T1, class T2, template<typename ...> class VT>
 decayed_t<VT, typename types::Coercion<T1, T2>::type> operator -(const T2& lhs, const VT<T1>& rhs) {
 	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(rhs.size);
-	for (int i = 0; i < rhs.size; ++i)
+	for (uint32_t i = 0; i < rhs.size; ++i)
 		ret[i] = lhs - rhs[i];
 	return ret;
 }
 template <class T1, class T2, template<typename ...> class VT, template<typename ...> class VT2>
 decayed_t<VT, typename types::Coercion<T1, T2>::type> operator +(const VT<T1>& lhs, const VT2<T2>& rhs) {
 	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size);
-	for (int i = 0; i < lhs.size; ++i)
+	for (uint32_t i = 0; i < lhs.size; ++i)
 		ret[i] = lhs[i] + rhs[i];
 	return ret;
 }
 template <class T1, class T2, template<typename ...> class VT>
 decayed_t<VT, typename types::Coercion<T1, T2>::type> operator +(const VT<T1>& lhs, const T2& rhs) {
 	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size);
-	for (int i = 0; i < lhs.size; ++i)
+	for (uint32_t i = 0; i < lhs.size; ++i)
 		ret[i] = lhs[i] + rhs;
 	return ret;
 }
 template <class T1, class T2, template<typename ...> class VT>
 decayed_t<VT, typename types::Coercion<T1, T2>::type> operator +(const T2& lhs, const VT<T1>& rhs) {
 	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(rhs.size);
-	for (int i = 0; i < rhs.size; ++i)
+	for (uint32_t i = 0; i < rhs.size; ++i)
 		ret[i] = lhs + rhs[i];
 	return ret;
 }
 template <class T1, class T2, template<typename ...> class VT, template<typename ...> class VT2>
 decayed_t<VT, typename types::Coercion<T1, T2>::type> operator *(const VT<T1>& lhs, const VT2<T2>& rhs) {
 	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size);
-	for (int i = 0; i < lhs.size; ++i)
+	for (uint32_t i = 0; i < lhs.size; ++i)
 		ret[i] = lhs[i] * rhs[i];
 	return ret;
 }
 template <class T1, class T2, template<typename ...> class VT>
 decayed_t<VT, typename types::Coercion<T1, T2>::type> operator *(const VT<T1>& lhs, const T2& rhs) {
 	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size);
-	for (int i = 0; i < lhs.size; ++i)
+	for (uint32_t i = 0; i < lhs.size; ++i)
 		ret[i] = lhs[i] * rhs;
 	return ret;
 }
 template <class T1, class T2, template<typename ...> class VT>
 decayed_t<VT, typename types::Coercion<T1, T2>::type> operator *(const T2& lhs, const VT<T1>& rhs) {
 	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(rhs.size);
-	for (int i = 0; i < rhs.size; ++i)
+	for (uint32_t i = 0; i < rhs.size; ++i)
 		ret[i] = lhs * rhs[i];
 	return ret;
 }
 template <class T1, class T2, template<typename ...> class VT, template<typename ...> class VT2>
 decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>> operator /(const VT<T1>& lhs, const VT2<T2>& rhs) {
 	auto ret = decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>>(lhs.size);
-	for (int i = 0; i < lhs.size; ++i)
+	for (uint32_t i = 0; i < lhs.size; ++i)
 		ret[i] = lhs[i] / rhs[i];
 	return ret;
 }
 template <class T1, class T2, template<typename ...> class VT>
 decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>> operator /(const VT<T1>& lhs, const T2& rhs) {
 	auto ret = decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>>(lhs.size);
-	for (int i = 0; i < lhs.size; ++i)
+	for (uint32_t i = 0; i < lhs.size; ++i)
 		ret[i] = lhs[i] / rhs;
 	return ret;
 }
 template <class T1, class T2, template<typename ...> class VT>
 decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>> operator /(const T2& lhs, const VT<T1>& rhs) {
 	auto ret = decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>>(rhs.size);
-	for (int i = 0; i < rhs.size; ++i)
+	for (uint32_t i = 0; i < rhs.size; ++i)
 		ret[i] = lhs / rhs[i];
 	return ret;
 }
+
+template <class T1, class T2, template<typename ...> class VT, template<typename ...> class VT2>
+VT<bool> operator >(const VT<T1>& lhs, const VT2<T2>& rhs) {
+	auto ret = VT<bool>(lhs.size);
+	for (uint32_t i = 0; i < lhs.size; ++i)
+		ret[i] = lhs[i] > rhs[i];
+	return ret;
+}
+template <class T1, class T2, template<typename ...> class VT>
+VT<bool> operator >(const VT<T1>& lhs, const T2& rhs) {
+	auto ret = VT<bool>(lhs.size);
+	for (uint32_t i = 0; i < lhs.size; ++i)
+		ret[i] = lhs[i] > rhs;
+	return ret;
+}
+template <class T1, class T2, template<typename ...> class VT>
+VT<bool> operator >(const T2& lhs, const VT<T1>& rhs) {
+	auto ret = VT<bool>(rhs.size);
+	for (uint32_t i = 0; i < rhs.size; ++i)
+		ret[i] = lhs > rhs[i];
+	return ret;
+}
+
+
 
 template <class ...Types>
 void print(const TableInfo<Types...>& v, const char* delimiter = " ", const char* endline = "\n") {
@@ -598,10 +634,11 @@ void print(const TableView<Types...>& v, const char* delimiter = " ", const char
 }
 template <class T>
 void print(const T& v, const char* delimiter = " ") {
-	std::cout<< v;
+	std::cout<< v<< delimiter;
 	// printf(types::printf_str[types::Types<T>::getType()], v);
 }
-#ifdef __SIZEOF_INT128__
+
+#ifdef __AQ__HAS__INT128__
 template <>
 void print<__int128_t>(const __int128_t& v, const char* delimiter);
 template <>

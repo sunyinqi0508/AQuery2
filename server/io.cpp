@@ -1,13 +1,15 @@
 #include "pch.hpp"
 
 #include "io.h"
-
-
-
 #include "table.h"
+#include <limits>
 
+#include <chrono>
+#include <ctime>
 
-#ifdef __SIZEOF_INT128__
+#include "utils.h"
+#include <random>
+
 char* gbuf = nullptr;
 
 void setgbuf(char* buf) {
@@ -17,6 +19,8 @@ void setgbuf(char* buf) {
 	else
 		gbuf = buf;
 }
+
+#ifdef __AQ__HAS__INT128__
 
 template <>
 void print<__int128_t>(const __int128_t& v, const char* delimiter){
@@ -40,6 +44,7 @@ std::ostream& operator<<(std::ostream& os, __uint128_t & v)
 	print(v);
 	return os;
 }
+
 #endif
 
 template <>
@@ -47,25 +52,197 @@ void print<bool>(const bool&v, const char* delimiter){
 	std::cout<< (v?"true":"false") << delimiter;
 }
 
+template<class T> 
+T getInt(const char*& buf){
+	T ret = 0;
+	while(*buf >= '0' and *buf <= '9'){
+		ret = ret*10 + *buf - '0';
+		buf++;
+	}
+	return ret;
+}
+template<class T> 
+char* intToString(T val, char* buf){
 
-#include <chrono>
-#include <ctime>
+	while (val > 0){
+		*--buf = val%10 + '0';
+		val /= 10;
+	}
+	
+	return buf;
+}
+void skip(const char*& buf){ 
+	while(*buf && (*buf >'9' || *buf < '0')) buf++; 
+}
+
 namespace types {
 	using namespace std;
 	using namespace chrono;
-	string date_t::toString() const {
-		uint32_t curr_v = val;
-		return string() + string("/") + string() + string("/") + string();
+
+	date_t::date_t(const char* str) { fromString(str); }
+	date_t& date_t::fromString(const char* str)  {
+		if(str) {
+			skip(str);
+			year = getInt<short>(str);
+			skip(str);
+			month = getInt<unsigned char>(str);
+			skip(str);
+			day = getInt<unsigned char>(str);
+		}
+		else{
+			day = month = year = 0;
+		}
+		return *this;
 	}
-	string time_t::toString() const {
-		uint32_t curr_v = val;
-		
-		return string() + string("/") + string() + string("/") + string();
+	bool date_t::validate() const{
+		return year <= 9999 && month <= 12 && day <= 31;
+	}
+	
+	char* date_t::toString(char* buf) const {
+		// if (!validate()) return "(invalid date)";
+		*--buf = 0;
+		buf = intToString(day, buf);
+		*--buf = '-';
+		buf = intToString(month, buf);
+		*--buf = '-';
+		buf = intToString(year, buf);
+		return buf;
+	}
+	bool date_t::operator > (const date_t& other) const {
+		return year > other.year || (year == other.year && (month > other.month || (month == other.month && day > other.day)));
+	}
+
+	bool date_t::operator < (const date_t& other) const {
+		return year < other.year || (year == other.year && (month < other.month || (month == other.month && day < other.day)));
+	}
+
+	bool date_t::operator >= (const date_t& other) const {
+		return year >= other.year || (year == other.year && (month >= other.month || (month == other.month && day >= other.day)));
+	}
+
+	bool date_t::operator <= (const date_t& other) const {
+		return year <= other.year || (year == other.year && (month <= other.month || (month == other.month && day <= other.day)));
+	}
+
+	bool date_t::operator == (const date_t& other) const {
+		return year == other.year && month == other.month && day == other.day;
+	}
+
+	bool date_t::operator != (const date_t& other) const {
+		return !operator==(other);
+	}
+
+	time_t::time_t(const char* str) { fromString(str); }
+	time_t& time_t::fromString(const char* str)  {
+		if(str) {
+			skip(str);
+			hours = getInt<unsigned char>(str);
+			skip(str);
+			minutes = getInt<unsigned char>(str);
+			skip(str);
+			seconds = getInt<unsigned char>(str);
+			skip(str);
+			ms = getInt<unsigned int> (str);
+		}
+		else {
+			hours = minutes = seconds = ms = 0;
+		}
+		return *this;
+	}
+	
+	char* time_t::toString(char* buf) const {
+		// if (!validate()) return "(invalid date)";
+		*--buf = 0;
+		buf = intToString(ms, buf);
+		*--buf = ':';
+		buf = intToString(seconds, buf);
+		*--buf = ':';
+		buf = intToString(minutes, buf);
+		*--buf = ':';
+		buf = intToString(hours, buf);
+		return buf;
+	}
+	bool time_t::operator > (const time_t& other) const {
+		return hours > other.hours || (hours == other.hours && (minutes > other.minutes || (minutes == other.minutes && (seconds > other.seconds || (seconds == other.seconds && ms > other.ms)))));
+	}
+	bool time_t::operator< (const time_t& other) const {
+		return hours < other.hours || (hours == other.hours && (minutes < other.minutes || (minutes == other.minutes && (seconds < other.seconds || (seconds == other.seconds && ms < other.ms)))));
+	} 
+	bool time_t::operator>= (const time_t& other) const {
+		return hours >= other.hours || (hours == other.hours && (minutes >= other.minutes || (minutes == other.minutes && (seconds >= other.seconds || (seconds == other.seconds && ms >= other.ms)))));
+	}
+	bool time_t::operator<= (const time_t& other) const{
+		return hours <= other.hours || (hours == other.hours && (minutes <= other.minutes || (minutes == other.minutes && (seconds <= other.seconds || (seconds == other.seconds && ms <= other.ms)))));
+	}
+	bool time_t::operator==(const time_t& other) const {
+		return hours == other.hours && minutes == other.minutes && seconds == other.seconds && ms == other.ms;
+	}
+	bool time_t::operator!= (const time_t& other) const {
+		return !operator==(other);
+	}
+	bool time_t::validate() const{
+		return hours < 24 && minutes < 60 && seconds < 60 && ms < 1000;
+	}
+
+	timestamp_t::timestamp_t(const char* str) { fromString(str); }
+	timestamp_t& timestamp_t::fromString(const char* str) {
+		date.fromString(str);
+		time.fromString(str);
+
+		return *this;
+	}
+	bool timestamp_t::validate() const {
+		return date.validate() && time.validate();
+	}
+	
+	char* timestamp_t::toString(char* buf) const {
+		buf = time.toString(buf);
+		auto ret = date.toString(buf);
+		*(buf-1) = ' ';
+		return ret;
+	}
+	bool timestamp_t::operator > (const timestamp_t& other) const {
+		return date > other.date || (date == other.date && time > other.time);
+	}
+	bool timestamp_t::operator < (const timestamp_t& other) const {
+		return date < other.date || (date == other.date && time < other.time);
+	}
+	bool timestamp_t::operator >= (const timestamp_t& other) const {
+		return date >= other.date || (date == other.date && time >= other.time);
+	}
+	bool timestamp_t::operator <= (const timestamp_t& other) const {
+		return date <= other.date || (date == other.date && time <= other.time);
+	}
+	bool timestamp_t::operator == (const timestamp_t& other) const {
+		return date == other.date && time == other.time;
+	}
+	bool timestamp_t::operator!= (const timestamp_t & other) const {
+		return !operator==(other);
 	}
 }
 
-#include "utils.h"
-#include <random>
+template<class T>
+void print_datetime(const T&v){
+	char buf[T::string_length()];
+	std::cout<<v.toString(buf + T::string_length());
+}
+std::ostream& operator<<(std::ostream& os, types::date_t & v)
+{
+	print_datetime(v);
+	return os;
+}
+std::ostream& operator<<(std::ostream& os, types::time_t & v)
+{
+	print_datetime(v);
+	return os;
+}
+std::ostream& operator<<(std::ostream& os, types::timestamp_t & v)
+{
+	print_datetime(v);
+	return os;
+}
+
+
 using std::string;
 string base62uuid(int l = 8) {
     using namespace std;

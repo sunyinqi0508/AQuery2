@@ -1,5 +1,5 @@
 from engine.types import *
-from engine.utils import enlist
+from engine.utils import base62uuid, enlist
 from typing import List, Dict, Set
 
 class ColRef:
@@ -47,10 +47,10 @@ class TableInfo:
         cxt.tables_byname[self.table_name] = self # construct reverse map
 
     def add_cols(self, cols, new = True):
-        for i, c in enumerate(cols):
-            self.add_col(c, new, i)
+        for c in cols:
+            self.add_col(c, new)
             
-    def add_col(self, c, new = True, i = 0):
+    def add_col(self, c, new = True):
         _ty = c['type']
         _ty_args = None
         if type(_ty) is dict:
@@ -100,6 +100,7 @@ class Context:
         self.procs = []
         self.queries = []
         self.module_init_loc = 0
+        self.special_gb = False
         
     def __init__(self):
         self.tables_byname = dict()
@@ -119,7 +120,14 @@ class Context:
         self.have_hge = False
         self.Error = lambda *args: print(*args)
         self.Info = lambda *_: None
-
+        
+    def get_scan_var(self):
+        it_var = 'i' + base62uuid(2)
+        scan_vars = set(s.it_var for s in self.scans)
+        while(it_var in scan_vars):
+            it_var = 'i' + base62uuid(6)
+        return it_var
+    
     def emit(self, sql:str):
         self.sql += sql + ' '
     def emitc(self, c:str):
