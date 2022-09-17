@@ -1,6 +1,8 @@
 test.lib
 test.exp
 *.pdb
+dll.lib
+dll.exp
 libaquery.a
 libaquery.lib
 server.lib

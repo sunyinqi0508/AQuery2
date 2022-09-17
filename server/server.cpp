@@ -175,9 +175,11 @@ int dll_main(int argc, char** argv, Context* cxt){
                                 user_module_handle = dlopen(mname, RTLD_LAZY);
                                 //getlasterror
                                 
-#ifndef _MSC_VER
                                 if (!user_module_handle)
+#ifndef _MSC_VER
                                     puts(dlerror());
+#else
+                                    printf("Fatal Error: Module %s failed to load with error code %d.\n", mname, GetLastError());
 #endif
                                 user_module_map[mname] = user_module_handle;
                                 initialize_module(mname, user_module_handle, cxt);
