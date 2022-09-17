@@ -3,11 +3,11 @@ MonetDB_LIB =
 MonetDB_INC = 
 Threading = 
 CXXFLAGS = --std=c++1z
-OPTFLAGS = -g3 #-O3 -fno-semantic-interposition
+OPTFLAGS = -O3 -fno-semantic-interposition
 LINKFLAGS = -flto
 SHAREDFLAGS = -shared  
 FPIC = -fPIC
-COMPILER = $(shell $(CXX) --version | grep -q 'clang' && echo "clang"|| echo "gcc") 
+COMPILER = $(shell $(CXX) --version | grep -q clang && echo clang|| echo gcc) 
 LIBTOOL = 
 USELIB_FLAG = -Wl,--whole-archive,libaquery.a -Wl,-no-whole-archive
 LIBAQ_SRC = server/server.cpp server/monetdb_conn.cpp server/io.cpp 
@@ -19,6 +19,7 @@ else
 	PCHFLAGS = 
 endif
 
+
 ifeq ($(OS),Windows_NT)
 	NULL_DEVICE = NUL
 	OS_SUPPORT += server/winhelper.cpp
@@ -26,6 +27,9 @@ ifeq ($(OS),Windows_NT)
 	MonetDB_LIB += msc-plugin/monetdbe.dll 
 	MonetDB_INC +=  -Imonetdb/msvc
 	LIBTOOL = gcc-ar rcs
+	ifeq ($(COMPILER), clang )
+		FPIC =
+	endif
 else
 	UNAME_S = $(shell uname -s)
 	UNAME_M = $(shell uname -m)
@@ -64,7 +68,9 @@ info:
 	$(info "test")
 	$(info $(LIBTOOL))
 	$(info $(MonetDB_INC))
+	$(info $(COMPILER))
 	$(info $(CXX))
+	$(info $(FPIC))
 pch:
 	$(CXX) -x c++-header server/pch.hpp $(FPIC) $(MonetDB_INC) $(OPTFLAGS) $(CXXFLAGS) $(Threading)
 libaquery.a:
@@ -91,6 +97,6 @@ docker:
 	docker build -t aquery .
 
 clean:
-	rm *.shm *.o dll.so server.so server.bin libaquery.a .cached -rf 2> $(NULL_DEVICE) || true
+	rm *.shm *.o dll.so server.so server.bin -rf 2> $(NULL_DEVICE) || true
 
 
