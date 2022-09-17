@@ -38,7 +38,7 @@ else
 		USELIB_FLAG = -Wl,-force_load
 		MonetDB_LIB += -L$(shell brew --prefix monetdb)/lib 
 		MonetDB_INC += -I$(shell brew --prefix monetdb)/include/monetdb
-		ifeq ($(COMPILER),clang )
+		ifeq ($(COMPILER), clang )
 			LIBTOOL = libtool -static -o
 		endif
 		ifneq ($(UNAME_M),arm64)
