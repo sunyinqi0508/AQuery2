@@ -169,6 +169,51 @@ namespace types {
 	using GetLongType = typename GetLongTypeImpl<typename std::decay<T>::type>::type;
 }
 
+struct astring_view {
+	const unsigned char* str = 0;
+	constexpr astring_view(const char* str) :
+		str((const unsigned char*)(str)) {}
+	constexpr astring_view(const signed char* str) :
+		str((const unsigned char*)(str)) {}
+	constexpr astring_view(const unsigned char* str) :
+		str(str) {}
+	constexpr astring_view() = default;
+
+	bool operator==(const astring_view& r) const {
+		auto this_str = str;
+		auto other_str = r.str;
+		while (*this_str && *other_str) {
+			if (*this_str != *other_str)
+				return false;
+			this_str++;
+			other_str++;
+		}
+		return !(*this_str || *other_str);
+	}
+	operator const char* () const {
+		return reinterpret_cast<const char*>(str);
+	}
+	operator const unsigned char* () const {
+		return reinterpret_cast<const unsigned char*>(str);
+	}
+	operator const signed char* () const {
+		return reinterpret_cast<const signed  char*>(str);
+	}
+};
+
+template<class T>
+constexpr bool is_cstr() {
+	using namespace std;
+	typedef decay_t<T> dT;
+	return is_same_v<dT, const char*> ||
+		is_same_v<dT, char*> ||
+		is_same_v<dT, const signed char*> ||
+		is_same_v<dT, signed char*> ||
+		is_same_v<dT, const unsigned char*> ||
+		is_same_v<dT, unsigned char*> ||
+		is_same_v<dT, astring_view>;
+}
+
 #define getT(i, t) std::tuple_element_t<i, std::tuple<t...>>
 template <template<typename ...> class T, typename ...Types>
 struct applyTemplates {

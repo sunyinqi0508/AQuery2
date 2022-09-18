@@ -333,9 +333,9 @@ int test_main()
     //printf("sibal: %p %p\n", aa, bb);
 
     const char* qs[]= {
-        "CREATE TABLE test(a INT, b INT, c INT, d INT);",
-        "COPY OFFSET 2 INTO test FROM  'c:/Users/sunyi/Desktop/AQuery2/data/test2.csv'  ON SERVER    USING DELIMITERS  ',';",
-        "SELECT (a + b), a,b,c  FROM test ;",
+        "CREATE TABLE network(src VARCHAR(3), dst VARCHAR(3), len INT, _time INT);",
+        "COPY OFFSET 2 INTO network FROM  'c:/Users/sunyi/Desktop/AQuery2/data/network.csv'  ON SERVER    USING DELIMITERS  ',';",
+        "SELECT src, dst, len, _time  FROM network ORDER BY src, dst, _time",
     };
     n_recv = sizeof(qs)/(sizeof (char*));
 	n_recvd = const_cast<char**>(qs);
@@ -354,7 +354,7 @@ int test_main()
     cxt->log("handle: %p\n", handle);
     if (handle) {
         cxt->log("inner\n");
-        code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, "dll_ZF5Shg"));
+        code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, "dll_54aqwy"));
         cxt->log("routine: %p\n", c);
         if (c) {
             cxt->log("inner\n");

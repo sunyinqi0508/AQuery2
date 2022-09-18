@@ -26,8 +26,7 @@ LL_Type sum(const VT<T>& v) {
 template<class T, template<typename ...> class VT>
 //types::GetFPType<T> 
 double avg(const VT<T>& v) {
-	return static_cast<types::GetFPType<T>>(
-		sum<T>(v) / static_cast<long double>(v.size));
+	return (sum<T>(v) / static_cast<double>(v.size));
 }
 
 template<class T, template<typename ...> class VT>

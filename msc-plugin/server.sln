@@ -9,6 +9,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "server", "server.vcxproj", 
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "msc-plugin", "msc-plugin.vcxproj", "{8081FDAA-4D13-4B7A-ADB2-8224AF7F1C81}"
+	ProjectSection(ProjectDependencies) = postProject
+		{B52AACF7-16A6-4FCA-90AD-867D367BDA4F} = {B52AACF7-16A6-4FCA-90AD-867D367BDA4F}
+	EndProjectSection
 EndProject
 Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "msvs-py", "..\msvs-py\msvs-py.pyproj", "{CCC243F5-663E-45B7-A6DE-B2468C58B3A7}"
 EndProject
@@ -17,6 +20,12 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "launcher", "launcher.vcxproj", "{C8E25628-0B46-4CBE-90DF-5228F79A5A64}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sdk_example", "sdk_example.vcxproj", "{F954797B-C148-4CBF-9FB4-A9A450EFEC38}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "testmain", "testmain.vcxproj", "{73BD0DDA-7E66-4318-B46B-B8207AFA6355}"
+	ProjectSection(ProjectDependencies) = postProject
+		{8081FDAA-4D13-4B7A-ADB2-8224AF7F1C81} = {8081FDAA-4D13-4B7A-ADB2-8224AF7F1C81}
+		{B52AACF7-16A6-4FCA-90AD-867D367BDA4F} = {B52AACF7-16A6-4FCA-90AD-867D367BDA4F}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -116,6 +125,22 @@ Global
 		{F954797B-C148-4CBF-9FB4-A9A450EFEC38}.sharedlib|x64.Build.0 = Debug|x64
 		{F954797B-C148-4CBF-9FB4-A9A450EFEC38}.sharedlib|x86.ActiveCfg = Debug|Win32
 		{F954797B-C148-4CBF-9FB4-A9A450EFEC38}.sharedlib|x86.Build.0 = Debug|Win32
+		{73BD0DDA-7E66-4318-B46B-B8207AFA6355}.Debug|x64.ActiveCfg = Debug|x64
+		{73BD0DDA-7E66-4318-B46B-B8207AFA6355}.Debug|x64.Build.0 = Debug|x64
+		{73BD0DDA-7E66-4318-B46B-B8207AFA6355}.Debug|x86.ActiveCfg = Debug|Win32
+		{73BD0DDA-7E66-4318-B46B-B8207AFA6355}.Debug|x86.Build.0 = Debug|Win32
+		{73BD0DDA-7E66-4318-B46B-B8207AFA6355}.Release|x64.ActiveCfg = Release|x64
+		{73BD0DDA-7E66-4318-B46B-B8207AFA6355}.Release|x64.Build.0 = Release|x64
+		{73BD0DDA-7E66-4318-B46B-B8207AFA6355}.Release|x86.ActiveCfg = Release|Win32
+		{73BD0DDA-7E66-4318-B46B-B8207AFA6355}.Release|x86.Build.0 = Release|Win32
+		{73BD0DDA-7E66-4318-B46B-B8207AFA6355}.shared|x64.ActiveCfg = sharedlib|x64
+		{73BD0DDA-7E66-4318-B46B-B8207AFA6355}.shared|x64.Build.0 = sharedlib|x64
+		{73BD0DDA-7E66-4318-B46B-B8207AFA6355}.shared|x86.ActiveCfg = sharedlib|Win32
+		{73BD0DDA-7E66-4318-B46B-B8207AFA6355}.shared|x86.Build.0 = sharedlib|Win32
+		{73BD0DDA-7E66-4318-B46B-B8207AFA6355}.sharedlib|x64.ActiveCfg = sharedlib|x64
+		{73BD0DDA-7E66-4318-B46B-B8207AFA6355}.sharedlib|x64.Build.0 = sharedlib|x64
+		{73BD0DDA-7E66-4318-B46B-B8207AFA6355}.sharedlib|x86.ActiveCfg = sharedlib|Win32
+		{73BD0DDA-7E66-4318-B46B-B8207AFA6355}.sharedlib|x86.Build.0 = sharedlib|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

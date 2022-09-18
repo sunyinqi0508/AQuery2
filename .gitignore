@@ -1,4 +1,6 @@
 *.dSYM
+testmain.lib
+testmain.exp
 test.lib
 test.exp
 *.pdb
