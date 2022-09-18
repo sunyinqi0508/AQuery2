@@ -47,7 +47,7 @@ public:
 	_Ty* container;
 	uint32_t size, capacity;
 	typedef _Ty* iterator_t;
-	typedef _Ty value_t;
+	typedef std::conditional_t<is_cstr<_Ty>(), astring_view, _Ty> value_t;
 	vector_type(const uint32_t& size) : size(size), capacity(size) {
 		container = (_Ty*)malloc(size * sizeof(_Ty));
 	}
