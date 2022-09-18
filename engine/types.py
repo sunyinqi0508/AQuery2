@@ -88,9 +88,9 @@ class TypeCollection:
 type_table = dict()
 AnyT = Types(-1)
 LazyT = Types(240, name = 'Lazy', cname = '', sqlname = '', ctype_name = '')
-LazyT = Types(200, name = 'DATE', cname = 'types::date_t', sqlname = 'DATE', ctype_name = 'types::ADATE')
-LazyT = Types(201, name = 'TIME', cname = 'types::time_t', sqlname = 'TIME', ctype_name = 'types::ATIME')
-LazyT = Types(202, name = 'TIMESTAMP', cname = 'types::timestamp_t', sqlname = 'TIMESTAMP', ctype_name = 'ATIMESTAMP')
+DateT = Types(200, name = 'DATE', cname = 'types::date_t', sqlname = 'DATE', ctype_name = 'types::ADATE')
+TimeT = Types(201, name = 'TIME', cname = 'types::time_t', sqlname = 'TIME', ctype_name = 'types::ATIME')
+TimeStampT = Types(202, name = 'TIMESTAMP', cname = 'types::timestamp_t', sqlname = 'TIMESTAMP', ctype_name = 'ATIMESTAMP')
 DoubleT = Types(17, name = 'double', cname='double', sqlname = 'DOUBLE', is_fp = True)
 LDoubleT = Types(18, name = 'long double', cname='long double', sqlname = 'LDOUBLE', is_fp = True)
 FloatT = Types(16, name = 'float', cname = 'float', sqlname = 'REAL', 
@@ -137,7 +137,8 @@ def _ty_make_dict(fn : str, *ty : Types):
 int_types : Dict[str, Types] = _ty_make_dict('t.sqlname.lower()', LongT, ByteT, ShortT, IntT)
 uint_types : Dict[str, Types] = _ty_make_dict('t.sqlname.lower()', ULongT, UByteT, UShortT, UIntT)
 fp_types : Dict[str, Types] = _ty_make_dict('t.sqlname.lower()', FloatT, DoubleT)
-builtin_types : Dict[str, Types] = {**_ty_make_dict('t.sqlname.lower()', AnyT, StrT), **int_types, **fp_types}
+temporal_types : Dict[str, Types] = _ty_make_dict('t.sqlname.lower()', DateT, TimeT, TimeStampT)
+builtin_types : Dict[str, Types] = {**_ty_make_dict('t.sqlname.lower()', AnyT, StrT), **int_types, **fp_types, **temporal_types}
 
 def get_int128_support():
     for t in int_types.values():

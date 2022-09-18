@@ -49,6 +49,7 @@ test*.c*
 !test2.csv
 !moving_avg.csv
 !nyctx100.csv
+!network.csv
 *.out
 *.asm
 !mmw.so

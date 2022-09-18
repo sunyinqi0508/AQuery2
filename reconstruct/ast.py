@@ -233,12 +233,16 @@ class projection(ast_node):
                 out_typenames[key] = decltypestring
             else:
                 out_typenames[key] = val[0].cname
-            if (type(val[2].udf_called) is udf and 
+            if (type(val[2].udf_called) is udf and # should bulkret also be colref?
                     val[2].udf_called.return_pattern == udf.ReturnPattern.elemental_return
                     or 
-                    self.group_node and self.group_node.use_sp_gb and
+                    self.group_node and 
+                    (self.group_node.use_sp_gb and
                     val[2].cols_mentioned.intersection(
                         self.datasource.all_cols.difference(self.group_node.refs))
+                    ) and val[2].is_compound # compound val not in key
+                    # or 
+                    # (not self.group_node and val[2].is_compound)
                     ):
                     out_typenames[key] = f'ColRef<{out_typenames[key]}>'
         

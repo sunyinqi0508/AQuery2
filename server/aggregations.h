@@ -172,13 +172,7 @@ decayed_t<VT, T> deltas(const VT<T>& arr) {
 template<class T, template<typename ...> class VT>
 T last(const VT<T>& arr) {
 	const uint32_t& len = arr.size;
-	decayed_t<VT, T> ret(len);
-	uint32_t i = 0;
-	if (len)
-		ret[i++] = arr[0];
-	for (; i < len; ++i) 
-		ret[i] = arr[i-1];
-	return ret;
+	return arr[arr.size - 1];
 }
 
 // wrong behavior with count(0)

@@ -66,7 +66,6 @@ class expr(ast_node):
     def init(self, _):
         from reconstruct.ast import projection
         parent = self.parent
-        self.isvector = parent.isvector if type(parent) is expr else False
         self.is_compound = parent.is_compound if type(parent) is expr else False
         if type(parent) in [projection, expr]:
             self.datasource = parent.datasource
@@ -75,13 +74,16 @@ class expr(ast_node):
         self.udf_map = parent.context.udf_map
         self.func_maps = {**builtin_func, **self.udf_map, **user_module_func}
         self.operators = {**builtin_operators, **self.udf_map, **user_module_func}
-        self.ext_aggfuncs = ['sum', 'avg', 'count', 'min', 'max']
+        self.ext_aggfuncs = ['sum', 'avg', 'count', 'min', 'max', 'last']
         
     def produce(self, node):
         from engine.utils import enlist
         from reconstruct.ast import udf
         
         if type(node) is dict:
+            if len(node) > 1:
+                print(f'Parser Error: {node} has more than 1 dict entry.')
+                
             for key, val in node.items():
                 if key in self.operators:
                     if key in builtin_func:
@@ -96,6 +98,11 @@ class expr(ast_node):
                     exp_vals = [expr(self, v, c_code = self.c_code) for v in val]
                     str_vals = [e.sql for e in exp_vals]
                     type_vals = [e.type for e in exp_vals]
+                    is_compound = any([e.is_compound for e in exp_vals])
+                    if key in self.ext_aggfuncs:
+                        self.is_compound = False
+                    else:
+                        self.is_compound = is_compound
                     try:
                         self.type = op.return_type(*type_vals)
                     except AttributeError as e:
@@ -107,7 +114,7 @@ class expr(ast_node):
                         
                     self.sql = op(self.c_code, *str_vals)
                     special_func = [*self.context.udf_map.keys(), *self.context.module_map.keys(), 
-                                    "maxs", "mins", "avgs", "sums", "deltas", "last"]
+                                    "maxs", "mins", "avgs", "sums", "deltas"]
                     if self.context.special_gb:
                         special_func = [*special_func, *self.ext_aggfuncs]
                         
@@ -203,10 +210,6 @@ class expr(ast_node):
     
             # get the column from the datasource in SQL context
             else:
-                p = self.parent
-                while type(p) is expr and not p.isvector:
-                    p.isvector = True
-                    p = p.parent
                 if self.datasource is not None:
                     self.raw_col = self.datasource.parse_col_names(node)
                     self.raw_col = self.raw_col if type(self.raw_col) is ColRef else None
@@ -214,6 +217,7 @@ class expr(ast_node):
                     self.is_ColExpr = True
                     self.sql = self.raw_col.name
                     self.type = self.raw_col.type
+                    self.is_compound = True
                 else:
                     self.sql = node
                     self.type = StrT
@@ -234,7 +238,7 @@ class expr(ast_node):
                     self.type = IntT
             elif type(node) is float:
                 self.type = DoubleT
-
+    
     def finalize(self, override = False):
         from reconstruct.ast import udf
         if self.codebuf is None or override:
