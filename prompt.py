@@ -479,6 +479,10 @@ def prompt(running = lambda:True, next = lambda:input('> '), state = None):
             print(e)
             continue
         except (ValueError, FileNotFoundError) as e:
+            try:
+                os.remove('./cached')
+            except:
+                pass
             print(e)
         except (KeyboardInterrupt):
             break

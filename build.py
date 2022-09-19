@@ -21,7 +21,10 @@ class checksums:
                 server = 'server.so'
         ):
         from platform import machine
-        self.env = aquery_config.os_platform + machine() + aquery_config.build_driver
+        self.env = (aquery_config.os_platform +
+                    machine() + 
+                    aquery_config.build_driver
+                )
         for key in self.__dict__.keys():
             try:
                 with open(eval(key), 'rb') as file:
@@ -37,12 +40,13 @@ class checksums:
             except FileNotFoundError:
                 print('missing component: ' + key)
                 self.sources[key] = None
+                
     def __ne__(self, __o: 'checksums') -> 'checksums':
         ret = checksums()
         for key in self.__dict__.keys():
             try:
                 ret.__dict__[key] = (
-                    self.__dict__[key] and __o.__dict__[key] and
+                    not (self.__dict__[key] and __o.__dict__[key]) or
                     self.__dict__[key] != __o.__dict__[key]
                 )
             except KeyError:
@@ -54,7 +58,7 @@ class checksums:
         for key in self.__dict__.keys():
             try:
                 ret.__dict__[key] = (
-                    not (self.__dict__[key] and __o.__dict__[key]) or
+                    self.__dict__[key] and __o.__dict__[key] and
                     self.__dict__[key] == __o.__dict__[key]
                 )
             except KeyError:
@@ -82,16 +86,19 @@ class build_manager:
             self.mgr = mgr
             self.build_cmd = []
         def libaquery_a(self) :
-            pass
+            return False
         def pch(self):
-            pass
+            return False
         def build(self, stdout = sys.stdout, stderr = sys.stderr):
+            ret = True
             for c in self.build_cmd:
                 if c:
                     try:
-                        subprocess.call(c, stdout = stdout, stderr = stderr)
+                        ret = subprocess.call(c, stdout = stdout, stderr = stderr) and ret
                     except (FileNotFoundError):
+                        ret = False
                         pass
+            return ret
                 
     class MakefileDriver(DriverBase):
         def __init__(self, mgr : 'build_manager') -> None:
@@ -132,7 +139,7 @@ class build_manager:
             loc = os.path.abspath('./msc-plugin/libaquery.vcxproj')
             self.get_flags()
             self.build_cmd = [['del', 'libaquery.lib'], [aquery_config.msbuildroot, loc, self.opt, self.platform]]
-            self.build()
+            return self.build()
 
         def pch(self):
             pass
@@ -141,24 +148,17 @@ class build_manager:
             loc = os.path.abspath('./msc-plugin/server.vcxproj')
             self.get_flags()
             self.build_cmd = [['del', 'server.so'], [aquery_config.msbuildroot, loc, self.opt, self.platform]]
-            self.build()
+            return self.build()
 
         def snippet(self):
             loc = os.path.abspath('./msc-plugin/msc-plugin.vcxproj')
             self.get_flags()
             self.build_cmd = [[aquery_config.msbuildroot, loc, self.opt, self.platform]]
-            self.build()
+            return self.build()
 
     #class PythonDriver(DriverBase):
     #    def __init__(self, mgr : 'build_manager') -> None:
-    #        super().__init__(mgr)
-            
-    #@property
-    #def MSBuild(self):
-    #    return MSBuildDriver(self)
-    #@property
-    #def Makefile(self):
-    #    return MakefileDriver(self)
+    #        super().__init__(mgr)           
 
     def __init__(self) -> None:
         self.method = 'make'
@@ -181,7 +181,9 @@ class build_manager:
     def build_caches(self, force = False):
         cached = checksums()
         current = checksums()
-        libaquery_a = 'libaquery.lib' if aquery_config.os_platform else 'libaquery.a'
+        libaquery_a = 'libaquery.a' 
+        if aquery_config.os_platform == 'win':
+            libaquery_a = 'libaquery.lib'
         current.calc(libaquery_a)
         try:
             with open('.cached', 'rb') as cache_sig:
@@ -190,18 +192,25 @@ class build_manager:
             pass
         self.cache_status = current != cached
         
+        success = True
         if  force or self.cache_status.sources:
             self.driver.pch()
             self.driver.libaquery_a()
             self.driver.server()
         else:
             if self.cache_status.libaquery_a:
-                self.driver.libaquery_a()
+                success = self.driver.libaquery_a() and success
             if self.cache_status.pch_hpp_gch:
-                self.driver.pch()
+                success = self.driver.pch() and success
             if self.cache_status.server:
-                self.driver.server()
-        current.calc(libaquery_a)
-        with open('.cached', 'wb') as cache_sig:
-            cache_sig.write(pickle.dumps(current))
+                success = self.driver.server() and success
+        if success:
+            current.calc(libaquery_a)
+            with open('.cached', 'wb') as cache_sig:
+                cache_sig.write(pickle.dumps(current))
+        else:
+            try:
+                os.remove('./.cached')
+            except:
+                pass
             

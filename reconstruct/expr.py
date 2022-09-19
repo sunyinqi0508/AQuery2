@@ -26,7 +26,13 @@ class expr(ast_node):
     
     def __init__(self, parent, node, *, c_code = None, supress_undefined = False):
         from reconstruct.ast import projection, udf
-        
+        # gen2 expr have multi-passes
+        # first pass parse json into expr tree
+        # generate target code in later passes upon need
+        self.children = []
+        self.opname = ''
+        self.curr_code = ''
+        self.counts = {}
         self.type = None
         self.raw_col = None
         self.udf : Optional[udf] = None
@@ -93,9 +99,15 @@ class expr(ast_node):
                             self.is_agg_func = True
                     
                     op = self.operators[key]
-
+                    count_distinct = False
+                    if key == 'count' and type(val) is dict and 'distinct' in val:
+                        count_distinct = True
+                        val = val['distinct']
                     val = enlist(val)
                     exp_vals = [expr(self, v, c_code = self.c_code) for v in val]
+                    self.children = exp_vals
+                    self.opname = key
+                    
                     str_vals = [e.sql for e in exp_vals]
                     type_vals = [e.type for e in exp_vals]
                     is_compound = any([e.is_compound for e in exp_vals])
@@ -112,7 +124,11 @@ class expr(ast_node):
                             pass
                         self.type = AnyT
                         
-                    self.sql = op(self.c_code, *str_vals)
+                    if count_distinct: # inject distinct col later
+                        self.sql = f'{{{op(self.c_code, *str_vals, True)}}}'
+                    else:
+                        self.sql = op(self.c_code, *str_vals)
+                        
                     special_func = [*self.context.udf_map.keys(), *self.context.module_map.keys(), 
                                     "maxs", "mins", "avgs", "sums", "deltas"]
                     if self.context.special_gb:
@@ -218,19 +234,23 @@ class expr(ast_node):
                     self.sql = self.raw_col.name
                     self.type = self.raw_col.type
                     self.is_compound = True
+                    self.opname = self.raw_col
                 else:
                     self.sql = node
                     self.type = StrT
+                    self.opname = node
                 if self.c_code and self.datasource is not None:
                     self.sql = f'{{y(\"{self.sql}\")}}'
         elif type(node) is bool:
             self.type = BoolT
+            self.opname = node
             if self.c_code:
                 self.sql = '1' if node else '0'
             else:
                 self.sql = 'TRUE' if node else 'FALSE'
         else:
             self.sql = f'{node}'
+            self.opname = node
             if type(node) is int:
                 if (node >= 2**63 - 1 or node <= -2**63):
                     self.type = LongT
@@ -252,6 +272,12 @@ class expr(ast_node):
                     self.codebuf += c.finalize(override=override)
         return self.codebuf
 
+    def codegen(self, delegate):
+        self.curr_code = ''
+        for c in self.children:
+            self.curr_code += c.codegen(delegate)
+        return self.curr_code
+    
     def __str__(self):
         return self.sql
     def __repr__(self):
@@ -259,10 +285,17 @@ class expr(ast_node):
     
     # builtins is readonly, so it's okay to set default value as an object
     # eval is only called at root expr.
-    def eval(self, c_code = None, y = lambda t: t, materialize_builtin = False, _decltypestr = False, *, gettype = False):
+    def eval(self, c_code = None, y = lambda t: t, 
+             materialize_builtin = False, _decltypestr = False, 
+             count = lambda : 'count', var_inject = None, 
+             *, 
+             gettype = False):
         assert(self.is_root)
         def call(decltypestr = False) -> str:
-            nonlocal c_code, y, materialize_builtin
+            nonlocal c_code, y, materialize_builtin, count, var_inject
+            if var_inject:
+                for k, v in var_inject.items():
+                    locals()[k] = v
             if self.udf_called is not None:
                 loc = locals()
                 builtin_vars = self.udf_called.builtin_used

@@ -5,7 +5,7 @@ LOAD DATA INFILE "data/network.csv"
 INTO TABLE network
 FIELDS TERMINATED BY ","
 
-SELECT	 src, dst, avg(len)
+SELECT	 src, dst, count(*), avg(len)
 FROM	 network
 	     ASSUMING ASC src, ASC dst, ASC _time 
 GROUP BY src, dst, sums (deltas(_time) > 120)

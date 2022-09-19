@@ -223,12 +223,15 @@ class projection(ast_node):
             if type(val[1]) is str:
                 x = True
                 y = lambda t: self.pyname2cname[t]
-                val[1] = val[2].eval(x, y, gettype=True)
+                count = lambda : '0'
+                if vid2cname:
+                    count = lambda : f'{vid2cname[0]}.size'
+                val[1] = val[2].eval(x, y, count=count)
                 if callable(val[1]):
-                    val[1] = val[1](True)
-                decltypestring = val[1] 
+                    val[1] = val[1](False)
                 
             if val[0] == LazyT:
+                decltypestring = val[2].eval(x,y,gettype=True)(True)
                 decltypestring = f'value_type<decays<decltype({decltypestring})>>'
                 out_typenames[key] = decltypestring
             else:
@@ -461,7 +464,8 @@ class groupby_c(ast_node):
                 return get_var_names(sql_code)
             else:
                 return varex.eval(c_code=True, y = get_var_names, 
-                        materialize_builtin = materialize_builtin)
+                        materialize_builtin = materialize_builtin, 
+                        count=lambda:f'{val_var}.size')
                 
         for ce in cexprs:
             ex = ce[1]
