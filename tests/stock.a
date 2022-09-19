@@ -30,3 +30,4 @@ SELECT price, timestamp FROM stocks where price - timestamp > 1 and not (price*t
 SELECT max(price-mins(price))
 FROM stocks
    ASSUMING DESC timestamp
+

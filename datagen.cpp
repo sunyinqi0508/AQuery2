@@ -37,7 +37,7 @@ void permutation(int *v, int n) {
     }
 }
 
-int main(int argc, char* argv[])
+int gen_trade_data(int argc, char* argv[])
 {
     using std::vector;
     float frac = .3;
@@ -107,4 +107,49 @@ int main(int argc, char* argv[])
     }
     fclose(fp);
     return 0;
+}
+#include "./server/utils.h"
+#include "./server/types.h"
+#include <string>
+types::date_t rand_date(){
+    unsigned char d = ui(engine) % 28 + 1;
+    unsigned char m = ui(engine) % 12 + 1;
+    short y = ui(engine) % 40 + 1990;
+    if (ui(engine) % 2) return types::date_t((unsigned char)10, (unsigned char)1, 2003);
+    return types::date_t{d, m, y};
+}
+int gen_stock_data(int argc, char* argv[]){
+    using std::string;
+    using namespace types;
+    int n_stocks = 5;
+    int n_data = 1000;
+    string* IDs = new string[n_stocks + 1];
+    string* names = new string[n_stocks + 1];
+    for(int i = 0; i < n_stocks; ++i){
+        IDs[i] = base62uuid();
+        names[i] = base62uuid();
+    }
+    IDs[n_stocks] = "S";
+    names[n_stocks] = "x";
+    FILE* fp = fopen("./data/stock.csv", "w");
+    fprintf(fp, "ID, timestamp, tradeDate, price\n");
+    char date_str_buf [types::date_t::string_length()];
+    int* timestamps = new int[n_data];
+    for(int i = 0; i < n_data; ++i) timestamps[i] = i+1;
+    permutation(timestamps, n_data);
+    for(int i = 0; i < n_data; ++i){
+        auto date = rand_date().toString(date_str_buf + date_t::string_length());
+        fprintf(fp, "%s,%d,%s,%d\n", IDs[ui(engine)%(n_stocks + 1)].c_str(), timestamps[i], date, ui(engine) % 1000);
+    }
+    fclose(fp);
+    fp = fopen("./data/base.csv", "w");
+    fprintf(fp, "ID, name\n");
+    for(int i = 0; i < n_stocks + 1; ++ i){
+        fprintf(fp, "%s,%s\n", IDs[i].c_str(), names[i].c_str());
+    }
+    fclose(fp);
+}
+
+int main(int argc, char* argv[]){
+    gen_stock_data(argc, argv);
 }

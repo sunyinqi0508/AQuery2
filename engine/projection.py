@@ -29,7 +29,7 @@ class projection(ast_node):
     def spawn(self, node):
         self.datasource = None
         if 'from' in node:
-            from_clause = node['from']
+            from_clause = node['from']['table_source']
             if type(from_clause) is list:
                 # from joins
                 join(self, from_clause)
@@ -47,8 +47,8 @@ class projection(ast_node):
                         self.datasource = self.context.tables_byname[value]
                     if 'name' in value:
                         self.datasource.add_alias(value['name'])
-                if 'assumptions' in from_clause:
-                    self.assumptions = enlist(from_clause['assumptions'])
+                if 'assuming' in node['from']:
+                    self.assumptions = enlist(node['from']['assuming'])
                     
             elif type(from_clause) is str:
                 self.datasource = self.context.tables_byname[from_clause]

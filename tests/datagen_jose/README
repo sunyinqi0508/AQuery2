@@ -1,0 +1,26 @@
+There are 2 programs included in this package:
+1. histgen - generation program for historical data
+2. tickgen - generation program for tick data
+
+histgen takes 2 parameters 
+	a) Scale-factor: Number of securities for which data is to be generated
+	b) Depth of history: The number of days for which data is to be generated
+and genertes 2 files
+	a) hist-base-file: contains all the static data
+	b) hist-price-file: contains the pricing info
+	c) hist-split-file: contains the split info
+
+tickgen also takes 2 parameters
+	a) Scale-factor: Number of securities for which data is to be generated
+	b) Ticks per day: A measure of the activity on a per security basis. e.g 100 would mean
+	                  that each security ticks about 100 time in a trading day
+and generates 2 files
+	a) tick-base-file
+	b) tick-price-file
+
+run the programs without args to see the parameters required.
+
+------------------
+Make of programs:
+
+run the make program. It requires the C++ compiler (CC) to be in your path.

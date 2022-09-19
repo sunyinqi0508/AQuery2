@@ -69,7 +69,7 @@ namespace types {
 		time_t& fromString(const char*);
 		bool validate() const;
 		constexpr static unsigned string_length() {
-			return 13;
+			return 16;
 		};
 		char* toString(char* buf) const;
 		bool operator > (const time_t&) const;
