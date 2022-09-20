@@ -1,5 +1,4 @@
 #pragma once
-#include <string>
 #include <ctime>
 #if ((defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) || __cplusplus >= 201703L)
 constexpr static bool cpp_17 = true;
@@ -14,3 +13,5 @@ template <>
 inline const char* str(const bool& v) {
 	return v ? "true" : "false";
 }
+#include<string>
+extern std::string base62uuid(int l = 6);

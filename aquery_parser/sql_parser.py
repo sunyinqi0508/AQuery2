@@ -323,9 +323,12 @@ def parser(literal_string, ident, sqlserver=False):
 
         table_source = Forward()
 
+        assumption = Group((ASC|DESC) ("sort") + var_name("value"))
+        assumptions = Optional(ASSUMING.suppress() + Group(delimited_list(assumption)))
+
         join = (
             Group(joins)("op")
-            + table_source("join")
+            + (table_source )("join")
             + Optional((ON + expr("on")) | (USING + expr("using")))
             | (
                 Group(WINDOW)("op")
@@ -403,7 +406,12 @@ def parser(literal_string, ident, sqlserver=False):
             | selection
             + Optional(INTO + table_source("into"))
             + Optional(
-                (FROM + delimited_list(table_source) + ZeroOrMore(join))("from")
+                (
+                    FROM 
+                    + (delimited_list(table_source) 
+                    + ZeroOrMore(join))("table_source")
+                    + Optional(assumptions) ("assumptions")
+                )("from")
                 + Optional(WHERE + expr("where"))
                 + Optional(GROUP_BY + delimited_list(Group(named_column))("groupby"))
                 + Optional(HAVING + expr("having"))
@@ -443,12 +451,8 @@ def parser(literal_string, ident, sqlserver=False):
             + RB,
         )
 
-        assumption = Group((ASC|DESC) ("sort") + var_name("value"))
-        assumptions = (ASSUMING + Group(delimited_list(assumption))("assumptions"))
-
         table_source << Group(
             ((LB + query + RB) | stack | call_function | var_name)("value")
-            + Optional(assumptions)
             + Optional(flag("with ordinality"))
             + Optional(tablesample)
             + alias

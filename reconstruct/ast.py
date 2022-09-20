@@ -73,7 +73,7 @@ class projection(ast_node):
         self.datasource = join(self, [], self.context) # datasource is Join instead of TableInfo
         self.assumptions = []
         if 'from' in node:
-            from_clause = node['from']
+            from_clause = node['from']['table_source']
             self.datasource = join(self, from_clause)
             if 'assumptions' in from_clause:
                 self.assumptions = enlist(from_clause['assumptions'])
@@ -129,12 +129,17 @@ class projection(ast_node):
                     if not proj_expr.is_special:
                         y = lambda x:x
                         name = eval('f\'' + name + '\'')
+                        offset = len(col_exprs)
                         if name not in self.var_table:
-                            self.var_table[name] = len(col_exprs)
-                        proj_map[i] = [this_type, len(col_exprs), proj_expr]
+                            self.var_table[name] = offset
+                            if proj_expr.is_ColExpr and type(proj_expr.raw_col) is ColRef:
+                                for n in (proj_expr.raw_col.table.alias):
+                                    self.var_table[f'{n}.'+name] = offset
+                        proj_map[i] = [this_type, offset, proj_expr]
                         col_expr = name + ' AS ' + alias if alias else name
                         if alias:
-                            self.var_table[alias] = len(col_exprs)
+                            self.var_table[alias] = offset
+                            
                         col_exprs.append((col_expr, proj_expr.type))
                     else:
                         self.context.headers.add('"./server/aggregations.h"')
@@ -164,10 +169,12 @@ class projection(ast_node):
         self.add(', '.join([c[0] for c in col_exprs] + col_ext_names))
     
         _base_offset = len(col_exprs)
-        for i, col in enumerate(col_ext_names):
-            if col not in self.var_table:
-                self.var_table[col] = i + _base_offset
-    
+        for i, col in enumerate(self.col_ext):
+            if col.name not in self.var_table:
+                offset = i + _base_offset
+                self.var_table[col.name] = offset
+                for n in (col.table.alias):
+                    self.var_table[f'{n}.'+col.name] = offset
     
         def finialize(astnode:ast_node):
             if(astnode is not None):
@@ -223,12 +230,15 @@ class projection(ast_node):
             if type(val[1]) is str:
                 x = True
                 y = lambda t: self.pyname2cname[t]
-                val[1] = val[2].eval(x, y, gettype=True)
+                count = lambda : '0'
+                if vid2cname:
+                    count = lambda : f'{vid2cname[0]}.size'
+                val[1] = val[2].eval(x, y, count=count)
                 if callable(val[1]):
-                    val[1] = val[1](True)
-                decltypestring = val[1] 
+                    val[1] = val[1](False)
                 
             if val[0] == LazyT:
+                decltypestring = val[2].eval(x,y,gettype=True)(True)
                 decltypestring = f'value_type<decays<decltype({decltypestring})>>'
                 out_typenames[key] = decltypestring
             else:
@@ -461,7 +471,8 @@ class groupby_c(ast_node):
                 return get_var_names(sql_code)
             else:
                 return varex.eval(c_code=True, y = get_var_names, 
-                        materialize_builtin = materialize_builtin)
+                        materialize_builtin = materialize_builtin, 
+                        count=lambda:f'{val_var}.size')
                 
         for ce in cexprs:
             ex = ce[1]
@@ -544,24 +555,25 @@ class join(ast_node):
         self.tables_dir = dict()
         self.rec = None
         self.top_level = self.parent and type(self.parent) is projection
+        self.have_sep = False
         # self.tmp_name = 'join_' + base62uuid(4)
         # self.datasource = TableInfo(self.tmp_name, [], self.context)
     def append(self, tbls, __alias = ''):
-        alias = lambda t : '(' + t + ') ' + __alias if len(__alias) else t
+        alias = lambda t : t + ' ' + __alias if len(__alias) else t
         if type(tbls) is join:
-            self.joins.append(alias(tbls.__str__()))
+            self.joins.append((alias(tbls.__str__()), tbls.have_sep))
             self.tables += tbls.tables
             self.tables_dir = {**self.tables_dir, **tbls.tables_dir}
             
         elif type(tbls) is TableInfo:
-            self.joins.append(alias(tbls.table_name))
+            self.joins.append((alias(tbls.table_name), False))
             self.tables.append(tbls)
             self.tables_dir[tbls.table_name] = tbls
             for a in tbls.alias:
                 self.tables_dir[a] = tbls
             
         elif type(tbls) is projection:
-            self.joins.append(alias(tbls.finalize()))
+            self.joins.append((alias(tbls.finalize()), False))
             
     def produce(self, node):
         if type(node) is list:
@@ -585,13 +597,14 @@ class join(ast_node):
                         tbl.add_alias(node['name'])
                 self.append(tbl, alias)
             else:
-                keys = node.keys()
+                keys = list(node.keys())
                 if keys[0].lower().endswith('join'):
+                    self.have_sep = True
                     j = join(self, node[keys[0]])
                     tablename = f' {keys[0]} {j}'
-                    if keys[1].lower() == 'on':
+                    if len(keys) > 1 and keys[1].lower() == 'on':
                         tablename += f' on {expr(self, node[keys[1]])}' 
-                    self.joins.append(tablename)
+                    self.joins.append((tablename, self.have_sep))
                     self.tables += j.tables
                     self.tables_dir = {**self.tables_dir, **j.tables_dir}
                 
@@ -618,18 +631,27 @@ class join(ast_node):
             if datasource is None:
                 raise ValueError(f'Table name/alias not defined{parsedColExpr[0]}')
             else:
-                return datasource.parse_col_names(parsedColExpr[1])
+                datasource.rec = self.rec
+                ret = datasource.parse_col_names(parsedColExpr[1])
+                datasource.rec = None
+                return ret
+                
     @property
     def all_cols(self):
         return set([c for t in self.tables for c in t.columns])
     def consume(self, node):
-        self.sql = ', '.join(self.joins)
+        self.sql = ''
+        for j in self.joins:
+            if not self.sql or j[1]:
+                self.sql += j[0]
+            else:
+                self.sql += ', ' + j[0]        
         if node and self.sql and self.top_level:
             self.sql = ' FROM ' + self.sql 
         return super().consume(node)
     
     def __str__(self):
-        return ', '.join(self.joins)
+        return self.sql
     def __repr__(self):
         return self.__str__()
     

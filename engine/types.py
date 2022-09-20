@@ -1,5 +1,5 @@
 from copy import deepcopy
-from engine.utils import defval
+from engine.utils import base62uuid, defval
 from aquery_config import have_hge
 from typing import Dict, List
 
@@ -244,6 +244,14 @@ def fn_behavior(op:OperatorBase, c_code, *x):
     name = op.cname if c_code else op.sqlname
     return f'{name}({", ".join([f"{xx}" for xx in x])})'
 
+def count_behavior(op:OperatorBase, c_code, x, distinct = False):
+    if not c_code:
+        return f'{op.sqlname}({"distinct " if distinct else ""}{x})'
+    elif distinct:
+        return '({x}).distinct_size()'
+    else:
+        return '{count()}'
+
 def windowed_fn_behavor(op: OperatorBase, c_code, *x):
     if not c_code:
         return f'{op.sqlname}({", ".join([f"{xx}" for xx in x])})'
@@ -282,7 +290,7 @@ fnmaxs = OperatorBase('maxs', [1, 2], ty_clamp(as_is, -1), cname = 'maxs', sqlna
 fnmins = OperatorBase('mins', [1, 2], ty_clamp(as_is, -1), cname = 'mins', sqlname = 'MINS', call = windowed_fn_behavor)
 fnsums = OperatorBase('sums', [1, 2], ext(ty_clamp(auto_extension, -1)), cname = 'sums', sqlname = 'SUMS', call = windowed_fn_behavor)
 fnavgs = OperatorBase('avgs', [1, 2], fp(ext(ty_clamp(auto_extension, -1))), cname = 'avgs', sqlname = 'AVGS', call = windowed_fn_behavor)
-fncnt = OperatorBase('count', 1, int_return, cname = 'count', sqlname = 'COUNT', call = fn_behavior)
+fncnt = OperatorBase('count', 1, int_return, cname = 'count', sqlname = 'COUNT', call = count_behavior)
 # special
 def is_null_call_behavior(op:OperatorBase, c_code : bool, x : str):
     if c_code : 

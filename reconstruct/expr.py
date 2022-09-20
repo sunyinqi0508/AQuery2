@@ -26,7 +26,13 @@ class expr(ast_node):
     
     def __init__(self, parent, node, *, c_code = None, supress_undefined = False):
         from reconstruct.ast import projection, udf
-        
+        # gen2 expr have multi-passes
+        # first pass parse json into expr tree
+        # generate target code in later passes upon need
+        self.children = []
+        self.opname = ''
+        self.curr_code = ''
+        self.counts = {}
         self.type = None
         self.raw_col = None
         self.udf : Optional[udf] = None
@@ -81,106 +87,124 @@ class expr(ast_node):
         from reconstruct.ast import udf
         
         if type(node) is dict:
-            if len(node) > 1:
-                print(f'Parser Error: {node} has more than 1 dict entry.')
+            if 'literal' in node:
+                node = node['literal']
+            else:
+                if len(node) > 1:
+                    print(f'Parser Error: {node} has more than 1 dict entry.')
                 
-            for key, val in node.items():
-                if key in self.operators:
-                    if key in builtin_func:
-                        if self.is_agg_func:
-                            self.root.is_special = True # Nested Aggregation
-                        else:
-                            self.is_agg_func = True
-                    
-                    op = self.operators[key]
-
-                    val = enlist(val)
-                    exp_vals = [expr(self, v, c_code = self.c_code) for v in val]
-                    str_vals = [e.sql for e in exp_vals]
-                    type_vals = [e.type for e in exp_vals]
-                    is_compound = any([e.is_compound for e in exp_vals])
-                    if key in self.ext_aggfuncs:
-                        self.is_compound = False
-                    else:
-                        self.is_compound = is_compound
-                    try:
-                        self.type = op.return_type(*type_vals)
-                    except AttributeError as e:
-                        if type(self.root) is not udf:
-                            # TODO: do something when this is not an error
-                            # print(f'alert: {e}')
-                            pass
-                        self.type = AnyT
+                for key, val in node.items():
+                    key = key.lower()
+                    if key in self.operators:
+                        if key in builtin_func:
+                            if self.is_agg_func:
+                                self.root.is_special = True # Nested Aggregation
+                            else:
+                                self.is_agg_func = True
                         
-                    self.sql = op(self.c_code, *str_vals)
-                    special_func = [*self.context.udf_map.keys(), *self.context.module_map.keys(), 
-                                    "maxs", "mins", "avgs", "sums", "deltas"]
-                    if self.context.special_gb:
-                        special_func = [*special_func, *self.ext_aggfuncs]
-                        
-                    if key in special_func and not self.is_special:
-                        self.is_special = True
-                        if key in self.context.udf_map:
-                            self.root.udf_called = self.context.udf_map[key]
-                            if self.is_udfexpr and key == self.root.udf.name:
-                                self.root.is_recursive_call_inudf = True
-                        elif key in user_module_func.keys():
-                            udf.try_init_udf(self.context)                           
-                        # TODO: make udf_called a set!
-                        p = self.parent
-                        while type(p) is expr and not p.udf_called:
-                            p.udf_called = self.udf_called
-                            p = p.parent
-                        p = self.parent
-                        while type(p) is expr and not p.is_special:
-                            p.is_special = True
-                            p = p.parent
-
-                    need_decltypestr = any([e.need_decltypestr for e in exp_vals])        
-                    if need_decltypestr or (self.udf_called and type(op) is udf):
-                        decltypestr_vals = [e.udf_decltypecall for e in exp_vals]
-                        self.udf_decltypecall = op(self.c_code, *decltypestr_vals)
-
-                        if self.udf_called and type(op) is udf:
-                            self.udf_decltypecall = op.decltypecall(self.c_code, *decltypestr_vals)
-            
-                elif self.is_udfexpr:
-                    var_table = self.root.udf.var_table
-                    vec = key.split('.')
-                    _vars = [*var_table, *self.builtin_vars]
-                    def get_vname (node):
-                        if node in self.builtin_vars:
-                            self.root.udf.builtin[node].enabled = True
-                            self.builtin_var = node
-                            return node
-                        else:
-                            return var_table[node]
-                    if vec[0] not in _vars:
-                        # print(f'Use of undefined variable {vec[0]}')
-                        # TODO: do something when this is not an error
-                        pass
-                    else:
-                        vname = get_vname(vec[0])
+                        op = self.operators[key]
+                        count_distinct = False
+                        if key == 'count' and type(val) is dict and 'distinct' in val:
+                            count_distinct = True
+                            val = val['distinct']
                         val = enlist(val)
-                        if(len(val) > 2):
-                            print('Warning: more than 2 indexes found for subvec operator.')
-                        ex = [expr(self, v, c_code = self.c_code) for v in val]
-                        idxs = ', '.join([e.sql for e in ex])
-                        self.sql = f'{vname}.subvec({idxs})'
-                        if any([e.need_decltypestr for e in ex]):
-                            self.udf_decltypecall = f'{vname}.subvec({[", ".join([e.udf_decltypecall for e in ex])]})'
-                    if key == 'get' and len(val) > 1:
-                        ex_vname = expr(self, val[0], c_code=self.c_code)
-                        self.sql = f'{ex_vname.sql}[{expr(self, val[1], c_code=self.c_code).sql}]'
-                        if hasattr(ex_vname, 'builtin_var'):
-                            if not hasattr(self, 'builtin_var'):
-                                self.builtin_var = []
-                            self.builtin_var = [*self.builtin_var, *ex_vname.builtin_var]
-                            self.udf_decltypecall = ex_vname.sql
-                else:
-                    print(f'Undefined expr: {key}{val}')
+                        exp_vals = [expr(self, v, c_code = self.c_code) for v in val]
+                        self.children = exp_vals
+                        self.opname = key
+                        
+                        str_vals = [e.sql for e in exp_vals]
+                        type_vals = [e.type for e in exp_vals]
+                        is_compound = any([e.is_compound for e in exp_vals])
+                        if key in self.ext_aggfuncs:
+                            self.is_compound = False
+                        else:
+                            self.is_compound = is_compound
+                        try:
+                            self.type = op.return_type(*type_vals)
+                        except AttributeError as e:
+                            if type(self.root.parent) is not udf:
+                                # TODO: do something when this is not an error
+                                print(f'alert: {e}')
+                                pass
+                            self.type = AnyT
+                            
+                        if count_distinct: # inject distinct col later
+                            self.sql = f'{{{op(self.c_code, *str_vals, True)}}}'
+                        else:
+                            self.sql = op(self.c_code, *str_vals)
+                            
+                        special_func = [*self.context.udf_map.keys(), *self.context.module_map.keys(), 
+                                        "maxs", "mins", "avgs", "sums", "deltas", "last"]
+                        if self.context.special_gb:
+                            special_func = [*special_func, *self.ext_aggfuncs]
+                            
+                        if key in special_func and not self.is_special:
+                            self.is_special = True
+                            if key in self.context.udf_map:
+                                self.root.udf_called = self.context.udf_map[key]
+                                if self.is_udfexpr and key == self.root.udf.name:
+                                    self.root.is_recursive_call_inudf = True
+                            elif key in user_module_func.keys():
+                                udf.try_init_udf(self.context)                           
+                            # TODO: make udf_called a set!
+                            p = self.parent
+                            while type(p) is expr and not p.udf_called:
+                                p.udf_called = self.udf_called
+                                p = p.parent
+                            p = self.parent
+                            while type(p) is expr and not p.is_special:
+                                p.is_special = True
+                                p = p.parent
 
-        elif type(node) is str:
+                        need_decltypestr = any([e.need_decltypestr for e in exp_vals])        
+                        if need_decltypestr or (self.udf_called and type(op) is udf):
+                            decltypestr_vals = [e.udf_decltypecall for e in exp_vals]
+                            self.udf_decltypecall = op(self.c_code, *decltypestr_vals)
+
+                            if self.udf_called and type(op) is udf:
+                                self.udf_decltypecall = op.decltypecall(self.c_code, *decltypestr_vals)
+                
+                    elif self.is_udfexpr:
+                        var_table = self.root.udf.var_table
+                        vec = key.split('.')
+                        _vars = [*var_table, *self.builtin_vars]
+                        def get_vname (node):
+                            if node in self.builtin_vars:
+                                self.root.udf.builtin[node].enabled = True
+                                self.builtin_var = node
+                                return node
+                            else:
+                                return var_table[node]
+                        if vec[0] not in _vars:
+                            # print(f'Use of undefined variable {vec[0]}')
+                            # TODO: do something when this is not an error
+                            pass
+                        else:
+                            vname = get_vname(vec[0])
+                            val = enlist(val)
+                            if(len(val) > 2):
+                                print('Warning: more than 2 indexes found for subvec operator.')
+                            ex = [expr(self, v, c_code = self.c_code) for v in val]
+                            idxs = ', '.join([e.sql for e in ex])
+                            self.sql = f'{vname}.subvec({idxs})'
+                            if any([e.need_decltypestr for e in ex]):
+                                self.udf_decltypecall = f'{vname}.subvec({[", ".join([e.udf_decltypecall for e in ex])]})'
+                        if key == 'get' and len(val) > 1:
+                            ex_vname = expr(self, val[0], c_code=self.c_code)
+                            self.sql = f'{ex_vname.sql}[{expr(self, val[1], c_code=self.c_code).sql}]'
+                            if hasattr(ex_vname, 'builtin_var'):
+                                if not hasattr(self, 'builtin_var'):
+                                    self.builtin_var = []
+                                self.builtin_var = [*self.builtin_var, *ex_vname.builtin_var]
+                                self.udf_decltypecall = ex_vname.sql
+                    else:
+                        print(f'Undefined expr: {key}{val}')
+            if 'distinct' in val and key != count:
+                if self.c_code:
+                    self.sql = 'distinct ' + self.sql
+                elif self.is_compound:
+                    self.sql = '(' + self.sql + ').distinct()' 
+        if type(node) is str:
             if self.is_udfexpr:
                 curr_udf : udf = self.root.udf
                 var_table = curr_udf.var_table
@@ -215,22 +239,41 @@ class expr(ast_node):
                     self.raw_col = self.raw_col if type(self.raw_col) is ColRef else None
                 if self.raw_col is not None:
                     self.is_ColExpr = True
-                    self.sql = self.raw_col.name
+                    table_name = ''
+                    if '.' in node:
+                        table_name = self.raw_col.table.table_name
+                        if self.raw_col.table.alias:
+                            alias = iter(self.raw_col.table.alias)
+                            try:
+                                a = next(alias)
+                                while(not a or a == table_name):
+                                    a = next(alias)
+                                if (a and a != table_name):
+                                    table_name = a
+                            except StopIteration:
+                                pass
+                    if table_name:
+                        table_name = table_name + '.'
+                    self.sql = table_name + self.raw_col.name
                     self.type = self.raw_col.type
                     self.is_compound = True
+                    self.opname = self.raw_col
                 else:
-                    self.sql = node
+                    self.sql = '\'' + node + '\''
                     self.type = StrT
+                    self.opname = self.sql
                 if self.c_code and self.datasource is not None:
                     self.sql = f'{{y(\"{self.sql}\")}}'
         elif type(node) is bool:
             self.type = BoolT
+            self.opname = node
             if self.c_code:
                 self.sql = '1' if node else '0'
             else:
                 self.sql = 'TRUE' if node else 'FALSE'
-        else:
+        elif type(node) is not dict:
             self.sql = f'{node}'
+            self.opname = node
             if type(node) is int:
                 if (node >= 2**63 - 1 or node <= -2**63):
                     self.type = LongT
@@ -252,6 +295,12 @@ class expr(ast_node):
                     self.codebuf += c.finalize(override=override)
         return self.codebuf
 
+    def codegen(self, delegate):
+        self.curr_code = ''
+        for c in self.children:
+            self.curr_code += c.codegen(delegate)
+        return self.curr_code
+    
     def __str__(self):
         return self.sql
     def __repr__(self):
@@ -259,10 +308,17 @@ class expr(ast_node):
     
     # builtins is readonly, so it's okay to set default value as an object
     # eval is only called at root expr.
-    def eval(self, c_code = None, y = lambda t: t, materialize_builtin = False, _decltypestr = False, *, gettype = False):
+    def eval(self, c_code = None, y = lambda t: t, 
+             materialize_builtin = False, _decltypestr = False, 
+             count = lambda : 'count', var_inject = None, 
+             *, 
+             gettype = False):
         assert(self.is_root)
         def call(decltypestr = False) -> str:
-            nonlocal c_code, y, materialize_builtin
+            nonlocal c_code, y, materialize_builtin, count, var_inject
+            if var_inject:
+                for k, v in var_inject.items():
+                    locals()[k] = v
             if self.udf_called is not None:
                 loc = locals()
                 builtin_vars = self.udf_called.builtin_used
