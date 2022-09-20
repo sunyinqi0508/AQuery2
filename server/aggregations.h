@@ -16,8 +16,7 @@ constexpr static inline size_t count(const T&) { return 1; }
 
 // TODO: Specializations for dt/str/none
 template<class T, template<typename ...> class VT>
-// types::GetLongType<T> 
-LL_Type sum(const VT<T>& v) {
+types::GetLongType<T> sum(const VT<T>& v) {
 	types::GetLongType<T> ret = 0;
 	for (const auto& _v : v)
 		ret += _v;
