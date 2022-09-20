@@ -139,7 +139,9 @@ public:
 		const ColRef<_Ty>& orig;
 		constexpr Iterator_t(const uint32_t* val, const ColRef<_Ty>& orig) noexcept : val(val), orig(orig) {}
 		_Ty& operator*() { return orig[*val]; }
-		bool operator != (const Iterator_t& rhs) { return rhs.val != val; }
+		bool operator != (const Iterator_t& rhs) const { return rhs.val != val; }
+		bool operator == (const Iterator_t& rhs) const { return rhs.val == val; }
+		size_t operator - (const Iterator_t& rhs) const { return val - rhs.val; }
 		Iterator_t& operator++ () {
 			++val;
 			return *this;
@@ -179,6 +181,20 @@ public:
 		for (uint32_t i = 0; i < len; ++i)
 			subvec[i] = operator[](i);
 		return subvec;
+	}
+	std::unordered_set<_Ty> distinct_common() {
+		return std::unordered_set<_Ty> {begin(), end()};
+	}
+	uint32_t distinct_size(){
+		return distinct_common().size();
+	}
+	ColRef<_Ty> distinct(){
+		auto set = distinct_common();
+		ColRef<_Ty> ret(set.size());
+		uint32_t i = 0;
+		for (auto& val : set)
+			ret.container[i++] = val;
+		return ret;
 	}
 	inline ColRef<_Ty> subvec(uint32_t start = 0) { return subvec_deep(start, size); }
 };
@@ -408,8 +424,41 @@ struct TableInfo {
 		applyIntegerSequence<sizeof...(Types), applier>::apply(*this, sep, end, view, fp);
 	}
 
-	TableInfo< Types... >* rename(const char* name) {
+	TableInfo<Types...>* rename(const char* name) {
 		this->name = name;
+		return this;
+	}
+	template <size_t ...Is> 
+	void inline
+	reserve(std::index_sequence<Is...>, uint32_t size) {
+		const auto& assign_sz = [&size](auto& col){ col.size = size;};
+		(assign_sz(get_col<Is>(*this)), ...);
+	}
+	template <size_t ...Is> 
+	decltype(auto) inline 
+	get_record(std::index_sequence<Is...>, uint32_t i) {
+		return std::forward_as_tuple((get_col<Is>(*this)[i], ...));
+	}
+	template <size_t ...Is> 
+	void inline 
+	set_record(std::index_sequence<Is...>, tuple_type t) {
+		const auto& assign_field = 
+			[](auto& l, const auto& r){
+				l = r;
+			};
+		(assign_field(get_col<Is>(*this)[Is], std::get<Is>(t)), ...);
+	}
+	TableInfo<Types ...>* distinct() {
+		std::unordered_set<tuple_type> d_records;
+		std::make_index_sequence<sizeof...(Types)> seq;
+		
+		for (uint32_t j = 0; j < colrefs[0].size; ++j) {
+			d_records.insert(get_record(seq, j));
+		}
+		reserve(seq, d_records.size());
+		for (const auto& dr : d_records) {
+			set_record(seq, dr);
+		}
 		return this;
 	}
 	// defined in monetdb_conn.cpp
@@ -419,6 +468,7 @@ struct TableInfo {
 
 template<class ...Types>
 struct TableView {
+	typedef std::tuple<Types...> tuple_type;
 	const vector_type<uint32_t>* idxs;
 	const TableInfo<Types...>& info;
 	constexpr TableView(const vector_type<uint32_t>* idxs, const TableInfo<Types...>& info) noexcept : idxs(idxs), info(info) {}

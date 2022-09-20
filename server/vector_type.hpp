@@ -11,6 +11,8 @@
 #include <cstdint>
 #include <iterator>
 #include <initializer_list>
+#include <unordered_set>
+#include "hasher.h"
 #include "types.h"
 
 #pragma pack(push, 1)
@@ -106,6 +108,34 @@ public:
 			container[i] = vt[i];
 		
 		return *this;
+	}
+	inline std::unordered_set<value_t> distinct_common(){
+		return std::unordered_set<value_t>(container, container + size);
+	}
+	vector_type<_Ty>& distinct_inplace(){
+		uint32_t i = 0;
+		for(const auto& v : distinct_common()){
+			container[i++] = v;
+		}
+		return *this;
+	}
+	vector_type<_Ty> distinct_copy(){
+		auto d_vals = distinct_common();
+		vector_type<_Ty> ret(d_vals.size());
+		uint32_t i = 0;
+		for(const auto& v : d_vals){
+			ret[i++] = v;
+		}
+		return ret;
+	}
+	uint32_t distinct_size(){
+		return distinct_common().size();
+	}
+	vector_type<_Ty> distinct(){
+		if (capacity)
+			return distinct_inplace();
+		else
+			return distinct_copy();
 	}
 	inline void grow() {
 		if (size >= capacity) { // geometric growth

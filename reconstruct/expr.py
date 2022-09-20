@@ -94,6 +94,7 @@ class expr(ast_node):
                     print(f'Parser Error: {node} has more than 1 dict entry.')
                 
                 for key, val in node.items():
+                    key = key.lower()
                     if key in self.operators:
                         if key in builtin_func:
                             if self.is_agg_func:
@@ -121,9 +122,9 @@ class expr(ast_node):
                         try:
                             self.type = op.return_type(*type_vals)
                         except AttributeError as e:
-                            if type(self.root) is not udf:
+                            if type(self.root.parent) is not udf:
                                 # TODO: do something when this is not an error
-                                # print(f'alert: {e}')
+                                print(f'alert: {e}')
                                 pass
                             self.type = AnyT
                             
@@ -198,7 +199,11 @@ class expr(ast_node):
                                 self.udf_decltypecall = ex_vname.sql
                     else:
                         print(f'Undefined expr: {key}{val}')
-
+            if 'distinct' in val and key != count:
+                if self.c_code:
+                    self.sql = 'distinct ' + self.sql
+                elif self.is_compound:
+                    self.sql = '(' + self.sql + ').distinct()' 
         if type(node) is str:
             if self.is_udfexpr:
                 curr_udf : udf = self.root.udf

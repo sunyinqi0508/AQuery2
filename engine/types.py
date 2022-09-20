@@ -248,7 +248,7 @@ def count_behavior(op:OperatorBase, c_code, x, distinct = False):
     if not c_code:
         return f'{op.sqlname}({"distinct " if distinct else ""}{x})'
     elif distinct:
-        return 'count_'+base62uuid()
+        return '({x}).distinct_size()'
     else:
         return '{count()}'
 
