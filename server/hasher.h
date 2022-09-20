@@ -58,7 +58,7 @@ inline size_t append_bytes(const astring_view& view) noexcept {
 template <class ...Types>
 struct hasher {
 	template <size_t i = 0> typename std::enable_if< i == sizeof...(Types), 
-		size_t>::type hashi(const std::tuple<Types...>& record) const {
+		size_t>::type hashi(const std::tuple<Types...>&) const {
 		return 534235245539ULL;
 	}
 

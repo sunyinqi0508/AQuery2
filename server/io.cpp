@@ -16,8 +16,10 @@ void setgbuf(char* buf) {
 	static char* b = 0;
 	if (buf == 0)
 		gbuf = b;
-	else
+	else {
 		gbuf = buf;
+		b = buf;
+	}
 }
 
 #ifdef __AQ__HAS__INT128__
@@ -246,10 +248,13 @@ std::ostream& operator<<(std::ostream& os, types::timestamp_t & v)
 using std::string;
 string base62uuid(int l) {
     using namespace std;
-    constexpr static const char* base62alp = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    static mt19937_64 engine(chrono::system_clock::now().time_since_epoch().count());
+    constexpr static const char* base62alp = 
+		"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    static mt19937_64 engine(
+		chrono::system_clock::now().time_since_epoch().count());
     static uniform_int_distribution<uint64_t> u(0x10000, 0xfffff);
-    uint64_t uuid = (u(engine) << 32ull) + (chrono::system_clock::now().time_since_epoch().count() & 0xffffffff);
+    uint64_t uuid = (u(engine) << 32ull) + 
+		(chrono::system_clock::now().time_since_epoch().count() & 0xffffffff);
     //printf("%llu\n", uuid);
     string ret;
     while (uuid && l-- >= 0) {
