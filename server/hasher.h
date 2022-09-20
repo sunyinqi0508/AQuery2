@@ -17,19 +17,46 @@ inline size_t append_bytes(const unsigned char* _First) noexcept {
 	return _Val;
 }
 
+inline size_t append_bytes(const astring_view& view) noexcept {
+	return append_bytes(view.str);
+}
+
+
+template <class ...Types>
+struct hasher {
+	template <size_t i = 0> typename std::enable_if< i == sizeof...(Types),
+		size_t>::type hashi(const std::tuple<Types...>&) const {
+		return 534235245539ULL;
+	}
+
+	template <size_t i = 0> typename std::enable_if < i < sizeof ...(Types),
+		size_t>::type hashi(const std::tuple<Types...>& record) const {
+		using current_type = typename std::decay<typename std::tuple_element<i, std::tuple<Types...>>::type>::type;
+
+		return std::hash<current_type>()(std::get<i>(record)) ^ hashi<i + 1>(record);
+	}
+	size_t operator()(const std::tuple<Types...>& record) const {
+		return hashi(record);
+	}
+};
+
+
 namespace std{
+
 	template<>
 	struct hash<astring_view> {
 		size_t operator()(const astring_view& _Keyval) const noexcept {
 			return append_bytes(_Keyval.str);
 		}
 	};
+
 	template<>
 	struct hash<types::date_t> {
 		size_t operator() (const types::date_t& _Keyval) const noexcept {
 			return std::hash<unsigned int>()(*(unsigned int*)(&_Keyval));
 		}
 	};
+
 	template<>
 	struct hash<types::time_t> {
 		size_t operator() (const types::time_t& _Keyval) const noexcept {
@@ -40,6 +67,7 @@ namespace std{
 			;
 		}
 	};
+
 	template<>
 	struct hash<types::timestamp_t>{
 		size_t operator() (const types::timestamp_t& _Keyval) const noexcept {
@@ -48,27 +76,8 @@ namespace std{
 		}
 	};
 
+	template <class ...Types>
+	struct hash<std::tuple<Types...>> : public hasher<Types...>{ };
+
 }
 
-inline size_t append_bytes(const astring_view& view) noexcept {
-	return append_bytes(view.str);
-}
-
-
-template <class ...Types>
-struct hasher {
-	template <size_t i = 0> typename std::enable_if< i == sizeof...(Types), 
-		size_t>::type hashi(const std::tuple<Types...>&) const {
-		return 534235245539ULL;
-	}
-
-	template <size_t i = 0> typename std::enable_if< i < sizeof ...(Types), 
-		size_t>::type hashi(const std::tuple<Types...>& record) const {
-		using current_type = typename std::decay<typename std::tuple_element<i, std::tuple<Types...>>::type>::type;
-		
-		return std::hash<current_type>()(std::get<i>(record)) ^ hashi<i+1>(record);
-	}
-	size_t operator()(const std::tuple<Types...>& record) const {
-		return hashi(record);
-	}
-};

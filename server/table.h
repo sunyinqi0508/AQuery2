@@ -9,6 +9,8 @@
 #include <string>
 #include <algorithm>
 #include "io.h"
+#include "hasher.h"
+
 #undef ERROR
 template <typename T>
 class vector_type;
@@ -432,21 +434,21 @@ struct TableInfo {
 	void inline
 	reserve(std::index_sequence<Is...>, uint32_t size) {
 		const auto& assign_sz = [&size](auto& col){ col.size = size;};
-		(assign_sz(get_col<Is>(*this)), ...);
+		(assign_sz(get_col<Is>()), ...);
 	}
 	template <size_t ...Is> 
 	decltype(auto) inline 
 	get_record(std::index_sequence<Is...>, uint32_t i) {
-		return std::forward_as_tuple((get_col<Is>(*this)[i], ...));
+		return std::forward_as_tuple(get_col<Is>()[i] ...);
 	}
 	template <size_t ...Is> 
 	void inline 
-	set_record(std::index_sequence<Is...>, tuple_type t) {
+	set_record(std::index_sequence<Is...>, const tuple_type& t, uint32_t i) {
 		const auto& assign_field = 
 			[](auto& l, const auto& r){
 				l = r;
 			};
-		(assign_field(get_col<Is>(*this)[Is], std::get<Is>(t)), ...);
+		(assign_field(get_col<Is>()[i], std::get<Is>(t)), ...);
 	}
 	TableInfo<Types ...>* distinct() {
 		std::unordered_set<tuple_type> d_records;
@@ -456,8 +458,9 @@ struct TableInfo {
 			d_records.insert(get_record(seq, j));
 		}
 		reserve(seq, d_records.size());
+		uint32_t i = 0;
 		for (const auto& dr : d_records) {
-			set_record(seq, dr);
+			set_record(seq, dr, i++);
 		}
 		return this;
 	}
