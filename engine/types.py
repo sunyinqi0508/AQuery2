@@ -232,9 +232,9 @@ def ext (fx):
 
 
 # operator call behavior
-def binary_op_behavior(op:OperatorBase, c_code, x, y):
+def binary_op_behavior(op:OperatorBase, c_code, *xs):
     name = op.cname if c_code else op.sqlname
-    return f'({x} {name} {y})'
+    return f'({f" {name} ".join(xs)})'
 
 def unary_op_behavior(op:OperatorBase, c_code, x):
     name = op.cname if c_code else op.sqlname
@@ -248,10 +248,16 @@ def count_behavior(op:OperatorBase, c_code, x, distinct = False):
     if not c_code:
         return f'{op.sqlname}({"distinct " if distinct else ""}{x})'
     elif distinct:
-        return '({x}).distinct_size()'
+        return f'({x}).distinct_size()'
     else:
         return '{count()}'
-
+    
+def distinct_behavior(op:OperatorBase, c_code, x):
+    if not c_code:
+        return f'{op.sqlname}({x})'
+    else:
+        return f'({x}).distinct()'
+    
 def windowed_fn_behavor(op: OperatorBase, c_code, *x):
     if not c_code:
         return f'{op.sqlname}({", ".join([f"{xx}" for xx in x])})'
@@ -277,6 +283,7 @@ oplte = OperatorBase('lte', 2, logical, cname = '<=', sqlname = '<=', call = bin
 opneq = OperatorBase('neq', 2, logical, cname = '!=', sqlname = '!=', call = binary_op_behavior)
 opeq = OperatorBase('eq', 2, logical, cname = '==', sqlname = '=', call = binary_op_behavior)
 opnot = OperatorBase('not', 1, logical, cname = '!', sqlname = 'NOT', call = unary_op_behavior)
+opdistinct = OperatorBase('distinct', 1, as_is, cname = '.distinct()', sqlname = 'distinct', call = distinct_behavior)
 # functional
 fnmax = OperatorBase('max', 1, as_is, cname = 'max', sqlname = 'MAX', call = fn_behavior)
 fnmin = OperatorBase('min', 1, as_is, cname = 'min', sqlname = 'MIN', call = fn_behavior)
@@ -315,7 +322,7 @@ builtin_binary_arith = _op_make_dict(opadd, opdiv, opmul, opsub, opmod)
 builtin_binary_logical = _op_make_dict(opand, opor, opxor, opgt, oplt, opge, oplte, opneq, opeq)
 builtin_unary_logical = _op_make_dict(opnot)
 builtin_unary_arith = _op_make_dict(opneg)
-builtin_unary_special = _op_make_dict(spnull)
+builtin_unary_special = _op_make_dict(spnull, opdistinct)
 builtin_cstdlib = _op_make_dict(fnsqrt, fnlog, fnsin, fncos, fntan, fnpow)
 builtin_func = _op_make_dict(fnmax, fnmin, fnsum, fnavg, fnmaxs, fnmins, fndeltas, fnlast, fnsums, fnavgs, fncnt)
 user_module_func = {}

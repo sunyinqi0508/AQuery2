@@ -1,27 +1,27 @@
 -- please run datagen.get_stock_data() to generate data/stock.csv first
 
--- create table ticks(ID varchar(10), timestamp int, tradeDate date, price int);
+create table ticks(ID varchar(10), timestamp int, tradeDate date, price int);
 
--- LOAD DATA INFILE "data/stock.csv"
--- INTO TABLE ticks
--- FIELDS TERMINATED BY ","
+LOAD DATA INFILE "data/stock.csv"
+INTO TABLE ticks
+FIELDS TERMINATED BY ","
 
--- SELECT max(price-mins(price))
--- FROM   ticks    ASSUMING ASC timestamp
--- WHERE  ID="S"
---     AND  tradeDate='2003-01-10'
+SELECT max(price-mins(price))
+FROM   ticks    ASSUMING ASC timestamp
+WHERE  ID="S"
+    AND  tradeDate='2003-01-10'
 
--- create table base(ID varchar(10), name varchar(10));
+create table base(ID varchar(10), name varchar(10));
 
--- LOAD DATA INFILE "data/base.csv"
--- INTO TABLE base
--- FIELDS TERMINATED BY ","
+LOAD DATA INFILE "data/base.csv"
+INTO TABLE base
+FIELDS TERMINATED BY ","
 
--- SELECT last(price)
--- FROM    ticks t, base b
---     ASSUMING ASC name, ASC timestamp
--- WHERE   t.ID=b.ID
---         AND name="x"
+SELECT last(price)
+FROM    ticks t, base b
+    ASSUMING ASC name, ASC timestamp
+WHERE   t.ID=b.ID
+        AND name="x"
 
 create table TradedStocks(ID varchar(15), SeqNo int, TradeDate date, TimeStamp time, Type varchar(5));
 create table HistoricQuotes(ID varchar(15), TradeDate date, HighPrice real, LowPrice real, ClosePrice real, OpenPrice real, volume bigint);
@@ -33,9 +33,15 @@ LOAD DATA INFILE "data/hist-price-file.csv"
 INTO TABLE HistoricQuotes
 FIELDS TERMINATED BY "|"
 
+select distinct ID, TradeDate 
+into td 
+from TradedStocks 
+-- -- Monetdb wont recognize right table when 
+-- -- doing a natural join
 
-SELECT ts.ID, avgs(10, hq.ClosePrice)
-FROM   TradedStocks AS ts NATURAL JOIN
-       HistoricQuotes AS hq
-              ASSUMING ASC hq.TradeDate
-GROUP BY ts.ID
+SELECT ID, avgs(10, ClosePrice)  
+FROM   td  NATURAL JOIN
+       HistoricQuotes 
+              ASSUMING ASC TradeDate
+GROUP BY ID
+ORDER BY ID

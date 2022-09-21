@@ -1,3 +1,5 @@
+from collections import OrderedDict
+from collections.abc import MutableMapping, Mapping
 import uuid
 
 lower_alp = 'abcdefghijklmnopqrstuvwxyz'
@@ -6,6 +8,50 @@ nums = '0123456789'
 base62alp = nums + lower_alp + upper_alp
 
 reserved_monet = ['month']
+
+
+class CaseInsensitiveDict(MutableMapping):
+    def __init__(self, data=None, **kwargs):
+        self._store = OrderedDict()
+        if data is None:
+            data = {}
+        self.update(data, **kwargs)
+
+    def __setitem__(self, key, value):
+        # Use the lowercased key for lookups, but store the actual
+        # key alongside the value.
+        self._store[key.lower()] = (key, value)
+
+    def __getitem__(self, key):
+        return self._store[key.lower()][1]
+
+    def __delitem__(self, key):
+        del self._store[key.lower()]
+
+    def __iter__(self):
+        return (casedkey for casedkey, mappedvalue in self._store.values())
+
+    def __len__(self):
+        return len(self._store)
+
+    def lower_items(self):
+        """Like iteritems(), but with all lowercase keys."""
+        return ((lowerkey, keyval[1]) for (lowerkey, keyval) in self._store.items())
+
+    def __eq__(self, other):
+        if isinstance(other, Mapping):
+            other = CaseInsensitiveDict(other)
+        else:
+            return NotImplemented
+        # Compare insensitively
+        return dict(self.lower_items()) == dict(other.lower_items())
+
+    # Copy is required
+    def copy(self):
+        return CaseInsensitiveDict(self._store.values())
+
+    def __repr__(self):
+        return str(dict(self.items()))
 
 def base62uuid(crop=8):
     _id = uuid.uuid4().int
@@ -60,7 +106,7 @@ def defval(val, default):
     return default if val is None else val
 
 # escape must be readonly
-from typing import Set
+from typing import Mapping, Set
 def remove_last(pattern : str, string : str, escape : Set[str] = set()) -> str:
     idx = string.rfind(pattern)
     if idx == -1:

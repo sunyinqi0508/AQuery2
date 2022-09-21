@@ -26,6 +26,21 @@ namespace types {
 	struct Coercion;
 }
 #endif
+template <template <class...> class VT, class T>
+std::ostream& operator<<(std::ostream& os, const VT<T>& v)
+{
+	v.out();
+	return os;
+}
+
+#ifdef __AQ__HAS__INT128__
+std::ostream& operator<<(std::ostream& os, __int128 & v);
+std::ostream& operator<<(std::ostream& os, __uint128_t & v);
+#endif
+
+std::ostream& operator<<(std::ostream& os, types::date_t & v);
+std::ostream& operator<<(std::ostream& os, types::time_t & v);
+std::ostream& operator<<(std::ostream& os, types::timestamp_t & v);
 template<typename _Ty>
 class ColView;
 template<typename _Ty>
@@ -200,19 +215,7 @@ public:
 	}
 	inline ColRef<_Ty> subvec(uint32_t start = 0) { return subvec_deep(start, size); }
 };
-template <template <class...> class VT, class T>
-std::ostream& operator<<(std::ostream& os, const VT<T>& v)
-{
-	v.out();
-	return os;
-}
-std::ostream& operator<<(std::ostream& os, types::date_t & v);
-std::ostream& operator<<(std::ostream& os, types::time_t & v);
-std::ostream& operator<<(std::ostream& os, types::timestamp_t & v);
-#ifdef __AQ__HAS__INT128__
-std::ostream& operator<<(std::ostream& os, __int128 & v);
-std::ostream& operator<<(std::ostream& os, __uint128_t & v);
-#endif
+
 template <class Type>
 struct decayed_impl<ColView, Type> { typedef ColRef<Type> type; };
 
@@ -433,7 +436,10 @@ struct TableInfo {
 	template <size_t ...Is> 
 	void inline
 	reserve(std::index_sequence<Is...>, uint32_t size) {
-		const auto& assign_sz = [&size](auto& col){ col.size = size;};
+		const auto& assign_sz = [&size](auto& col){ 
+			col.size = size;
+			col.grow();
+		};
 		(assign_sz(get_col<Is>()), ...);
 	}
 	template <size_t ...Is> 
@@ -481,6 +487,53 @@ struct TableView {
 	template <size_t j = 0>
 	typename std::enable_if < j < sizeof...(Types) - 1, void>::type print_impl(const uint32_t& i, const char* __restrict sep = " ") const;
 	
+	template <size_t ...Is> 
+	decltype(auto) inline 
+	get_record(std::index_sequence<Is...>, uint32_t i) {
+		return std::forward_as_tuple(info.template get_col<Is>()[idxs[i]] ...);
+	}
+	
+	TableInfo<Types ...>* get_tableinfo(const char* name = nullptr, const char** names = nullptr) {
+		if (name == nullptr) 
+			name = info.name;
+
+		const char* info_names[sizeof...(Types)];
+		if (name == nullptr) {
+			for(uint32_t i = 0; i < sizeof...(Types); ++i) 
+				info_names[i] = info.colrefs[i].name;
+			names = info_names;
+		}
+
+		return new TableInfo<Types ...>(name, names);
+	}
+
+	TableInfo<Types ...>* materialize(const char* name = nullptr, const char** names = nullptr) {
+		std::make_index_sequence<sizeof...(Types)> seq;
+		auto table = get_tableinfo(name, names);
+		table->reserve(seq, idxs->size);
+		for (uint32_t i = 0; i < idxs->size; ++i) {
+			table->set_record(get_record(i));
+		}
+		return table;
+	}
+
+	TableInfo<Types ...>* distinct(const char* name = nullptr, const char** names = nullptr) {
+		std::unordered_set<tuple_type> d_records;
+		std::make_index_sequence<sizeof...(Types)> seq;
+		
+		for (uint32_t j = 0; j < idxs->size; ++j) {
+			d_records.insert(get_record(seq, j));
+		}
+
+		TableInfo<Types ...>* ret = get_tableinfo(name, names);
+		ret->reserve(seq, d_records.size());
+		uint32_t i = 0;
+		for (const auto& dr : d_records) {
+			ret->set_record(seq, dr, i++);
+		}
+		return ret;
+	}
+
 	~TableView() {
 		delete idxs;
 	}

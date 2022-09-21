@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Set
 from reconstruct.ast import ast_node
 from reconstruct.storage import ColRef, Context
 from engine.types import *
@@ -199,11 +199,8 @@ class expr(ast_node):
                                 self.udf_decltypecall = ex_vname.sql
                     else:
                         print(f'Undefined expr: {key}{val}')
-            if 'distinct' in val and key != count:
-                if self.c_code:
-                    self.sql = 'distinct ' + self.sql
-                elif self.is_compound:
-                    self.sql = '(' + self.sql + ').distinct()' 
+                
+                    
         if type(node) is str:
             if self.is_udfexpr:
                 curr_udf : udf = self.root.udf
@@ -235,8 +232,13 @@ class expr(ast_node):
             # get the column from the datasource in SQL context
             else:
                 if self.datasource is not None:
-                    self.raw_col = self.datasource.parse_col_names(node)
-                    self.raw_col = self.raw_col if type(self.raw_col) is ColRef else None
+                    if (node == '*' and 
+                        not (type(self.parent) is expr 
+                             and 'count' in self.parent.node)):
+                        self.datasource.all_cols()
+                    else:
+                        self.raw_col = self.datasource.parse_col_names(node)
+                        self.raw_col = self.raw_col if type(self.raw_col) is ColRef else None
                 if self.raw_col is not None:
                     self.is_ColExpr = True
                     table_name = ''
@@ -259,10 +261,16 @@ class expr(ast_node):
                     self.is_compound = True
                     self.opname = self.raw_col
                 else:
-                    self.sql = '\'' + node + '\''
+                    self.sql = '\'' + node + '\'' if node != '*' else '*'
                     self.type = StrT
                     self.opname = self.sql
                 if self.c_code and self.datasource is not None:
+                    if (type(self.parent) is expr and 
+                        'distinct' in self.parent.node and 
+                        not self.is_special):
+                        # this node is executed by monetdb
+                        # gb condition, not special
+                        self.sql  = f'distinct({self.sql})'
                     self.sql = f'{{y(\"{self.sql}\")}}'
         elif type(node) is bool:
             self.type = BoolT

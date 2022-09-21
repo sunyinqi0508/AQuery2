@@ -75,7 +75,7 @@ extern void register_memory(void* ptr, deallocator_t deallocator);
 __AQEXPORT__(void) init_session(Context* cxt);
 
 #define __AQ_NO_SESSION__ __AQEXPORT__(void) init_session(Context*) {}
-void* memcpy(void*, void*, unsigned long long);
+void* memcpy(void*, const void*, unsigned long long);
 struct ColRef_storage {
 	void* container;
 	unsigned int capacity, size;

@@ -117,9 +117,9 @@ decayed_t<VT, types::GetLongType<T>> sums(const VT<T>& arr) {
 	return ret;
 }
 template<class T, template<typename ...> class VT>
-decayed_t<VT, types::GetFPType<T>> avgs(const VT<T>& arr) {
+decayed_t<VT, types::GetFPType<types::GetLongType<T>>> avgs(const VT<T>& arr) {
 	const uint32_t& len = arr.size;
-	typedef types::GetFPType<T> FPType;
+	typedef types::GetFPType<types::GetLongType<T>> FPType;
 	decayed_t<VT, FPType> ret(len);
 	uint32_t i = 0;
 	types::GetLongType<T> s;

@@ -28,7 +28,7 @@ namespace types {
 	};
 	static constexpr const char* printf_str[] = { "%d", "%f", "%s", "%lf", "%Lf", "%ld", "%d", "%hi", "%s", "%s", "%c",
 		"%u", "%lu", "%s", "%hu", "%hhu", "%s", "%s", "Vector<%s>", "%s", "NULL", "ERROR" };
-	static constexpr const char* SQL_Type[] = { "INT", "REAL", "TEXT", "DOUBLE", "DOUBLE", "BIGINT", "HUGEINT", "SMALLINT", "DATE", "TIME", "TINYINT",
+	static constexpr const char* SQL_Type[] = { "INT", "REAL", "VARCHAR(15)", "DOUBLE", "DOUBLE", "BIGINT", "HUGEINT", "SMALLINT", "DATE", "TIME", "TINYINT",
 		"INT", "BIGINT", "HUGEINT", "SMALLINT", "TINYINT", "BIGINT", "BOOL", "BIGINT", "TIMESTAMP", "NULL", "ERROR"};
 	
 	

@@ -1,5 +1,5 @@
 from engine.types import *
-from engine.utils import base62uuid, enlist
+from engine.utils import CaseInsensitiveDict, base62uuid, enlist
 from typing import List, Dict, Set
 
 class ColRef:
@@ -20,6 +20,18 @@ class ColRef:
         # e.g. order by, group by, filter by expressions
         
         self.__arr__ = (_ty, cobj, table, name, id)
+        
+    def get_full_name(self):
+        table_name = self.table.table_name
+        it_alias = iter(self.table.alias)
+        alias = next(it_alias, table_name)
+        try:
+            while alias == table_name:
+                alias = next(it_alias)
+        except StopIteration:
+            alias = table_name
+        return f'{alias}.{self.name}'
+    
     def __getitem__(self, key):
         if type(key) is str:
             return getattr(self, key)
@@ -35,7 +47,7 @@ class TableInfo:
         self.table_name : str = table_name
         self.contextname_cpp : str = ''
         self.alias : Set[str] = set([table_name])
-        self.columns_byname : Dict[str, ColRef] = dict() # column_name, type
+        self.columns_byname : Dict[str, ColRef] = CaseInsensitiveDict() # column_name, type
         self.columns : List[ColRef] = []
         self.cxt = cxt
         # keep track of temp vars
@@ -85,7 +97,11 @@ class TableInfo:
                 raise ValueError(f'Table name/alias not defined{parsedColExpr[0]}')
             else:
                 return datasource.parse_col_names(parsedColExpr[1])
-            
+    
+    def all_cols(self):
+        if type(self.rec) is set:
+            self.rec.update(self.columns)
+        return set(self.columns)
             
 class Context:
     def new(self):
