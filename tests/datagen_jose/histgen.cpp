@@ -10,8 +10,8 @@
 #include <fstream>
 #include <sys/time.h>
 
-#include "RandGen.H"
-#include "cal.H"
+#include "RandGen.hpp"
+#include "cal.hpp"
 using namespace std;
 inline int max(int a, int b) 
 {

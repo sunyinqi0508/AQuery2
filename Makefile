@@ -97,6 +97,6 @@ docker:
 	docker build -t aquery .
 
 clean:
-	rm *.shm *.o dll.so server.so server.bin -rf 2> $(NULL_DEVICE) || true
+	rm *.shm *.o dll.so server.so server.bin libaquery.a libaquery.lib -rf 2> $(NULL_DEVICE) || true
 
 

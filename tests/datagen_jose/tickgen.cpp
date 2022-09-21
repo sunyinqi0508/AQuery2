@@ -10,9 +10,9 @@
 #include <fstream>
 #include <sys/time.h>
 
-#include "RandGen.H"
-#include "cal.H"
-#include "Time.H"
+#include "RandGen.hpp"
+#include "cal.hpp"
+#include "Time.hpp"
 
 using namespace std;
 

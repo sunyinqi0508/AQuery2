@@ -1,6 +1,7 @@
 tests/datagen_jose/histgen
 tests/datagen_jose/tickgen
 datagen
+tests/private
 *.dSYM
 testmain.lib
 testmain.exp

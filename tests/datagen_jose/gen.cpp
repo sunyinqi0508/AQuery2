@@ -4,7 +4,7 @@
 #define genIMPLEMENTATION
 
 #include <iostream.h>
-#include "RandGen.H"
+#include "RandGen.hpp"
 
 int num[6];
 int nelems=0;
