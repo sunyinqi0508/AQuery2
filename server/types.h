@@ -190,6 +190,9 @@ struct astring_view {
 		}
 		return !(*this_str || *other_str);
 	}
+	bool operator >(const astring_view&r) const{
+		
+	}
 	operator const char* () const {
 		return reinterpret_cast<const char*>(str);
 	}

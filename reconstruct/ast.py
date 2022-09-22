@@ -589,13 +589,22 @@ class groupby(ast_node):
     
 class join(ast_node):
     name = 'join'
+    
+    def get_joint_cols(self, cols : List[ColRef]):
+        joint_cols = set()
+        for col in cols:
+            joint_cols |= self.joint_cols[col]
+        return joint_cols
+    
     def init(self, _):
-        self.joins:list = []
+        self.joins : List[join] = []
         self.tables : List[TableInfo] = []
         self.tables_dir = dict()
         self.rec = None
         self.top_level = self.parent and isinstance(self.parent, projection)
         self.have_sep = False
+        self.joint_cols : Dict[ColRef, Set]= dict() # columns that are joined with this column
+        
         # self.tmp_name = 'join_' + base62uuid(4)
         # self.datasource = TableInfo(self.tmp_name, [], self.context)
     def append(self, tbls, __alias = ''):
@@ -690,13 +699,19 @@ class join(ast_node):
         self.sql = ''
         for j in self.joins:
             if not self.sql or j[1]:
-                self.sql += j[0]
+                self.sql += j[0] # using JOIN keyword
             else:
-                self.sql += ', ' + j[0]        
+                self.sql += ', ' + j[0] # using comma
+            for col, jc in j.joint_cols:
+                if col in self.joint_cols:
+                    self.joint_cols[col] |= jc
+                else:
+                    self.joint_cols[col] = set(jc)
+                    
         if node and self.sql and self.top_level:
             self.sql = ' FROM ' + self.sql 
         return super().consume(node)
-    
+        
     def __str__(self):
         return self.sql
     def __repr__(self):

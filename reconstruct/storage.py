@@ -47,7 +47,7 @@ class TableInfo:
         self.table_name : str = table_name
         self.contextname_cpp : str = ''
         self.alias : Set[str] = set([table_name])
-        self.columns_byname : Dict[str, ColRef] = CaseInsensitiveDict() # column_name, type
+        self.columns_byname : CaseInsensitiveDict[str, ColRef] = CaseInsensitiveDict() # column_name, type
         self.columns : List[ColRef] = []
         self.cxt = cxt
         # keep track of temp vars
@@ -117,7 +117,7 @@ class Context:
         self.queries = []
         self.module_init_loc = 0
         self.special_gb = False
-        
+         
     def __init__(self):
         self.tables_byname = dict()
         self.col_byname = dict()
