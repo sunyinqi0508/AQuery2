@@ -318,19 +318,6 @@ int test_main()
     if (cxt->alt_server == 0)
         cxt->alt_server = new Server(cxt);
     Server* server = reinterpret_cast<Server*>(cxt->alt_server);
- 
-
-    //TableInfo<int, float> table("sibal");
-    //int col0[] = { 1,2,3,4,5 };
-    //float col1[] = { 5.f, 4.f, 3.f, 2.f, 1.f };
-    //table.get_col<0>().initfrom(5, col0, "a");
-    //table.get_col<1>().initfrom(5, col1, "b");
-    //table.monetdb_append_table(server);
-    //
-    //server->exec("select * from sibal;");
-    //auto aa = server->getCol(0);
-    //auto bb = server->getCol(1);
-    //printf("sibal: %p %p\n", aa, bb);
 
     const char* qs[]= {
         "CREATE TABLE test1(a INT, b INT, c INT, d INT);",

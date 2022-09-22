@@ -604,7 +604,8 @@ class join(ast_node):
         self.top_level = self.parent and isinstance(self.parent, projection)
         self.have_sep = False
         self.joint_cols : Dict[ColRef, Set]= dict() # columns that are joined with this column
-        
+        self.children : Set(join) = {}
+        self.join_conditions = []
         # self.tmp_name = 'join_' + base62uuid(4)
         # self.datasource = TableInfo(self.tmp_name, [], self.context)
     def append(self, tbls, __alias = ''):
@@ -628,7 +629,7 @@ class join(ast_node):
         if type(node) is list:
             for d in node:
                 self.append(join(self, d))
-        
+
         elif type(node) is dict:
             alias = ''
             if 'value' in node:
@@ -695,6 +696,10 @@ class join(ast_node):
             table.rec = rec
         return ret
     
+    # TODO: join condition awareness
+    def process_join_conditions(self):
+        pass
+    
     def consume(self, node):
         self.sql = ''
         for j in self.joins:
@@ -702,11 +707,7 @@ class join(ast_node):
                 self.sql += j[0] # using JOIN keyword
             else:
                 self.sql += ', ' + j[0] # using comma
-            for col, jc in j.joint_cols:
-                if col in self.joint_cols:
-                    self.joint_cols[col] |= jc
-                else:
-                    self.joint_cols[col] = set(jc)
+        self.process_join_conditions()
                     
         if node and self.sql and self.top_level:
             self.sql = ' FROM ' + self.sql 
