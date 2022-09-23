@@ -107,6 +107,27 @@ decayed_t<VT,T> maxw(uint32_t w, const VT<T>& arr) {
 }
 
 template<class T, template<typename ...> class VT>
+decayed_t<VT, types::GetFPType<T>> ratiow(uint32_t w, const VT<T>& arr) {
+	typedef std::decay_t<types::GetFPType<T>> FPType;
+	uint32_t len = arr.size;
+	if (arr.size <= w) 
+		len = 1;
+	w = w > len ? len : w;
+	decayed_t<VT, FPType> ret(arr.size);
+	ret[0] = 0;
+	for (uint32_t i = 0; i < w; ++i) 
+		ret[i] = arr[i] / (FPType)arr[0];
+	for (uint32_t i = w; i < arr.size; ++i) 
+		ret[i] = arr[i] / (FPType) arr[i - w];
+	return ret;
+}
+
+template<class T, template<typename ...> class VT>
+decayed_t<VT, types::GetFPType<T>> ratios(const VT<T>& arr) { 
+	return ratiow(1, arr);
+}
+
+template<class T, template<typename ...> class VT>
 decayed_t<VT, types::GetLongType<T>> sums(const VT<T>& arr) {
 	const uint32_t& len = arr.size;
 	decayed_t<VT, types::GetLongType<T>> ret(len);
@@ -171,9 +192,20 @@ decayed_t<VT, T> deltas(const VT<T>& arr) {
 
 template<class T, template<typename ...> class VT>
 T last(const VT<T>& arr) {
+	if(!arr.size) return 0;
 	const uint32_t& len = arr.size;
 	return arr[arr.size - 1];
 }
+
+template<class T, template<typename ...> class VT>
+T first(const VT<T>& arr) {
+	if(!arr.size) return 0;
+	const uint32_t& len = arr.size;
+	return arr[0];
+}
+
+#define __DEFAULT_AGGREGATE_FUNCTION__(NAME, RET) \
+template <class T> constexpr inline T NAME(const T& v) { return RET; }
 
 // wrong behavior with count(0)
 template <class T> constexpr inline T count(const T& v) { return 1; }
@@ -185,9 +217,11 @@ template <class T> constexpr inline T maxw(uint32_t, const T& v) { return v; }
 template <class T> constexpr inline T minw(uint32_t, const T& v) { return v; }
 template <class T> constexpr inline T avgw(uint32_t, const T& v) { return v; }
 template <class T> constexpr inline T sumw(uint32_t, const T& v) { return v; }
+template <class T> constexpr inline T ratiow(uint32_t, const T& v) { return 1; }
 template <class T> constexpr inline T maxs(const T& v) { return v; }
 template <class T> constexpr inline T mins(const T& v) { return v; }
 template <class T> constexpr inline T avgs(const T& v) { return v; }
 template <class T> constexpr inline T sums(const T& v) { return v; }
 template <class T> constexpr inline T last(const T& v) { return v; }
 template <class T> constexpr inline T daltas(const T& v) { return 0; }
+template <class T> constexpr inline T ratios(const T& v) { return 1; }

@@ -16,7 +16,7 @@ class expr_base(ast_node, metaclass = abc.ABCMeta):
         self.udf_map = self.context.udf_map
         self.func_maps = {**builtin_func, **self.udf_map, **user_module_func}
         self.operators = {**builtin_operators, **self.udf_map, **user_module_func}
-        self.narrow_funcs = ['sum', 'avg', 'count', 'min', 'max', 'last']
+        self.narrow_funcs = ['sum', 'avg', 'count', 'min', 'max', 'last', 'first']
  
     def get_variable(self):
         pass
@@ -56,7 +56,7 @@ class expr_base(ast_node, metaclass = abc.ABCMeta):
                     raise ValueError(f'Parse Error: more than 1 entry in {node}.')
                 key, val = next(iter(node.items()))
                 if key in self.operators:
-                    self.child_exprs = [__class__(self, v) for v in val]
+                    self.child_exprs = [self.__class__(self, v) for v in val]
                     self.process_child_nodes()
                 else:
                     self.process_non_operator(key, val)

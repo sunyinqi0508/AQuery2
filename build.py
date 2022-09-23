@@ -69,7 +69,7 @@ class checksums:
         
 class build_manager:
     sourcefiles = [
-                   'build.py', 
+                   'build.py', 'Makefile',
                    'server/server.cpp', 'server/io.cpp',  
                    'server/monetdb_conn.cpp', 'server/threading.cpp',
                    'server/winhelper.cpp'

@@ -44,4 +44,3 @@ FROM   td  NATURAL JOIN
        HistoricQuotes 
               ASSUMING ASC TradeDate
 GROUP BY ID
-ORDER BY ID

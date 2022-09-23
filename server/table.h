@@ -395,6 +395,7 @@ struct TableInfo {
 				+ num_time * types::time_t::string_length() 
 				+ num_date * types::date_t::string_length() 
 				+ num_timestamp * types::timestamp_t::string_length() 
+				+ 1 // padding for msvc not allowing empty arrays
 			];
 			setgbuf(cbuf);
 			if(view)

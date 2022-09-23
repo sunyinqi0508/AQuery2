@@ -44,8 +44,8 @@ void TableInfo<Ts ...>::monetdb_append_table(void* srv, const char* alt_name) {
 	puts("getcols done");
 	for(int i = 0; i < sizeof...(Ts); ++i)
 	{
-		printf("no:%d name: %s count:%d data: %p  \n", 
-		i, monetdbe_cols[i]->name, monetdbe_cols[i]->count, monetdbe_cols[i]->data);
+		printf("no:%d name: %s count:%d data: %p type:%d \n", 
+		i, monetdbe_cols[i]->name, monetdbe_cols[i]->count, monetdbe_cols[i]->data, monetdbe_cols[i]->type);
 	}
 	std::string create_table_str = "CREATE TABLE ";
 	create_table_str += alt_name;

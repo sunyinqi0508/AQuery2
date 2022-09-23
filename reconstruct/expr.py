@@ -80,7 +80,7 @@ class expr(ast_node):
         self.udf_map = parent.context.udf_map
         self.func_maps = {**builtin_func, **self.udf_map, **user_module_func}
         self.operators = {**builtin_operators, **self.udf_map, **user_module_func}
-        self.ext_aggfuncs = ['sum', 'avg', 'count', 'min', 'max', 'last']
+        self.ext_aggfuncs = ['sum', 'avg', 'count', 'min', 'max', 'last', 'first']
         
     def produce(self, node):
         from engine.utils import enlist
@@ -114,9 +114,9 @@ class expr(ast_node):
                         
                         str_vals = [e.sql for e in exp_vals]
                         type_vals = [e.type for e in exp_vals]
-                        is_compound = any([e.is_compound for e in exp_vals])
+                        is_compound = max([e.is_compound for e in exp_vals])
                         if key in self.ext_aggfuncs:
-                            self.is_compound = False
+                            self.is_compound = max(0, is_compound - 1)
                         else:
                             self.is_compound = is_compound
                         try:
@@ -134,7 +134,7 @@ class expr(ast_node):
                             self.sql = op(self.c_code, *str_vals)
                             
                         special_func = [*self.context.udf_map.keys(), *self.context.module_map.keys(), 
-                                        "maxs", "mins", "avgs", "sums", "deltas", "last"]
+                                        "maxs", "mins", "avgs", "sums", "deltas", "last", "first", "ratios"]
                         if self.context.special_gb:
                             special_func = [*special_func, *self.ext_aggfuncs]
                             
@@ -259,6 +259,7 @@ class expr(ast_node):
                     self.sql = table_name + self.raw_col.name
                     self.type = self.raw_col.type
                     self.is_compound = True
+                    self.is_compound += self.raw_col.compound
                     self.opname = self.raw_col
                 else:
                     self.sql = '\'' + node + '\'' if node != '*' else '*'

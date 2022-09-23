@@ -29,7 +29,7 @@ namespace types {
 	static constexpr const char* printf_str[] = { "%d", "%f", "%s", "%lf", "%Lf", "%ld", "%d", "%hi", "%s", "%s", "%c",
 		"%u", "%lu", "%s", "%hu", "%hhu", "%s", "%s", "Vector<%s>", "%s", "NULL", "ERROR" };
 	static constexpr const char* SQL_Type[] = { "INT", "REAL", "TEXT", "DOUBLE", "DOUBLE", "BIGINT", "HUGEINT", "SMALLINT", "DATE", "TIME", "TINYINT",
-		"INT", "BIGINT", "HUGEINT", "SMALLINT", "TINYINT", "BIGINT", "BOOL", "BIGINT", "TIMESTAMP", "NULL", "ERROR"};
+		"INT", "BIGINT", "HUGEINT", "SMALLINT", "TINYINT", "BOOL", "BIGINT", "TIMESTAMP", "NULL", "ERROR"};
 	
 	
 	// TODO: deal with data/time <=> str/uint conversion
@@ -167,7 +167,32 @@ namespace types {
 	};
 	template<class T>
 	using GetLongType = typename GetLongTypeImpl<typename std::decay<T>::type>::type;
+
+	
+	template<class T>
+	struct GetLongerTypeImpl {
+		using type = Cond(
+
+			__U(T), Cond(__Eq(char), unsigned short,
+					Cond(__Eq(short), unsigned int, 
+					Cond(__Eq(int), unsigned long long, 
+						ULL_Type
+						))),
+
+		Cond(Fp(T), double, 
+
+					Cond(__Eq(char), short,
+					Cond(__Eq(short), int, 
+					Cond(__Eq(int), long, 
+						LL_Type	
+						))))
+
+		);
+	};
+	template<class T>
+	using GetLongerType = typename GetLongerTypeImpl<typename std::decay<T>::type>::type;
 }
+
 
 struct astring_view {
 	const unsigned char* str = 0;
@@ -200,7 +225,7 @@ struct astring_view {
 		return reinterpret_cast<const unsigned char*>(str);
 	}
 	operator const signed char* () const {
-		return reinterpret_cast<const signed  char*>(str);
+		return reinterpret_cast<const signed char*>(str);
 	}
 };
 

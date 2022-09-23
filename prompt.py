@@ -29,7 +29,7 @@ prompt_help = '''\
 ******** AQuery Prompt Help *********
 
 help:
-    print out this message
+    print this help message
 help commandline:
     print help message for AQuery Commandline
 <sql statement>: 
@@ -420,7 +420,7 @@ def prompt(running = lambda:True, next = lambda:input('> '), state = None):
                 continue
             elif q == 'format' or q == 'fmt':
                 subprocess.call(['clang-format', 'out.cpp'])
-            elif q == 'exit':
+            elif q == 'exit' or q == 'exit()':
                 rm(state)
                 exit()
             elif q == 'r': # build and run
