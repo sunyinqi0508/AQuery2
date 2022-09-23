@@ -196,13 +196,22 @@ namespace types {
 
 struct astring_view {
 	const unsigned char* str = 0;
-	constexpr astring_view(const char* str) :
+	
+#if defined(__clang__) or !defined(__GNUC__)
+	constexpr 
+#endif
+	astring_view(const char* str) noexcept :
+		str((const unsigned char*)(str))  {}
+#if defined(__clang__) or !defined(__GNUC__)
+	constexpr
+#endif 
+	astring_view(const signed char* str) noexcept :
 		str((const unsigned char*)(str)) {}
-	constexpr astring_view(const signed char* str) :
-		str((const unsigned char*)(str)) {}
-	constexpr astring_view(const unsigned char* str) :
+
+	constexpr
+	astring_view(const unsigned char* str) noexcept :
 		str(str) {}
-	constexpr astring_view() = default;
+	constexpr astring_view() noexcept = default;
 
 	bool operator==(const astring_view& r) const {
 		auto this_str = str;
