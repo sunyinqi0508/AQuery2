@@ -137,6 +137,7 @@ decayed_t<VT, types::GetLongType<T>> sums(const VT<T>& arr) {
 		ret[i] = ret[i-1] + arr[i];
 	return ret;
 }
+
 template<class T, template<typename ...> class VT>
 decayed_t<VT, types::GetFPType<types::GetLongType<T>>> avgs(const VT<T>& arr) {
 	const uint32_t& len = arr.size;
@@ -149,6 +150,7 @@ decayed_t<VT, types::GetFPType<types::GetLongType<T>>> avgs(const VT<T>& arr) {
 		ret[i] = (s+=arr[i])/(FPType)(i+1);
 	return ret;
 }
+
 template<class T, template<typename ...> class VT>
 decayed_t<VT, types::GetLongType<T>> sumw(uint32_t w, const VT<T>& arr) {
 	const uint32_t& len = arr.size;
@@ -162,6 +164,7 @@ decayed_t<VT, types::GetLongType<T>> sumw(uint32_t w, const VT<T>& arr) {
 		ret[i] = ret[i-1] + arr[i] - arr[i-w];
 	return ret;
 }
+
 template<class T, template<typename ...> class VT>
 decayed_t<VT, types::GetFPType<types::GetLongType<T>>> avgw(uint32_t w, const VT<T>& arr) {
 	typedef types::GetFPType<types::GetLongType<T>> FPType;

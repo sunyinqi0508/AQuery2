@@ -112,7 +112,7 @@ VarcharT = Types(200, name = 'varchar', cname = 'const char*', sqlname='VARCHAR'
 VoidT = Types(200, name = 'void', cname = 'void', sqlname='Null', ctype_name = 'types::None')
 
 class VectorT(Types):
-    def __init__(self, inner_type : Types, vector_type:str = 'ColRef'):
+    def __init__(self, inner_type : Types, vector_type:str = 'vector_type'):
         self.inner_type = inner_type
         self.vector_type = vector_type
         
@@ -121,7 +121,7 @@ class VectorT(Types):
         return f'{self.vector_type}<{self.inner_type.name}>'
     @property
     def sqlname(self) -> str:
-        return 'BINARY'
+        return 'BIGINT'
     @property
     def cname(self) -> str:
         return self.name

@@ -129,7 +129,7 @@ public:
 	}
 
 	// defined in table_ext_monetdb.hpp
-	void* monetdb_get_col();
+	void* monetdb_get_col(void** gc_vecs, uint32_t& cnt);
 	
 };
 template<>

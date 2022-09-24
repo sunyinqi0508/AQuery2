@@ -12,10 +12,15 @@
 #include <iterator>
 #include <initializer_list>
 #include <unordered_set>
+#include <iostream>
 #include "hasher.h"
 #include "types.h"
 
 #pragma pack(push, 1)
+template <typename _Ty>
+class slim_vector {
+
+};
 template <typename _Ty>
 class vector_type {
 public:
@@ -249,7 +254,25 @@ public:
 		}
 		size = this->size + dist;
 	}
-	void out(uint32_t n = 4, const char* sep = " ") const;
+	inline void out(uint32_t n = 4, const char* sep = " ") const
+	{
+		const char* more = "";
+		if (n < this->size)
+			more = " ... ";
+		else
+			n = this->size;
+
+		std::cout << '(';
+		if (n > 0)
+		{
+			uint32_t i = 0;
+			for (; i < n - 1; ++i)
+				std::cout << this->operator[](i) << sep;
+			std::cout << this->operator[](i);
+		}
+		std::cout<< more;
+		std::cout << ')';
+	}
 	vector_type<_Ty> subvec_memcpy(uint32_t start, uint32_t end) const {
 		vector_type<_Ty> subvec(end - start);
 		memcpy(subvec.container, container + start, sizeof(_Ty) * (end - start));

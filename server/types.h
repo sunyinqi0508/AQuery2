@@ -29,7 +29,7 @@ namespace types {
 	static constexpr const char* printf_str[] = { "%d", "%f", "%s", "%lf", "%Lf", "%ld", "%d", "%hi", "%s", "%s", "%c",
 		"%u", "%lu", "%s", "%hu", "%hhu", "%s", "%s", "Vector<%s>", "%s", "NULL", "ERROR" };
 	static constexpr const char* SQL_Type[] = { "INT", "REAL", "TEXT", "DOUBLE", "DOUBLE", "BIGINT", "HUGEINT", "SMALLINT", "DATE", "TIME", "TINYINT",
-		"INT", "BIGINT", "HUGEINT", "SMALLINT", "TINYINT", "BOOL", "BIGINT", "TIMESTAMP", "NULL", "ERROR"};
+		"INT", "BIGINT", "HUGEINT", "SMALLINT", "TINYINT", "BOOL", "HUGEINT", "TIMESTAMP", "NULL", "ERROR"};
 	
 	
 	// TODO: deal with data/time <=> str/uint conversion
@@ -197,12 +197,12 @@ namespace types {
 struct astring_view {
 	const unsigned char* str = 0;
 	
-#if defined(__clang__) or !defined(__GNUC__)
+#if defined(__clang__) || !defined(__GNUC__)
 	constexpr 
 #endif
 	astring_view(const char* str) noexcept :
 		str((const unsigned char*)(str))  {}
-#if defined(__clang__) or !defined(__GNUC__)
+#if defined(__clang__) || !defined(__GNUC__)
 	constexpr
 #endif 
 	astring_view(const signed char* str) noexcept :
@@ -373,4 +373,10 @@ constexpr size_t count_type(std::tuple<Types...>* ts) {
     size_t t[] = {sum_type<Types, T1...>() ...};
     return sum_type(t, sizeof...(Types));
 }
+template<class ...Types> 
+constexpr size_t count_vector_type(std::tuple<Types...>* ts) {
+    size_t t[] = {is_vector_type<Types> ...};
+    return sum_type(t, sizeof...(Types));
+}
+
 #endif // !_TYPES_H

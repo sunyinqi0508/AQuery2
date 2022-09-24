@@ -2,6 +2,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Set, Tuple, Dict, Union, List, Optional
+
 from engine.types import *
 from engine.utils import enlist, base62uuid, base62alp, get_legal_name
 from reconstruct.storage import Context, TableInfo, ColRef
@@ -151,7 +152,8 @@ class projection(ast_node):
                         name = enlist(sql_expr.eval(False, y, count=count))
                         this_type = enlist(this_type)
                         proj_expr = enlist(proj_expr)
-                    for t, n, pexpr in zip(this_type, name, proj_expr):
+                    for t, n, pexpr, cp in zip(this_type, name, proj_expr, compound):
+                        t = VectorT(t) if cp else t
                         offset = len(col_exprs)
                         if n not in self.var_table:
                             self.var_table[n] = offset
@@ -285,11 +287,11 @@ class projection(ast_node):
                     val[2].cols_mentioned.intersection(
                         self.datasource.all_cols().difference(self.group_node.refs))
                     ) and val[2].is_compound # compound val not in key
-                    or 
-                    val[2].is_compound > 1
+                    # or 
+                    # val[2].is_compound > 1
                     # (not self.group_node and val[2].is_compound)
                     ):
-                    out_typenames[key] = f'ColRef<{out_typenames[key]}>'
+                    out_typenames[key] = f'vector_type<{out_typenames[key]}>'
                     self.out_table.columns[key].compound = True
         outtable_col_nameslist = ', '.join([f'"{c.name}"' for c in self.out_table.columns])
         self.outtable_col_names = 'names_' + base62uuid(4)
@@ -530,7 +532,7 @@ class groupby_c(ast_node):
                     materialize_builtin['_builtin_len'] = len_var
                 if '_builtin_ret' in ex.udf_called.builtin_used:
                     define_len_var()
-                    gscanner.add(f'{ce[0]}.emplace_back({{{len_var}}});\n')
+                    gscanner.add(f'{ce[0]}.emplace_back({len_var});\n')
                     materialize_builtin['_builtin_ret'] = f'{ce[0]}.back()'
                     gscanner.add(f'{ex.eval(c_code = True, y=get_var_names, materialize_builtin = materialize_builtin)};\n')
                     continue
@@ -763,16 +765,45 @@ class create_table(ast_node):
         if self.context.use_columnstore:
             self.sql += ' engine=ColumnStore'
                     
+class drop(ast_node):
+    name = 'drop'
+    first_order = name
+    def produce(self, node):
+        node = node['drop']
+        tbl_name = node['table']
+        if tbl_name in self.context.tables_byname:
+            tbl_obj = self.context.tables_byname[tbl_name]
+            # TODO: delete in postproc engine
+            self.context.tables_byname.pop(tbl_name)
+            self.context.tables.remove(tbl_obj)
+            self.sql += 'TABLE IF EXISTS ' + tbl_name
+            return
+        elif 'if_exists' not in node or not node['if_exists']:
+            print(f'Error: table {tbl_name} not found.')
+        self.sql = ''
+        
 class insert(ast_node):
     name = 'insert'
     first_order = name
-    
+    def init(self, node):
+        values = node['query']
+        complex_query_kw = ['from', 'where', 'groupby', 'having', 'orderby', 'limit']
+        if any([kw in values for kw in complex_query_kw]):
+            values['into'] = node['insert']
+            projection(None, values, self.context)
+            self.produce = lambda*_:None
+            self.spawn = lambda*_:None
+            self.consume = lambda*_:None
+        else:
+            super().init(node)
+            
     def produce(self, node):
         values = node['query']['select']
         tbl = node['insert']
         self.sql = f'INSERT INTO {tbl} VALUES('
         # if len(values) != table.n_cols:
         #     raise ValueError("Column Mismatch")
+
         list_values = []
         for i, s in enumerate(values):
             if 'value' in s:

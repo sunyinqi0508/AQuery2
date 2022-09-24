@@ -2,7 +2,7 @@
 
 ## GLOBAL CONFIGURATION FLAGS
 
-version_string = '0.4.5a'
+version_string = '0.4.6a'
 add_path_to_ldpath = True
 rebuild_backend = False
 run_backend = True
@@ -13,7 +13,7 @@ os_platform = 'unknown'
 build_driver = 'Makefile'
 
 def init_config():
-    global __config_initialized__, os_platform, msbuildroot
+    global __config_initialized__, os_platform, msbuildroot, build_driver
 ## SETUP ENVIRONMENT VARIABLES
     # __config_initialized__ = False
     #os_platform = 'unkown'
@@ -48,6 +48,7 @@ def init_config():
             vsloc = vswhere.find(prerelease = True, latest = True, prop = 'installationPath')
             if vsloc:
                 msbuildroot = vsloc[0] + '/MSBuild/Current/Bin/MSBuild.exe'
+                build_driver = 'MSBuild'
             else:
                 print('Warning: No Visual Studio installation found.')
             # print("adding path")
