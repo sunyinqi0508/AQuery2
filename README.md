@@ -9,7 +9,7 @@ AQuery++ Database is a cross-platform, In-Memory Column-Store Database that inco
 1. Recent version of Linux, Windows or MacOS, with recent C++ compiler that has C++17 (1z) support. (however c++20 is recommended if available for heterogeneous lookup on unordered containers)
      - GCC: 9.0 or above (g++ 7.x, 8.x fail to handle fold-expressions due to a compiler bug)
      - Clang: 5.0 or above (Recommended)
-     - MSVC: 2017 or later (2022 or above is recommended)
+     - MSVC: 2019 or later (2022 or above is recommended)
 
 2. Monetdb for Hybrid Engine
    - On windows, the required libraries and headers are already included in the repo.
@@ -17,8 +17,13 @@ AQuery++ Database is a cross-platform, In-Memory Column-Store Database that inco
    - On MacOS, Monetdb can be easily installed in homebrew `brew install monetdb`.
 
 3. Python 3.6 or above and install required packages in requirements.txt by `python3 -m pip install -r requirements.txt` 
+
+## DOCKER: 
+   - Alternatively, you can also use docker to run AQuery.
+   - Type `make docker` to build the docker image from scratch. 
+   - For Arm-based Mac users, you would need to build and run the x86_64 docker image because MonetDB doesn't offer official binaries for arm64 Linux. 
 ## Usage
-`python3 prompt.py` will launch the interactive command prompt. The server binary will be autometically rebuilt and started.
+`python3 prompt.py` will launch the interactive command prompt. The server binary will be automatically rebuilt and started.
 #### Commands:
 - `<sql statement>`: parse AQuery statement
 - `f <filename>`: parse all AQuery statements in file
@@ -87,5 +92,3 @@ See ./tests/ for more examples.
 - [ ] Improvement: More DDLs, e.g. drop table, update table, etc.
 - [ ] Bug: Join-Aware Column management
 - [ ] Bug: Order By after Group By
-
-
