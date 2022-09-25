@@ -16,7 +16,7 @@ RUN git clone https://github.com/sunyinqi0508/AQuery2
 
 RUN python3 -m pip install -r AQuery2/requirements.txt
 
-ENV IS_DOCKER_IMAGE=1 CXX=clang-14
+ENV IS_DOCKER_IMAGE=1 CXX=clang++-14
 
 CMD cd AQuery2 && python3 prompt.py
 

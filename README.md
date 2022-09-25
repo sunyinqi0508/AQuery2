@@ -55,7 +55,7 @@ There're multiple options to run AQuery on Windows. You can use the native toolc
 - Install monetdb, see [Monetdb Easy Setup](https://www.monetdb.org/easy-setup/) for instructions.
 - Install python3, C++ compiler and git. (For Ubuntu, run `apt update && apt install -y python3 python3-pip clang-14 libmonetdbe-dev git `)
 - Install required python packages by `python3 -m pip install -r requirements.txt`
-- If you have multiple C++ compilers on the system. Specify C++ compiler by setting the **CXX** environment variable. e.g. `export CXX=clang-14`
+- If you have multiple C++ compilers on the system. Specify C++ compiler by setting the **CXX** environment variable. e.g. `export CXX=clang++-14`
 ### Docker: 
    - Alternatively, you can also use docker to run AQuery.
    - Type `make docker` to build the docker image from scratch. 

@@ -104,7 +104,8 @@ class build_manager:
         def __init__(self, mgr : 'build_manager') -> None:
             super().__init__(mgr)
             os.environ['PCH'] = f'{mgr.PCH}'
-            os.environ['CXX'] = mgr.cxx if mgr.cxx else 'c++'
+            if 'CXX' not in os.environ:
+                os.environ['CXX'] = mgr.cxx if mgr.cxx else 'c++'
         
         def libaquery_a(self):
             self.build_cmd = [['rm', 'libaquery.a'],['make', 'libaquery.a']]

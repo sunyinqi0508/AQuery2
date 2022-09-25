@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <type_traits>
 #include <tuple>
+using std::size_t;
 
 #if  defined(__SIZEOF_INT128__) and not defined(_WIN32)
 #define __AQ__HAS__INT128__
@@ -194,19 +195,19 @@ namespace types {
 }
 
 
-struct astring_view {
+union astring_view {
 	const unsigned char* str = 0;
+	const signed char* sstr;
+	const char* rstr;
+	size_t ptr;
 	
-#if defined(__clang__) || !defined(__GNUC__)
+	
 	constexpr 
-#endif
 	astring_view(const char* str) noexcept :
-		str((const unsigned char*)(str))  {}
-#if defined(__clang__) || !defined(__GNUC__)
+		rstr(str)  {}
 	constexpr
-#endif 
 	astring_view(const signed char* str) noexcept :
-		str((const unsigned char*)(str)) {}
+		sstr(str) {}
 
 	constexpr
 	astring_view(const unsigned char* str) noexcept :
@@ -225,16 +226,27 @@ struct astring_view {
 		return !(*this_str || *other_str);
 	}
 	bool operator >(const astring_view&r) const{
+		auto this_str = str;
+		auto other_str = r.str;
+		bool ret = true;
+		while (*this_str && *other_str) {
+			if (*this_str <= *other_str)
+				ret = false;
+			this_str++;
+			other_str++;
+		}
 		
+		return (*this_str && !*other_str) || 
+			(ret && !*this_str && *other_str);
 	}
 	operator const char* () const {
-		return reinterpret_cast<const char*>(str);
+		return rstr;
 	}
 	operator const unsigned char* () const {
-		return reinterpret_cast<const unsigned char*>(str);
+		return str;
 	}
 	operator const signed char* () const {
-		return reinterpret_cast<const signed char*>(str);
+		return sstr;
 	}
 };
 
