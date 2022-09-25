@@ -623,29 +623,29 @@ inline void TableInfo<Types...>::print(const char* __restrict sep, const char* _
 	}
 }
 template <class T1,
-			template<typename ...> class VT,
+			template<typename> class VT,
 			class TRet>
 using test_vt_support = typename std::enable_if_t<std::is_same_v<VT<T1>, ColRef<T1>> || 
 				std::is_same_v<VT<T1>, ColView<T1>> || 
 				std::is_same_v<VT<T1>, vector_type<T1>>, TRet>;
 
 template <class T1, class T2,
-			template<typename ...> class VT>
+			template<typename> class VT>
 using get_autoext_type = test_vt_support<T1, VT, 
 		decayed_t<VT, typename types::Coercion<T1, T2>::type>>;
 
 template <class T1, class T2,
-			template<typename ...> class VT>
+			template<typename> class VT>
 using get_long_type = test_vt_support<T1, VT, 
 		decayed_t<VT, types::GetLongType<typename types::Coercion<T1, T2>::type>>>;
 
 template <class T1, class T2,
-			template<typename ...> class VT>
+			template<typename> class VT>
 using get_fp_type = test_vt_support<T1, VT, 
 		decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>>>;
 
 template <class T1, 
-			template<typename ...> class VT, template<typename ...> class VT2,
+			template<typename> class VT, template<typename> class VT2,
 			class TRet>
 using test_vt_support2 = typename std::enable_if_t<(std::is_same_v<VT<T1>, ColRef<T1>> || 
 				std::is_same_v<VT<T1>, ColView<T1>> || 
@@ -654,21 +654,21 @@ using test_vt_support2 = typename std::enable_if_t<(std::is_same_v<VT<T1>, ColRe
 				std::is_same_v<VT2<T1>, ColView<T1>> || 
 				std::is_same_v<VT2<T1>, vector_type<T1>>), TRet >;
 template <class T1, class T2,
-			template<typename ...> class VT, template<typename ...> class VT2>
+			template<typename> class VT, template<typename> class VT2>
 using get_autoext_type2 = test_vt_support2<T1, VT, VT2,
 		decayed_t<VT, typename types::Coercion<T1, T2>::type>>;
 
 template <class T1, class T2,
-			template<typename ...> class VT, template<typename ...> class VT2>
+			template<typename> class VT, template<typename> class VT2>
 using get_long_type2 = test_vt_support2<T1, VT, VT2,
 		decayed_t<VT, types::GetLongType<typename types::Coercion<T1, T2>::type>>>;
 
 template <class T1, class T2,
-			template<typename ...> class VT, template<typename ...> class VT2>
+			template<typename> class VT, template<typename> class VT2>
 using get_fp_type2 = test_vt_support2<T1, VT, VT2,
 		decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>>>;
 
-template <class T1, class T2, template<typename ...> class VT, template<typename ...> class VT2>
+template <class T1, class T2, template<typename> class VT, template<typename> class VT2>
 get_autoext_type2<T1, T2, VT, VT2>
 operator -(const VT<T1>& lhs, const VT2<T2>& rhs) {
 	auto ret = get_autoext_type2<T1, T2, VT, VT2>(lhs.size);
@@ -676,7 +676,7 @@ operator -(const VT<T1>& lhs, const VT2<T2>& rhs) {
 		ret[i] = lhs[i] - rhs[i];
 	return ret;
 }
-template <class T1, class T2, template<typename ...> class VT>
+template <class T1, class T2, template<typename> class VT>
 get_autoext_type<T1, T2, VT>
 operator -(const VT<T1>& lhs, const T2& rhs) {
 	auto ret = get_autoext_type<T1, T2, VT>(lhs.size);
@@ -684,7 +684,7 @@ operator -(const VT<T1>& lhs, const T2& rhs) {
 		ret[i] = lhs[i] - rhs;
 	return ret;
 }
-template <class T1, class T2, template<typename ...> class VT>
+template <class T1, class T2, template<typename> class VT>
 get_autoext_type<T1, T2, VT>
 operator -(const T2& lhs, const VT<T1>& rhs) {
 	auto ret = get_autoext_type<T1, T2, VT>(rhs.size);
@@ -692,7 +692,7 @@ operator -(const T2& lhs, const VT<T1>& rhs) {
 		ret[i] = lhs - rhs[i];
 	return ret;
 }
-template <class T1, class T2, template<typename ...> class VT, template<typename ...> class VT2>
+template <class T1, class T2, template<typename> class VT, template<typename> class VT2>
 get_autoext_type2<T1, T2, VT, VT2>
 operator +(const VT<T1>& lhs, const VT2<T2>& rhs) {
 	auto ret = get_autoext_type2<T1, T2, VT, VT2>(lhs.size);
@@ -700,7 +700,7 @@ operator +(const VT<T1>& lhs, const VT2<T2>& rhs) {
 		ret[i] = lhs[i] + rhs[i];
 	return ret;
 }
-template <class T1, class T2, template<typename ...> class VT>
+template <class T1, class T2, template<typename> class VT>
 get_autoext_type<T1, T2, VT> 
 operator +(const VT<T1>& lhs, const T2& rhs) {
 	auto ret = get_autoext_type<T1, T2, VT>(lhs.size);
@@ -708,7 +708,7 @@ operator +(const VT<T1>& lhs, const T2& rhs) {
 		ret[i] = lhs[i] + rhs;
 	return ret;
 }
-template <class T1, class T2, template<typename ...> class VT>
+template <class T1, class T2, template<typename> class VT>
 get_autoext_type<T1, T2, VT> 
 operator +(const T2& lhs, const VT<T1>& rhs) {
 	auto ret = get_autoext_type<T1, T2, VT> (rhs.size);
@@ -716,7 +716,7 @@ operator +(const T2& lhs, const VT<T1>& rhs) {
 		ret[i] = lhs + rhs[i];
 	return ret;
 }
-template <class T1, class T2, template<typename ...> class VT, template<typename ...> class VT2>
+template <class T1, class T2, template<typename> class VT, template<typename> class VT2>
 get_long_type2<T1, T2, VT, VT2> 
 operator *(const VT<T1>& lhs, const VT2<T2>& rhs) {
 	auto ret = get_long_type2<T1, T2, VT, VT2>(lhs.size);
@@ -724,7 +724,7 @@ operator *(const VT<T1>& lhs, const VT2<T2>& rhs) {
 		ret[i] = lhs[i] * rhs[i];
 	return ret;
 }
-template <class T1, class T2, template<typename ...> class VT>
+template <class T1, class T2, template<typename> class VT>
 get_long_type<T1, T2, VT>
 operator *(const VT<T1>& lhs, const T2& rhs) {
 	auto ret = get_long_type<T1, T2, VT>(lhs.size);
@@ -732,7 +732,7 @@ operator *(const VT<T1>& lhs, const T2& rhs) {
 		ret[i] = lhs[i] * rhs;
 	return ret;
 }
-template <class T1, class T2, template<typename ...> class VT>
+template <class T1, class T2, template<typename> class VT>
 get_long_type<T1, T2, VT>
 operator *(const T2& lhs, const VT<T1>& rhs) {
 	auto ret = get_long_type<T1, T2, VT>(rhs.size);
@@ -740,7 +740,7 @@ operator *(const T2& lhs, const VT<T1>& rhs) {
 		ret[i] = lhs * rhs[i];
 	return ret;
 }
-template <class T1, class T2, template<typename ...> class VT, template<typename ...> class VT2>
+template <class T1, class T2, template<typename> class VT, template<typename> class VT2>
 get_fp_type2<T1, T2, VT, VT2>
 operator /(const VT<T1>& lhs, const VT2<T2>& rhs) {
 	auto ret = get_fp_type2<T1, T2, VT, VT2>(lhs.size);
@@ -748,7 +748,7 @@ operator /(const VT<T1>& lhs, const VT2<T2>& rhs) {
 		ret[i] = lhs[i] / rhs[i];
 	return ret;
 }
-template <class T1, class T2, template<typename ...> class VT>
+template <class T1, class T2, template<typename> class VT>
 get_fp_type<T1, T2, VT> 
 operator /(const VT<T1>& lhs, const T2& rhs) {
 	auto ret = get_fp_type<T1, T2, VT>(lhs.size);
@@ -756,7 +756,7 @@ operator /(const VT<T1>& lhs, const T2& rhs) {
 		ret[i] = lhs[i] / rhs;
 	return ret;
 }
-template <class T1, class T2, template<typename ...> class VT>
+template <class T1, class T2, template<typename> class VT>
 get_fp_type<T1, T2, VT> 
 operator /(const T2& lhs, const VT<T1>& rhs) {
 	auto ret = get_fp_type<T1, T2, VT>(rhs.size);
@@ -765,21 +765,21 @@ operator /(const T2& lhs, const VT<T1>& rhs) {
 	return ret;
 }
 
-template <class T1, class T2, template<typename ...> class VT, template<typename ...> class VT2>
+template <class T1, class T2, template<typename> class VT, template<typename> class VT2>
 VT<bool> operator >(const VT<T1>& lhs, const VT2<T2>& rhs) {
 	auto ret = VT<bool>(lhs.size);
 	for (uint32_t i = 0; i < lhs.size; ++i)
 		ret[i] = lhs[i] > rhs[i];
 	return ret;
 }
-template <class T1, class T2, template<typename ...> class VT>
+template <class T1, class T2, template<typename> class VT>
 VT<bool> operator >(const VT<T1>& lhs, const T2& rhs) {
 	auto ret = VT<bool>(lhs.size);
 	for (uint32_t i = 0; i < lhs.size; ++i)
 		ret[i] = lhs[i] > rhs;
 	return ret;
 }
-template <class T1, class T2, template<typename ...> class VT>
+template <class T1, class T2, template<typename> class VT>
 VT<bool> operator >(const T2& lhs, const VT<T1>& rhs) {
 	auto ret = VT<bool>(rhs.size);
 	for (uint32_t i = 0; i < rhs.size; ++i)
