@@ -22,7 +22,7 @@ AQuery is tested on mainstream operating systems such as Windows, macOS and Linu
 ### Windows
 There're multiple options to run AQuery on Windows. You can use the native toolchain from Microsoft Visual Studio or gcc from Cygwin/MinGW or run it under Windows Subsystem for Linux.
 
-- For WSL, Docker or linux virtual machines, see Linux, Docker sections below
+- For WSL, Docker or Linux virtual machines, see Linux, Docker sections below
 - For Visual Studio:
   1. Install python3.6 or above from [official website](https://www.python.org/downloads/windows/) or Microsoft Store.
   2. Install Microsoft Visual Studio 2022 or later with **Desktop development with C++** selected.
