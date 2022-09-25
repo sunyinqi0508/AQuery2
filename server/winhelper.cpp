@@ -20,6 +20,10 @@ int dlclose(void* handle)
 	return FreeLibrary(static_cast<HMODULE>(handle));
 }
 
+int dlerror() {
+    return GetLastError();
+}
+
 SharedMemory::SharedMemory(const char* fname)
 {
     this->hFileMap = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, 2, fname);

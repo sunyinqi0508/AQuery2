@@ -23,22 +23,25 @@ AQuery is tested on mainstream operating systems such as Windows, macOS and Linu
 There're multiple options to run AQuery on Windows. You can use the native toolchain from Microsoft Visual Studio or gcc from Cygwin/MinGW or run it under Windows Subsystem for Linux.
 
 - For WSL, Docker or Linux virtual machines, see Linux, Docker sections below
-- For Visual Studio:
+- For Visual Studio (Recommended):
   1. Install python3.6 or above from [official website](https://www.python.org/downloads/windows/) or Microsoft Store.
   2. Install Microsoft Visual Studio 2022 or later with **Desktop development with C++** selected.
   3. Clone AQuery repo from [Github](https://github.com/sunyinqi0508/AQuery2)
   4. Install python requirements with pip `python3 -m pip install -r requirements.txt`
   5. Change the build driver from aquery_config.py to "MSBuild"
   6. The libraries and headers for Monetdb are already included in msc-plugins, however you can also choose to download them from [Monetdb Easy Setup](https://www.monetdb.org/easy-setup/) and put them in the same place.
-   
-- For MinGW:
-   1. Install gcc and python3 using the package manager. (For Msys2, `pacman -S gcc python3`)
+
+- For Winlibs (Recommended):
+  - Download latest winlibs toolchain from the [official website](https://winlibs.com/)
+  - Since winlibs is linked with native windows runtime libraries (UCRT or MSVCRT), it offers better interoperatibility with other libraries built with MSVC such as python and monetdb.
+  - Other steps can be either the same as Visual Studio or Cygwin/Mingw (below) without ABI break.
+  
+- For CygWin/MinGW:
+   1. Install gcc and python3 using its **builtin package manager** instead of the one from python.org or windows store. (For Msys2, `pacman -S gcc python3`)
    2. Clone AQuery repo from Github
    3. Install python requirements
    4. The prebuilt binaries are included in ./lib directory. However, you could also rebuild them from [source](https://github.com/MonetDB/MonetDB).
-
-- Note that it might be possible to use python from python.org or Microsoft store with gcc from MinGW. However, it might not work because of ABI breakage. So the better way is to use gcc with MinGW python from pacman or use clang/MSVC instead.
-
+   
 ### macOS
 - Install a package manager such as [homebrew](https://brew.sh) 
 - Install python3 and monetdb using homebrew `brew install python3 monetdb`

@@ -176,10 +176,10 @@ int dll_main(int argc, char** argv, Context* cxt){
                                 //getlasterror
                                 
                                 if (!user_module_handle)
-#ifndef _MSC_VER
+#ifndef _WIN32
                                     puts(dlerror());
 #else
-                                    printf("Fatal Error: Module %s failed to load with error code %d.\n", mname, GetLastError());
+                                    printf("Fatal Error: Module %s failed to load with error code %d.\n", mname, dlerror());
 #endif
                                 user_module_map[mname] = user_module_handle;
                                 initialize_module(mname, user_module_handle, cxt);

@@ -44,16 +44,23 @@ def init_config():
         if os_platform == 'win':
             add_dll_dir(cygroot)  
             add_dll_dir(os.path.abspath('./msc-plugin'))
-            import vswhere
-            vsloc = vswhere.find(prerelease = True, latest = True, prop = 'installationPath')
-            if vsloc:
-                msbuildroot = vsloc[0] + '/MSBuild/Current/Bin/MSBuild.exe'
-                build_driver = 'MSBuild'
-            else:
-                print('Warning: No Visual Studio installation found.')
+            if build_driver == 'Auto':
+                try:
+                    import vswhere
+                    vsloc = vswhere.find(prerelease = True, latest = True, prop = 'installationPath')
+                    if vsloc:
+                        msbuildroot = vsloc[0] + '/MSBuild/Current/Bin/MSBuild.exe'
+                        build_driver = 'MSBuild'
+                    else:
+                        print('Warning: No Visual Studio installation found.')
+                        build_driver = 'Makefile'
+                except ModuleNotFoundError:
+                    build_driver = 'Makefile'
             # print("adding path")
         else:
             import readline
+            if build_driver == 'Auto':
+                build_driver = 'Makefile'
             if os_platform == 'cygwin':
                 add_dll_dir('./lib')
         __config_initialized__ = True

@@ -76,8 +76,8 @@ __AQEXPORT__(void) init_session(Context* cxt);
 
 #define __AQ_NO_SESSION__ __AQEXPORT__(void) init_session(Context*) {}
 
-#ifdef _MSC_VER
-void* _cdecl memcpy(void*, void*, size_t);
+#ifdef _WIN32
+#include <cstring>
 #else 
 void* memcpy(void*, const void*, unsigned long long);
 #endif

@@ -14,7 +14,7 @@ class checksums:
     libaquery_a : Optional[Union[bytes, bool]] = None
     pch_hpp_gch : Optional[Union[bytes, bool]] = None
     server : Optional[Union[bytes, bool]] = None
-    sources : Union[Dict[str, bytes], bool] = None
+    sources : Optional[Union[Dict[str, bytes], bool]] = None
     env : str = ''
     def calc(self, compiler_name, libaquery_a = 'libaquery.a' , 
                 pch_hpp_gch = 'server/pch.hpp.gch', 

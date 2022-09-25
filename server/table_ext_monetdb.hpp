@@ -22,7 +22,12 @@ inline constexpr monetdbe_types AQType_2_monetdbe[] = {
 #else 
 		monetdbe_int64_t,
 #endif
-		monetdbe_int16_t, monetdbe_int8_t, monetdbe_bool, monetdbe_int128_t,
+		monetdbe_int16_t, monetdbe_int8_t, monetdbe_bool,
+#ifdef HAVE_HGE		 
+		monetdbe_int128_t,
+#else	
+		monetdbe_int64_t,
+#endif
 		monetdbe_timestamp, monetdbe_int64_t, monetdbe_int64_t
 };
 
