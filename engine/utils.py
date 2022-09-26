@@ -141,3 +141,6 @@ nullstream = open(os.devnull, 'w')
 
 def clamp(val, minval, maxval):
     return min(max(val, minval), maxval)
+
+def escape_qoutes(string : str):
+    return re.sub(r'^\'', r'\'',re.sub(r'([^\\])\'', r'\1\'', string))

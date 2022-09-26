@@ -617,6 +617,7 @@ class join(ast_node):
         self.join_conditions = []
         # self.tmp_name = 'join_' + base62uuid(4)
         # self.datasource = TableInfo(self.tmp_name, [], self.context)
+        
     def append(self, tbls, __alias = ''):
         alias = lambda t : t + ' ' + __alias if len(__alias) else t
         if type(tbls) is join:
@@ -661,8 +662,11 @@ class join(ast_node):
                     self.have_sep = True
                     j = join(self, node[keys[0]])
                     tablename = f' {keys[0]} {j}'
-                    if len(keys) > 1 and keys[1].lower() == 'on':
-                        tablename += f' on {expr(self, node[keys[1]])}' 
+                    if len(keys) > 1 :
+                        if keys[1].lower() == 'on':
+                            tablename += f' ON {expr(self, node[keys[1]])}' 
+                        elif keys[1].lower() == 'using':
+                            tablename += f' USING {expr(self, node[keys[1]])}'
                     self.joins.append((tablename, self.have_sep))
                     self.tables += j.tables
                     self.tables_dir = {**self.tables_dir, **j.tables_dir}
@@ -731,8 +735,9 @@ class join(ast_node):
 class filter(ast_node):
     name = 'where'
     def produce(self, node):
-        self.add(expr(self, node).sql)
-    
+        filter_expr = expr(self, node)
+        self.add(filter_expr.sql)
+        self.datasource.join_conditions += filter_expr.join_conditions
         
 class create_table(ast_node):
     name = 'create_table'

@@ -1,5 +1,8 @@
 #!aquery
 
+select "hello world"
+xexec
+
 echo Testing Insert, Filters and Nested Aggregation
 f stock.a
 xexec

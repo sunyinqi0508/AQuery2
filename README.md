@@ -28,21 +28,23 @@ There're multiple options to run AQuery on Windows. You can use the native toolc
   2. Install Microsoft Visual Studio 2022 or later with **Desktop development with C++** selected.
   3. Clone AQuery repo from [Github](https://github.com/sunyinqi0508/AQuery2)
   4. Install python requirements with pip `python3 -m pip install -r requirements.txt`
-  5. Change the build driver from aquery_config.py to "MSBuild"
+  5. Change the build_driver variable in aquery_config.py to "MSBuild"
   6. The libraries and headers for Monetdb are already included in msc-plugins, however you can also choose to download them from [Monetdb Easy Setup](https://www.monetdb.org/easy-setup/) and put them in the same place.
 
 - For Winlibs (Recommended):
   - Download latest winlibs toolchain from the [official website](https://winlibs.com/)
   - Since winlibs is linked with native windows runtime libraries (UCRT or MSVCRT), it offers better interoperatibility with other libraries built with MSVC such as python and monetdb.
   - Other steps can be either the same as Visual Studio or Cygwin/Mingw (below) without ABI break.
+  - Copy or link `mingw64/libexec/gcc/<arch>/<version>/liblto-plugin.dll` to `mingw64/lib/bfd-plugins/` For Link time optimization support on gcc-ar and gcc-ranlib 
   
 - For CygWin/MinGW:
-   1. Install gcc and python3 using its **builtin package manager** instead of the one from python.org or windows store. (For Msys2, `pacman -S gcc python3`)
+   1. Install gcc and python3 using its **builtin package manager** instead of the one from python.org or windows store. (For Msys2, `pacman -S gcc python3`). Otherwise, ABI breakage may happen.
    2. Clone AQuery repo from Github
    3. Install python requirements
    4. The prebuilt binaries are included in ./lib directory. However, you could also rebuild them from [source](https://github.com/MonetDB/MonetDB).
    
 ### macOS
+- If you're using an arm-based mac (e.g. M1, M2 processors). Please go to the Application folder and right-click on the Terminal app, select 'Get Info' and ensure that the 'Open using Rosetta' option is unchecked. See the section below for more notes for arm-based macs.
 - Install a package manager such as [homebrew](https://brew.sh) 
 - Install python3 and monetdb using homebrew `brew install python3 monetdb`
 - Install C++ compiler come with Xcode commandline tool by `xcode-select --install` or from homebrew
@@ -50,8 +52,10 @@ There're multiple options to run AQuery on Windows. You can use the native toolc
 - Install python packages from **requirements.txt**
   
 **for arm64 macOS users**
-- In theory, AQuery++ could work on both native arm64 and x86_64 through Rosetta. But for maximum performance, running native is preferred. 
-- However, they can't be mixed up, i.e. make sure every component, `python` binary, `C++ compiler`, `monetdb` library and system commandline utilities such as `uname` should have the same architecture. 
+- In theory, AQuery++ can work on both native arm64 and x86_64 through Rosetta. But for maximum performance, running native is preferred. 
+- However, they can't be mixed up, i.e. make sure every component, `python` , `C++ compiler`, `monetdb` library and system commandline utilities such as `uname` should have the same architecture. 
+- Use the script `./arch-check.sh` to check if relevant binaries all have the same architecture.
+- In the case where binaries have different architectures, install the software with desired architecture and make an alias or link to ensure the newly installed binary is referred to. 
 - Because I can't get access to an arm-based mac to fully test this setup, there might still be issues. Please open an issue if you encounter any problems.
   
 ### Linux
@@ -59,19 +63,23 @@ There're multiple options to run AQuery on Windows. You can use the native toolc
 - Install python3, C++ compiler and git. (For Ubuntu, run `apt update && apt install -y python3 python3-pip clang-14 libmonetdbe-dev git `)
 - Install required python packages by `python3 -m pip install -r requirements.txt`
 - If you have multiple C++ compilers on the system. Specify C++ compiler by setting the **CXX** environment variable. e.g. `export CXX=clang++-14`
+- Note for anaconda users: the system libraries included in anaconda might differ from the ones your compiler is using. In this case, you might get errors similar to: 
+  >ImportError: libstdc++.so.6: version `GLIBCXX_3.4.26' not found 
+   
+   In this case, upgrade anaconda or your compiler or use the python from your OS or package manager instead. Or (**NOT recommended**) copy/link the library from your system (e.g. /usr/lib/x86_64-linux-gnu/libstdc++.so.6) to anaconda's library directory (e.g. ~/Anaconda3/lib/).
+
 ### Docker: 
    - Alternatively, you can also use docker to run AQuery.
    - Type `make docker` to build the docker image from scratch. 
-   - For Arm-based Mac users, you would need to build and run the x86_64 docker image because MonetDB doesn't offer official binaries for arm64 Linux. 
+   - For Arm-based Mac users, you would have to build and run the x86_64 docker image because MonetDB doesn't offer official binaries for arm64 Linux. 
 ## Usage
 `python3 prompt.py` will launch the interactive command prompt. The server binary will be automatically rebuilt and started.
 #### Commands:
 - `<sql statement>`: parse AQuery statement
 - `f <filename>`: parse all AQuery statements in file
+- `exec`: execute last parsed statement(s) with Hybrid Execution Engine. Hybrid Execution Engine decouples the query into two parts. The standard SQL (MonetDB dialect) part is executed by an Embedded version of Monetdb and everything else is executed by a post-process module which is generated by AQuery++ Compiler in C++ and then compiled and executed.
 - `dbg` start debugging session 
 - `print`: printout parsed AQuery statements
-
-- `xexec`: execute last parsed statement(s) with Hybrid Execution Engine. Hybrid Execution Engine decouples the query into two parts. The standard SQL (MonetDB dialect) part is executed by an Embedded version of Monetdb and everything else is executed by a post-process module which is generated by AQuery++ Compiler in C++ and then compiled and executed.
 - `save <OPTIONAL: filename>`: save current code snippet. will use random filename if not specified.
 - `exit`: quit the prompt
 - `r`: run the last generated code snippet

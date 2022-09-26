@@ -94,8 +94,8 @@ class build_manager:
             ret = True
             for c in self.build_cmd:
                 if c:
-                    try:
-                        ret = subprocess.call(c, stdout = stdout, stderr = stderr) and ret
+                    try: # only last success matters
+                        ret = not subprocess.call(c, stdout = stdout, stderr = stderr) # and ret
                     except (FileNotFoundError):
                         ret = False
                         pass
@@ -205,21 +205,23 @@ class build_manager:
              self.cache_status.sources or 
              self.cache_status.env
         ):
-            self.driver.pch()
-            self.driver.libaquery_a()
-            self.driver.server()
+            success &= self.driver.pch()
+            success &= self.driver.libaquery_a()
+            success &= self.driver.server()
         else:
             if self.cache_status.libaquery_a:
-                success = self.driver.libaquery_a() and success
+                success &= self.driver.libaquery_a() 
             if self.cache_status.pch_hpp_gch:
-                success = self.driver.pch() and success
+                success &= self.driver.pch() 
             if self.cache_status.server:
-                success = self.driver.server() and success
+                success &= self.driver.server() 
         if success:
             current.calc(self.cxx, libaquery_a)
             with open('.cached', 'wb') as cache_sig:
                 cache_sig.write(pickle.dumps(current))
         else:
+            if aquery_config.os_platform == 'mac':
+                os.system('./arch-check.sh')
             try:
                 os.remove('./.cached')
             except:
