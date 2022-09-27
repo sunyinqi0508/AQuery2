@@ -108,6 +108,7 @@
       <PrecompiledHeaderFile>./server/pch.hpp</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>../libaquery.pch</PrecompiledHeaderOutputFile>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -178,6 +179,7 @@
       <PrecompiledHeaderFile>./server/pch.hpp</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>../libaquery.pch</PrecompiledHeaderOutputFile>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
