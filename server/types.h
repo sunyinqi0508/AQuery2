@@ -29,22 +29,22 @@ namespace types {
 	static constexpr const char* printf_str[] = { "%d", "%f", "%s", "%lf", "%Lf", "%ld", "%d", "%hi", "%s", "%s", "%c",
 		"%u", "%lu", "%s", "%hu", "%hhu", "%s", "%s", "Vector<%s>", "%s", "NULL", "ERROR" };
 	static constexpr const char* SQL_Type[] = { "INT", "REAL", "TEXT", "DOUBLE", "DOUBLE", "BIGINT", "HUGEINT", "SMALLINT", "DATE", "TIME", "TINYINT",
-		"INT", "BIGINT", "HUGEINT", "SMALLINT", "TINYINT", "BIGINT", "BOOL", "BIGINT", "TIMESTAMP", "NULL", "ERROR"};
-	
-	
+		"INT", "BIGINT", "HUGEINT", "SMALLINT", "TINYINT", "BOOL", "BLOB", "TIMESTAMP", "NULL", "ERROR" };
+
+
 	// TODO: deal with data/time <=> str/uint conversion
-	struct date_t{
+	struct date_t {
 		unsigned char day = 0;
 		unsigned char month = 0;
 		short year = 0;
 
 		date_t() = default;
-		date_t(unsigned char day, unsigned char month, short year) : 
-			day (day), month (month), year(year) {}
+		date_t(unsigned char day, unsigned char month, short year) :
+			day(day), month(month), year(year) {}
 		date_t(const char*);
 		date_t& fromString(const char*);
 		bool validate() const;
-		constexpr static unsigned string_length(){
+		constexpr static unsigned string_length() {
 			return 11;
 		};
 		char* toString(char* buf) const;
@@ -56,16 +56,16 @@ namespace types {
 		bool operator != (const date_t&) const;
 	};
 
-	struct time_t{
+	struct time_t {
 		unsigned int ms = 0;
 		unsigned char seconds = 0;
 		unsigned char minutes = 0;
 		unsigned char hours = 0;
 
-		time_t() = default; 
-		time_t(unsigned int ms, unsigned char seconds, unsigned char minutes, unsigned char hours) : 
-			ms (ms), seconds (seconds), minutes(minutes), hours(hours) {}; 
-		time_t(const char*); 
+		time_t() = default;
+		time_t(unsigned int ms, unsigned char seconds, unsigned char minutes, unsigned char hours) :
+			ms(ms), seconds(seconds), minutes(minutes), hours(hours) {};
+		time_t(const char*);
 		time_t& fromString(const char*);
 		bool validate() const;
 		constexpr static unsigned string_length() {
@@ -79,15 +79,15 @@ namespace types {
 		bool operator == (const time_t&) const;
 		bool operator != (const time_t&) const;
 	};
-	struct timestamp_t{
+	struct timestamp_t {
 		date_t date;
 		time_t time;
 		timestamp_t() = default;
 		timestamp_t(const date_t& d, const time_t& t) : date(d), time(t) {}
-		timestamp_t(const char*); 
+		timestamp_t(const char*);
 		timestamp_t& fromString(const char*);
 		bool validate() const;
-		constexpr static unsigned string_length(){
+		constexpr static unsigned string_length() {
 			return date_t::string_length() + time_t::string_length();
 		};
 		char* toString(char* buf) const;
@@ -135,10 +135,10 @@ namespace types {
 		inline constexpr static Type_t getType() {
 #define	TypeConnect(x, y) if constexpr(std::is_same<x, T>::value) return y; else
 			ConnectTypes(TypeConnect)
-			if constexpr (is_vector_type<T>) 
-				return VECTOR;
-			else
-				return NONE;
+				if constexpr (is_vector_type<T>)
+					return VECTOR;
+				else
+					return NONE;
 		}
 	};
 #define ATypeSize(t, at) sizeof(t),
@@ -167,17 +167,51 @@ namespace types {
 	};
 	template<class T>
 	using GetLongType = typename GetLongTypeImpl<typename std::decay<T>::type>::type;
+
+
+	template<class T>
+	struct GetLongerTypeImpl {
+		using type = Cond(
+
+			__U(T), Cond(__Eq(char), unsigned short,
+				Cond(__Eq(short), unsigned int,
+					Cond(__Eq(int), unsigned long long,
+						ULL_Type
+					))),
+
+			Cond(Fp(T), double,
+
+				Cond(__Eq(char), short,
+					Cond(__Eq(short), int,
+						Cond(__Eq(int), long,
+							LL_Type
+						))))
+
+		);
+	};
+	template<class T>
+	using GetLongerType = typename GetLongerTypeImpl<typename std::decay<T>::type>::type;
 }
+
 
 struct astring_view {
 	const unsigned char* str = 0;
-	constexpr astring_view(const char* str) :
+
+#if defined(__clang__) || !defined(__GNUC__)
+	constexpr
+#endif
+		astring_view(const char* str) noexcept :
 		str((const unsigned char*)(str)) {}
-	constexpr astring_view(const signed char* str) :
+#if defined(__clang__) || !defined(__GNUC__)
+	constexpr
+#endif 
+		astring_view(const signed char* str) noexcept :
 		str((const unsigned char*)(str)) {}
-	constexpr astring_view(const unsigned char* str) :
+
+	constexpr
+		astring_view(const unsigned char* str) noexcept :
 		str(str) {}
-	constexpr astring_view() = default;
+	constexpr astring_view() noexcept = default;
 
 	bool operator==(const astring_view& r) const {
 		auto this_str = str;
@@ -190,8 +224,8 @@ struct astring_view {
 		}
 		return !(*this_str || *other_str);
 	}
-	bool operator >(const astring_view&r) const{
-		
+	bool operator >(const astring_view& r) const {
+
 	}
 	operator const char* () const {
 		return reinterpret_cast<const char*>(str);
@@ -200,7 +234,7 @@ struct astring_view {
 		return reinterpret_cast<const unsigned char*>(str);
 	}
 	operator const signed char* () const {
-		return reinterpret_cast<const signed  char*>(str);
+		return reinterpret_cast<const signed char*>(str);
 	}
 };
 
@@ -245,7 +279,7 @@ struct decayS {
 	using type = typename std::decay<T>::type;
 };
 template<template<typename ...> class T, typename ...Types>
-struct decayS <T<Types...>>{
+struct decayS <T<Types...>> {
 	using type = T<typename std::decay<Types>::type ...>;
 };
 template <class T>
@@ -284,7 +318,7 @@ using transValues = typename transValues_s<std::make_integer_sequence<vT, i>, vT
 template <int i, template <int ...> class rT>
 using applyIntegerSequence = typename transValues_s<std::make_integer_sequence<int, i>, int, rT>::type;
 template <template <class ...> class T, class ...Types>
-struct decayed_impl{ typedef T<Types...> type;};
+struct decayed_impl { typedef T<Types...> type; };
 template <template <typename ...> class VT, class ...Types>
 using decayed_t = typename decayed_impl<VT, Types...>::type;
 
@@ -324,19 +358,19 @@ template<>
 struct nullval_impl<double> { constexpr static double value = -std::numeric_limits<double>::quiet_NaN(); };
 
 constexpr size_t sum_type(size_t a[], size_t sz) {
-    size_t ret = 0;
-    for (int i = 0; i < sz; ++i) 
-        ret += a[i];
-    return ret;
+	size_t ret = 0;
+	for (int i = 0; i < sz; ++i)
+		ret += a[i];
+	return ret;
 }
-template<class Types, class ...T1> 
+template<class Types, class ...T1>
 constexpr size_t sum_type() {
-    size_t t[] = {std::is_same_v<Types, T1> ...};
-    return sum_type(t, sizeof...(T1));
+	size_t t[] = { std::is_same_v<Types, T1> ... };
+	return sum_type(t, sizeof...(T1));
 }
-template<class ...T1, class ...Types> 
+template<class ...T1, class ...Types>
 constexpr size_t count_type(std::tuple<Types...>* ts) {
-    size_t t[] = {sum_type<Types, T1...>() ...};
-    return sum_type(t, sizeof...(Types));
+	size_t t[] = { sum_type<Types, T1...>() ... };
+	return sum_type(t, sizeof...(Types));
 }
 #endif // !_TYPES_H

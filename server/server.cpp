@@ -320,35 +320,44 @@ int test_main()
     Server* server = reinterpret_cast<Server*>(cxt->alt_server);
 
     const char* qs[]= {
-        "CREATE TABLE test1(a INT, b INT, c INT, d INT);",
-        "COPY OFFSET 2 INTO test1 FROM  'w:/gg/AQuery++/data/test.csv'  ON SERVER    USING DELIMITERS  ',';",
-        "SELECT sum(a), b, d, c  FROM test1 GROUP BY c, b, d  ORDER BY b ;",
+        "QCREATE TABLE trade(stocksymbol INT, time INT, quantity INT, price INT);",
+        "QCOPY OFFSET 2 INTO trade FROM  'w:/gg/AQuery++/data/trade_numerical.csv'  ON SERVER    USING DELIMITERS  ',';",
+        "QSELECT stocksymbol, (SUM((quantity * price)) / SUM(quantity)) AS weighted_average  FROM trade GROUP BY stocksymbol  ;",
+        "Pdll_5lYrMY",
+        "QSELECT stocksymbol, price  FROM trade ORDER BY time  ;",
+        "Pdll_4Sg6Ri",
+        "QSELECT stocksymbol, quantity, price  FROM trade ORDER BY time  ;",
+        "Pdll_5h4kL2",
+        "QSELECT stocksymbol, price  FROM trade ORDER BY time  ;",
+        "Pdll_7tEWCO",
+        "QSELECT query_c.weighted_moving_averages, query_c.stocksymbol  FROM query_c;",
+        "Pdll_7FCPnF"
     };
     n_recv = sizeof(qs)/(sizeof (char*));
 	n_recvd = const_cast<char**>(qs);
-    if (n_recv > 0) {
-        for (int i = 0; i < n_recv; ++i)
-        {
-            server->exec(n_recvd[i]);
-            printf("Exec Q%d: %s\n", i, n_recvd[i]);
-        }
-        n_recv = 0;
-    }
+            void* handle = 0;
+                    handle = dlopen("./dll.so", RTLD_LAZY);
+                    cxt->init_session();
+                    for (int i = 0; i < n_recv; ++i)
+                    {
+                        //printf("%s, %d\n", n_recvd[i], n_recvd[i][0] == 'Q');
+                        switch (n_recvd[i][0]) {
+                        case 'Q': // SQL query for monetdbe
+                        {
+                            server->exec(n_recvd[i] + 1);
+                            printf("Exec Q%d: %s\n", i, n_recvd[i]);
+                        }
+                        break;
+                        case 'P': // Postprocessing procedure 
+                            if (handle && !server->haserror()) {
+                                code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, n_recvd[i] + 1));
+                                c(cxt);
+                            }
+                            break;
+                        }
+                    }
+                    n_recv = 0;
 
-    cxt->log_level = LOG_INFO;
-    puts(cpp_17 ?"true":"false");
-    void* handle = dlopen("./dll.so", RTLD_LAZY);
-    cxt->log("handle: %p\n", handle);
-    if (handle) {
-        cxt->log("inner\n");
-        code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, "dll_C4nJZu"));
-        cxt->log("routine: %p\n", c);
-        if (c) {
-            cxt->log("inner\n");
-            cxt->log("return: %d\n", c(cxt));
-        }
-        dlclose(handle);
-    }
     //static_assert(std::is_same_v<decltype(fill_integer_array<5, 1>()), std::integer_sequence<bool, 1,1,1,1,1>>, "");
     
     return 0;
