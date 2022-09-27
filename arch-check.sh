@@ -1,9 +1,9 @@
 ARCH=`uname -m`
 ARCH2=`arch`
-echo Current architechure: $ARCH $ARCH2
+echo "Current architechure: (uname -m) => $ARCH; (arch) => $ARCH2"
 echo Current shell: $SHELL
 PASSED=1
-for i in python3 c++ make ranlib libtool $SHELL
+for i in python3 c++ make ranlib libtool $SHELL $CXX
 do
 	FILEPATH=`which $i`
 	FILEINFO=`file $FILEPATH`

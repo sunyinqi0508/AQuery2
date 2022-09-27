@@ -48,6 +48,8 @@ else
 		endif
 	else
 		OPTFLAGS += -march=native
+		MonetDB_LIB += $AQ_MONETDB_LIB
+		MonetDB_INC += $AQ_MONETDB_INC
 		MonetDB_INC += -I/usr/local/include/monetdb -I/usr/include/monetdb 
 	endif
 	MonetDB_LIB += -lmonetdbe

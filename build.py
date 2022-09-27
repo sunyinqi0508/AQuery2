@@ -70,16 +70,16 @@ class checksums:
         
 class build_manager:
     sourcefiles = [
-                   'build.py', 'Makefile',
+                   'build.py', 'Makefile', 
                    'server/server.cpp', 'server/io.cpp',  
-                   'server/monetdb_conn.cpp', 'server/threading.cpp',
-                   'server/winhelper.cpp'
+                   'server/monetdb_conn.cpp', 'server/threading.cpp', 
+                   'server/winhelper.cpp' 
                    ]
-    headerfiles = ['server/aggregations.h', 'server/hasher.h', 'server/io.h',
-                   'server/libaquery.h', 'server/monetdb_conn.h', 'server/pch.hpp',
-                   'server/table.h', 'server/threading.h', 'server/types.h', 'server/utils.h',
+    headerfiles = ['server/aggregations.h', 'server/hasher.h', 'server/io.h', 
+                   'server/libaquery.h', 'server/monetdb_conn.h', 'server/pch.hpp', 
+                   'server/table.h', 'server/threading.h', 'server/types.h', 'server/utils.h', 
                    'server/winhelper.h', 'server/gc.hpp', 'server/vector_type.hpp', 
-                   'server/table_ext_monetdb.hpp'
+                   'server/table_ext_monetdb.hpp' 
                    ]
    
     class DriverBase:

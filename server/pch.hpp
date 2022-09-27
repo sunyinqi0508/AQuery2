@@ -11,12 +11,11 @@
 #include "../csv.h"
 #ifdef _WIN32
 #include "winhelper.h"
+#undef max
+#undef min
 #else
 #include <dlfcn.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 #endif
 #endif
-
-#undef max
-#undef min
