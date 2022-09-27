@@ -107,16 +107,24 @@ decayed_t<VT, T> maxw(uint32_t w, const VT<T>& arr) {
 }
 
 template<class T, template<typename ...> class VT>
-decayed_t<VT, types::GetFPType<T>> ratios(const VT<T>& arr) {
-	uint32_t len = arr.size - 1;
-	if (!arr.size)
+decayed_t<VT, types::GetFPType<T>> ratiow(uint32_t w, const VT<T>& arr) {
+	typedef std::decay_t<types::GetFPType<T>> FPType;
+	uint32_t len = arr.size;
+	if (arr.size <= w) 
 		len = 1;
-	decayed_t<VT, types::GetFPType<T>> ret(len);
+	w = w > len ? len : w;
+	decayed_t<VT, FPType> ret(arr.size);
 	ret[0] = 0;
-
-	for (uint32_t i = 1; i < arr.size; ++i)
-		ret[i - 1] = arr[i] / arr[i - 1];
+	for (uint32_t i = 0; i < w; ++i) 
+		ret[i] = arr[i] / (FPType)arr[0];
+	for (uint32_t i = w; i < arr.size; ++i) 
+		ret[i] = arr[i] / (FPType) arr[i - w];
 	return ret;
+}
+
+template<class T, template<typename ...> class VT>
+decayed_t<VT, types::GetFPType<T>> ratios(const VT<T>& arr) { 
+	return ratiow(1, arr);
 }
 
 template<class T, template<typename ...> class VT>
@@ -129,6 +137,7 @@ decayed_t<VT, types::GetLongType<T>> sums(const VT<T>& arr) {
 		ret[i] = ret[i - 1] + arr[i];
 	return ret;
 }
+
 template<class T, template<typename ...> class VT>
 decayed_t<VT, types::GetFPType<types::GetLongType<T>>> avgs(const VT<T>& arr) {
 	const uint32_t& len = arr.size;
@@ -141,6 +150,7 @@ decayed_t<VT, types::GetFPType<types::GetLongType<T>>> avgs(const VT<T>& arr) {
 		ret[i] = (s += arr[i]) / (FPType)(i + 1);
 	return ret;
 }
+
 template<class T, template<typename ...> class VT>
 decayed_t<VT, types::GetLongType<T>> sumw(uint32_t w, const VT<T>& arr) {
 	const uint32_t& len = arr.size;
@@ -154,6 +164,7 @@ decayed_t<VT, types::GetLongType<T>> sumw(uint32_t w, const VT<T>& arr) {
 		ret[i] = ret[i - 1] + arr[i] - arr[i - w];
 	return ret;
 }
+
 template<class T, template<typename ...> class VT>
 decayed_t<VT, types::GetFPType<types::GetLongType<T>>> avgw(uint32_t w, const VT<T>& arr) {
 	typedef types::GetFPType<types::GetLongType<T>> FPType;
@@ -209,6 +220,7 @@ template <class T> constexpr inline T maxw(uint32_t, const T& v) { return v; }
 template <class T> constexpr inline T minw(uint32_t, const T& v) { return v; }
 template <class T> constexpr inline T avgw(uint32_t, const T& v) { return v; }
 template <class T> constexpr inline T sumw(uint32_t, const T& v) { return v; }
+template <class T> constexpr inline T ratiow(uint32_t, const T& v) { return 1; }
 template <class T> constexpr inline T maxs(const T& v) { return v; }
 template <class T> constexpr inline T mins(const T& v) { return v; }
 template <class T> constexpr inline T avgs(const T& v) { return v; }

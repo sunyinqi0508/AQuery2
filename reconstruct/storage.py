@@ -59,7 +59,7 @@ class TableInfo:
         cxt.tables_byname[self.table_name] = self # construct reverse map
 
     def add_cols(self, cols, new = True):
-        for c in cols:
+        for c in enlist(cols):
             self.add_col(c, new)
             
     def add_col(self, c, new = True):

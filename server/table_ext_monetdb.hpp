@@ -22,7 +22,12 @@ inline constexpr monetdbe_types AQType_2_monetdbe[] = {
 #else 
 		monetdbe_int64_t,
 #endif
-		monetdbe_int16_t, monetdbe_int8_t, monetdbe_bool, monetdbe_int64_t,
+		monetdbe_int16_t, monetdbe_int8_t, monetdbe_bool,
+#ifdef HAVE_HGE		 
+		monetdbe_int128_t,
+#else	
+		monetdbe_int64_t,
+#endif
 		monetdbe_timestamp, monetdbe_int64_t, monetdbe_int64_t
 };
 
@@ -35,19 +40,22 @@ void TableInfo<Ts ...>::monetdb_append_table(void* srv, const char* alt_name) {
 	monetdbe_column** monetdbe_cols = new monetdbe_column * [sizeof...(Ts)];
 	
 	uint32_t i = 0;
+	constexpr auto n_vecs = count_vector_type((tuple_type*)(0));
+	void* gc_vecs[1 + n_vecs];
 	puts("getcols...");
-	const auto get_col = [&monetdbe_cols, &i, *this](auto v) {
+	uint32_t cnt = 0;
+	const auto get_col = [&monetdbe_cols, &i, *this, &gc_vecs, &cnt](auto v) {
 		printf("%d %d\n", i, (ColRef<void>*)v - colrefs);
-		monetdbe_cols[i++] = (monetdbe_column*)v->monetdb_get_col();
+		monetdbe_cols[i++] = (monetdbe_column*)v->monetdb_get_col(gc_vecs, cnt);
 	};
 	(get_col((ColRef<Ts>*)(colrefs + i)), ...);
 	puts("getcols done");
 	for(int i = 0; i < sizeof...(Ts); ++i)
 	{
-		printf("no:%d name: %s count:%d data: %p  \n", 
-		i, monetdbe_cols[i]->name, monetdbe_cols[i]->count, monetdbe_cols[i]->data);
+		printf("no:%d name: %s count:%d data: %p type:%d \n", 
+		i, monetdbe_cols[i]->name, monetdbe_cols[i]->count, monetdbe_cols[i]->data, monetdbe_cols[i]->type);
 	}
-	std::string create_table_str = "CREATE TABLE ";
+	std::string create_table_str = "CREATE TABLE IF NOT EXISTS ";
 	create_table_str += alt_name;
 	create_table_str += " (";
 	i = 0;
@@ -70,12 +78,14 @@ void TableInfo<Ts ...>::monetdb_append_table(void* srv, const char* alt_name) {
 			return;
 		}
 	}
+	// for(uint32_t i = 0; i < n_vecs; ++i) 
+	// 		free(gc_vecs[i]);
 	puts("Error! Empty table.");
 }
 
 
 template<class Type>
-void* ColRef<Type>::monetdb_get_col() {
+void* ColRef<Type>::monetdb_get_col(void** gc_vecs, uint32_t& cnt) {
 	auto aq_type = AQType_2_monetdbe[types::Types<Type>::getType()];
 	monetdbe_column* col = (monetdbe_column*)malloc(sizeof(monetdbe_column));
 
@@ -83,7 +93,13 @@ void* ColRef<Type>::monetdb_get_col() {
 	col->count = this->size;
 	col->data = this->container;
 	col->name = const_cast<char*>(this->name);
-
+	// auto arr = (types::timestamp_t*) malloc (sizeof(types::timestamp_t)* this->size);
+	// if constexpr (is_vector_type<Type>){
+	// 	for(uint32_t i = 0; i < this->size; ++i){
+	// 		memcpy(arr + i, this->container + i, sizeof(types::timestamp_t));
+	// 	}
+	// 	gc_vecs[cnt++] = arr;
+	// }
 	return col;
 }
 

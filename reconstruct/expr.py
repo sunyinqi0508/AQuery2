@@ -12,6 +12,11 @@ from engine.types import *
 
 class expr(ast_node):
     name='expr'
+    valid_joincond = {
+        0 : ('and', 'eq', 'not'),
+        1 : ('or', 'neq', 'not'),
+        2 : ('', '', '')
+    }
     @property
     def udf_decltypecall(self):
         return self._udf_decltypecall if self._udf_decltypecall else self.sql
@@ -46,6 +51,7 @@ class expr(ast_node):
         self.node = node
         self.supress_undefined = supress_undefined
         if(type(parent) is expr):
+            self.next_valid = parent.next_valid
             self.inside_agg = parent.inside_agg
             self.is_udfexpr = parent.is_udfexpr
             self.is_agg_func = parent.is_agg_func
@@ -53,6 +59,8 @@ class expr(ast_node):
             self.c_code = parent.c_code
             self.builtin_vars = parent.builtin_vars
         else:
+            self.join_conditions = []
+            self.next_valid = 0
             self.is_agg_func = False
             self.is_udfexpr = type(parent) is udf
             self.root : expr = self
@@ -80,7 +88,7 @@ class expr(ast_node):
         self.udf_map = parent.context.udf_map
         self.func_maps = {**builtin_func, **self.udf_map, **user_module_func}
         self.operators = {**builtin_operators, **self.udf_map, **user_module_func}
-        self.ext_aggfuncs = ['sum', 'avg', 'count', 'min', 'max', 'last']
+        self.ext_aggfuncs = ['sum', 'avg', 'count', 'min', 'max', 'last', 'first']
         
     def produce(self, node):
         from engine.utils import enlist
@@ -92,9 +100,18 @@ class expr(ast_node):
             else:
                 if len(node) > 1:
                     print(f'Parser Error: {node} has more than 1 dict entry.')
-                
+
+                is_joincond = False
                 for key, val in node.items():
                     key = key.lower()
+                    if key not in self.valid_joincond[self.next_valid]:
+                        self.next_valid = 2
+                    else:
+                        if key == self.valid_joincond[self.next_valid][2]:
+                            self.next_valid = not self.next_valid
+                        elif key == self.valid_joincond[self.next_valid][1]:
+                            self.next_valid = 2
+                            is_joincond = True
                     if key in self.operators:
                         if key in builtin_func:
                             if self.is_agg_func:
@@ -114,9 +131,9 @@ class expr(ast_node):
                         
                         str_vals = [e.sql for e in exp_vals]
                         type_vals = [e.type for e in exp_vals]
-                        is_compound = any([e.is_compound for e in exp_vals])
+                        is_compound = max([e.is_compound for e in exp_vals])
                         if key in self.ext_aggfuncs:
-                            self.is_compound = False
+                            self.is_compound = max(0, is_compound - 1)
                         else:
                             self.is_compound = is_compound
                         try:
@@ -134,7 +151,7 @@ class expr(ast_node):
                             self.sql = op(self.c_code, *str_vals)
                             
                         special_func = [*self.context.udf_map.keys(), *self.context.module_map.keys(), 
-                                        "maxs", "mins", "avgs", "sums", "deltas", "last"]
+                                        "maxs", "mins", "avgs", "sums", "deltas", "last", "first", "ratios"]
                         if self.context.special_gb:
                             special_func = [*special_func, *self.ext_aggfuncs]
                             
@@ -200,6 +217,9 @@ class expr(ast_node):
                     else:
                         print(f'Undefined expr: {key}{val}')
                 
+                if (is_joincond and len(self.children) == 2
+                    and all([c.is_ColExpr for c in self.children])) :
+                    self.root.join_conditions.append((c.raw_col for c in self.children))
                     
         if type(node) is str:
             if self.is_udfexpr:
@@ -259,6 +279,7 @@ class expr(ast_node):
                     self.sql = table_name + self.raw_col.name
                     self.type = self.raw_col.type
                     self.is_compound = True
+                    self.is_compound += self.raw_col.compound
                     self.opname = self.raw_col
                 else:
                     self.sql = '\'' + node + '\'' if node != '*' else '*'
@@ -341,9 +362,11 @@ class expr(ast_node):
                             exec(f'loc["{b}"] = lambda : "{b}"')
                     
             x = self.c_code if c_code is None else c_code
+            from engine.utils import escape_qoutes
             if decltypestr:
-                return eval('f\'' + self.udf_decltypecall + '\'')
-            return eval('f\'' + self.sql + '\'')
+                return eval('f\'' + escape_qoutes(self.udf_decltypecall) + '\'')
+            self.sql.replace("'", "\\'")
+            return eval('f\'' + escape_qoutes(self.sql) + '\'')
         if self.is_recursive_call_inudf or (self.need_decltypestr and self.is_udfexpr) or gettype:
             return call
         else:

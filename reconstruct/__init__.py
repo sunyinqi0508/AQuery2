@@ -18,6 +18,8 @@ def generate(ast, cxt):
             ast_node.types[k](None, ast, cxt)
 
 def exec(stmts, cxt = None, keep = False):
+    if 'stmts' not in stmts:
+        return
     cxt = initialize(cxt, keep)
     stmts_stmts = stmts['stmts']
     if type(stmts_stmts) is list:

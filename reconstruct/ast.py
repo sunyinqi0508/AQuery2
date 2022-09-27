@@ -2,6 +2,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Set, Tuple, Dict, Union, List, Optional
+
 from engine.types import *
 from engine.utils import enlist, base62uuid, base62alp, get_legal_name
 from reconstruct.storage import Context, TableInfo, ColRef
@@ -133,7 +134,7 @@ class projection(ast_node):
                 sql_expr = expr(self, e, c_code=False)
                 this_type = proj_expr.type
                 name = proj_expr.sql
-                compound = True # compound column
+                compound = [proj_expr.is_compound > 1] # compound column
                 proj_expr.cols_mentioned = self.datasource.rec
                 alias = ''
                 if 'name' in proj: # renaming column by AS keyword
@@ -142,23 +143,29 @@ class projection(ast_node):
                 if not proj_expr.is_special:
                     if proj_expr.node == '*':
                         name = [c.get_full_name() for c in self.datasource.rec]
+                        this_type = [c.type for c in self.datasource.rec]
+                        compound = [c.compound for c in self.datasource.rec]
+                        proj_expr = [expr(self, c.name) for c in self.datasource.rec]
                     else:
                         y = lambda x:x
                         count = lambda : 'count(*)'
                         name = enlist(sql_expr.eval(False, y, count=count))
-                    for n in name:
+                        this_type = enlist(this_type)
+                        proj_expr = enlist(proj_expr)
+                    for t, n, pexpr, cp in zip(this_type, name, proj_expr, compound):
+                        t = VectorT(t) if cp else t
                         offset = len(col_exprs)
                         if n not in self.var_table:
                             self.var_table[n] = offset
-                            if proj_expr.is_ColExpr and type(proj_expr.raw_col) is ColRef:
-                                for _alias in (proj_expr.raw_col.table.alias):
+                            if pexpr.is_ColExpr and type(pexpr.raw_col) is ColRef:
+                                for _alias in (pexpr.raw_col.table.alias):
                                     self.var_table[f'{_alias}.'+n] = offset
-                        proj_map[i] = [this_type, offset, proj_expr]
+                        proj_map[i] = [t, offset, pexpr]
                         col_expr = n + ' AS ' + alias if alias else n
                         if alias:
                             self.var_table[alias] = offset
                             
-                        col_exprs.append((col_expr, proj_expr.type))
+                        col_exprs.append((col_expr, t))
                         i += 1
                 else:
                     self.context.headers.add('"./server/aggregations.h"')
@@ -169,7 +176,8 @@ class projection(ast_node):
                     i += 1
                 name = enlist(name)
                 disp_name = [get_legal_name(alias if alias else n) for n in name]
-               
+                this_type = enlist(this_type)
+                
             elif type(proj) is str:
                 col = self.datasource.get_col(proj)
                 this_type = col.type
@@ -178,8 +186,8 @@ class projection(ast_node):
                 # name = col.name
             self.datasource.rec = None
             # TODO: Type deduction in Python
-            for n in disp_name:
-                cols.append(ColRef(this_type, self.out_table, None, n, len(cols), compound=compound))
+            for t, n, c in zip(this_type, disp_name, compound):
+                cols.append(ColRef(t, self.out_table, None, n, len(cols), compound=c))
         
         self.out_table.add_cols(cols, new = False)
         
@@ -213,7 +221,7 @@ class projection(ast_node):
             self.add(self.group_node.sql)
 
         if self.col_ext or self.group_node and self.group_node.use_sp_gb:
-            self.use_postproc = True
+            self.has_postproc = True
         
         o = self.assumptions
         if 'orderby' in node:
@@ -223,7 +231,7 @@ class projection(ast_node):
         
         if 'outfile' in node:
             self.outfile = outfile(self, node['outfile'], sql = self.sql)
-            if not self.use_postproc:
+            if not self.has_postproc:
                 self.sql += self.outfile.sql
         else:
             self.outfile = None
@@ -280,10 +288,11 @@ class projection(ast_node):
                         self.datasource.all_cols().difference(self.group_node.refs))
                     ) and val[2].is_compound # compound val not in key
                     # or 
+                    # val[2].is_compound > 1
                     # (not self.group_node and val[2].is_compound)
                     ):
-                    out_typenames[key] = f'ColRef<{out_typenames[key]}>'
-        
+                    out_typenames[key] = f'vector_type<{out_typenames[key]}>'
+                    self.out_table.columns[key].compound = True
         outtable_col_nameslist = ', '.join([f'"{c.name}"' for c in self.out_table.columns])
         self.outtable_col_names = 'names_' + base62uuid(4)
         self.context.emitc(f'const char* {self.outtable_col_names}[] = {{{outtable_col_nameslist}}};')
@@ -523,7 +532,7 @@ class groupby_c(ast_node):
                     materialize_builtin['_builtin_len'] = len_var
                 if '_builtin_ret' in ex.udf_called.builtin_used:
                     define_len_var()
-                    gscanner.add(f'{ce[0]}.emplace_back({{{len_var}}});\n')
+                    gscanner.add(f'{ce[0]}.emplace_back({len_var});\n')
                     materialize_builtin['_builtin_ret'] = f'{ce[0]}.back()'
                     gscanner.add(f'{ex.eval(c_code = True, y=get_var_names, materialize_builtin = materialize_builtin)};\n')
                     continue
@@ -608,6 +617,7 @@ class join(ast_node):
         self.join_conditions = []
         # self.tmp_name = 'join_' + base62uuid(4)
         # self.datasource = TableInfo(self.tmp_name, [], self.context)
+        
     def append(self, tbls, __alias = ''):
         alias = lambda t : t + ' ' + __alias if len(__alias) else t
         if type(tbls) is join:
@@ -652,8 +662,11 @@ class join(ast_node):
                     self.have_sep = True
                     j = join(self, node[keys[0]])
                     tablename = f' {keys[0]} {j}'
-                    if len(keys) > 1 and keys[1].lower() == 'on':
-                        tablename += f' on {expr(self, node[keys[1]])}' 
+                    if len(keys) > 1 :
+                        if keys[1].lower() == 'on':
+                            tablename += f' ON {expr(self, node[keys[1]])}' 
+                        elif keys[1].lower() == 'using':
+                            tablename += f' USING {expr(self, node[keys[1]])}'
                     self.joins.append((tablename, self.have_sep))
                     self.tables += j.tables
                     self.tables_dir = {**self.tables_dir, **j.tables_dir}
@@ -722,13 +735,25 @@ class join(ast_node):
 class filter(ast_node):
     name = 'where'
     def produce(self, node):
-        self.add(expr(self, node).sql)
-    
+        filter_expr = expr(self, node)
+        self.add(filter_expr.sql)
+        self.datasource.join_conditions += filter_expr.join_conditions
         
 class create_table(ast_node):
     name = 'create_table'
     first_order = name
     def init(self, node):
+        node = node[self.name]
+        if 'query' in node:
+            if 'name' not in node:
+                raise ValueError("Table name not specified")
+            projection_node = node['query']
+            projection_node['into'] = node['name']
+            projection(None, projection_node, self.context)
+            self.produce = lambda *_: None
+            self.spawn = lambda *_: None
+            self.consume = lambda *_: None
+            return
         if self.parent is None:
             self.context.sql_begin()
         self.sql = 'CREATE TABLE '
@@ -745,16 +770,45 @@ class create_table(ast_node):
         if self.context.use_columnstore:
             self.sql += ' engine=ColumnStore'
                     
+class drop(ast_node):
+    name = 'drop'
+    first_order = name
+    def produce(self, node):
+        node = node['drop']
+        tbl_name = node['table']
+        if tbl_name in self.context.tables_byname:
+            tbl_obj = self.context.tables_byname[tbl_name]
+            # TODO: delete in postproc engine
+            self.context.tables_byname.pop(tbl_name)
+            self.context.tables.remove(tbl_obj)
+            self.sql += 'TABLE IF EXISTS ' + tbl_name
+            return
+        elif 'if_exists' not in node or not node['if_exists']:
+            print(f'Error: table {tbl_name} not found.')
+        self.sql = ''
+        
 class insert(ast_node):
     name = 'insert'
     first_order = name
-    
+    def init(self, node):
+        values = node['query']
+        complex_query_kw = ['from', 'where', 'groupby', 'having', 'orderby', 'limit']
+        if any([kw in values for kw in complex_query_kw]):
+            values['into'] = node['insert']
+            projection(None, values, self.context)
+            self.produce = lambda*_:None
+            self.spawn = lambda*_:None
+            self.consume = lambda*_:None
+        else:
+            super().init(node)
+            
     def produce(self, node):
         values = node['query']['select']
         tbl = node['insert']
         self.sql = f'INSERT INTO {tbl} VALUES('
         # if len(values) != table.n_cols:
         #     raise ValueError("Column Mismatch")
+
         list_values = []
         for i, s in enumerate(values):
             if 'value' in s:
@@ -851,7 +905,7 @@ class outfile(ast_node):
         
     def init(self, _):
         assert(isinstance(self.parent, projection))
-        if not self.parent.use_postproc:
+        if not self.parent.has_postproc:
             if self.context.dialect == 'MonetDB':
                 self.produce = self.produce_monetdb
             else:

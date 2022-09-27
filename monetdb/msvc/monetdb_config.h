@@ -435,7 +435,7 @@ gmtime_r(const time_t *__restrict__ timep, struct tm *__restrict__ result)
 
 #define HAVE_SOCKLEN_T 1
 #ifndef _MSC_VER
-#define SOCKET int
+// #define SOCKET int
 #define closesocket close
 #endif
 

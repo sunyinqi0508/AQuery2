@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <type_traits>
 #include <tuple>
+using std::size_t;
 
 #if  defined(__SIZEOF_INT128__) and not defined(_WIN32)
 #define __AQ__HAS__INT128__
@@ -29,9 +30,9 @@ namespace types {
 	static constexpr const char* printf_str[] = { "%d", "%f", "%s", "%lf", "%Lf", "%ld", "%d", "%hi", "%s", "%s", "%c",
 		"%u", "%lu", "%s", "%hu", "%hhu", "%s", "%s", "Vector<%s>", "%s", "NULL", "ERROR" };
 	static constexpr const char* SQL_Type[] = { "INT", "REAL", "TEXT", "DOUBLE", "DOUBLE", "BIGINT", "HUGEINT", "SMALLINT", "DATE", "TIME", "TINYINT",
-		"INT", "BIGINT", "HUGEINT", "SMALLINT", "TINYINT", "BOOL", "BLOB", "TIMESTAMP", "NULL", "ERROR" };
-
-
+		"INT", "BIGINT", "HUGEINT", "SMALLINT", "TINYINT", "BOOL", "HUGEINT", "TIMESTAMP", "NULL", "ERROR"};
+	
+	
 	// TODO: deal with data/time <=> str/uint conversion
 	struct date_t {
 		unsigned char day = 0;
@@ -168,23 +169,22 @@ namespace types {
 	template<class T>
 	using GetLongType = typename GetLongTypeImpl<typename std::decay<T>::type>::type;
 
-
 	template<class T>
 	struct GetLongerTypeImpl {
 		using type = Cond(
 
 			__U(T), Cond(__Eq(char), unsigned short,
-				Cond(__Eq(short), unsigned int,
-					Cond(__Eq(int), unsigned long long,
+					Cond(__Eq(short), unsigned int, 
+					Cond(__Eq(int), unsigned long long, 
 						ULL_Type
-					))),
+						))),
 
-			Cond(Fp(T), double,
+		Cond(Fp(T), double, 
 
-				Cond(__Eq(char), short,
-					Cond(__Eq(short), int,
-						Cond(__Eq(int), long,
-							LL_Type
+					Cond(__Eq(char), short,
+					Cond(__Eq(short), int, 
+					Cond(__Eq(int), long, 
+						LL_Type	
 						))))
 
 		);
@@ -194,22 +194,22 @@ namespace types {
 }
 
 
-struct astring_view {
+union astring_view {
 	const unsigned char* str = 0;
+	const signed char* sstr;
+	const char* rstr;
+	size_t ptr;
+	
+	
+	constexpr 
+	astring_view(const char* str) noexcept :
+		rstr(str)  {}
+	constexpr
+	astring_view(const signed char* str) noexcept :
+		sstr(str) {}
 
-#if defined(__clang__) || !defined(__GNUC__)
 	constexpr
-#endif
-		astring_view(const char* str) noexcept :
-		str((const unsigned char*)(str)) {}
-#if defined(__clang__) || !defined(__GNUC__)
-	constexpr
-#endif 
-		astring_view(const signed char* str) noexcept :
-		str((const unsigned char*)(str)) {}
-
-	constexpr
-		astring_view(const unsigned char* str) noexcept :
+	astring_view(const unsigned char* str) noexcept :
 		str(str) {}
 	constexpr astring_view() noexcept = default;
 
@@ -224,17 +224,28 @@ struct astring_view {
 		}
 		return !(*this_str || *other_str);
 	}
-	bool operator >(const astring_view& r) const {
-
+	bool operator >(const astring_view&r) const{
+		auto this_str = str;
+		auto other_str = r.str;
+		bool ret = true;
+		while (*this_str && *other_str) {
+			if (*this_str <= *other_str)
+				ret = false;
+			this_str++;
+			other_str++;
+		}
+		
+		return (*this_str && !*other_str) || 
+			(ret && !*this_str && *other_str);
 	}
 	operator const char* () const {
-		return reinterpret_cast<const char*>(str);
+		return rstr;
 	}
 	operator const unsigned char* () const {
-		return reinterpret_cast<const unsigned char*>(str);
+		return str;
 	}
 	operator const signed char* () const {
-		return reinterpret_cast<const signed char*>(str);
+		return sstr;
 	}
 };
 
@@ -373,4 +384,10 @@ constexpr size_t count_type(std::tuple<Types...>* ts) {
 	size_t t[] = { sum_type<Types, T1...>() ... };
 	return sum_type(t, sizeof...(Types));
 }
+template<class ...Types> 
+constexpr size_t count_vector_type(std::tuple<Types...>* ts) {
+    size_t t[] = {is_vector_type<Types> ...};
+    return sum_type(t, sizeof...(Types));
+}
+
 #endif // !_TYPES_H

@@ -129,8 +129,8 @@ public:
 	}
 
 	// defined in table_ext_monetdb.hpp
-	void* monetdb_get_col();
-
+	void* monetdb_get_col(void** gc_vecs, uint32_t& cnt);
+	
 };
 template<>
 class ColRef<void> : public ColRef<int> {};
@@ -391,11 +391,11 @@ struct TableInfo {
 			constexpr auto num_date = count_type<types::date_t>((tuple_type*)(0));
 			constexpr auto num_time = count_type<types::time_t>((tuple_type*)(0));
 			constexpr auto num_timestamp = count_type<types::timestamp_t>((tuple_type*)(0));
-			char cbuf[num_hge * 41
-				+ num_time * types::time_t::string_length()
-				+ num_date * types::date_t::string_length()
-				+ num_timestamp * types::timestamp_t::string_length()
-				+ 1
+			char cbuf[ num_hge * 41 
+				+ num_time * types::time_t::string_length() 
+				+ num_date * types::date_t::string_length() 
+				+ num_timestamp * types::timestamp_t::string_length() 
+				+ 1 // padding for msvc not allowing empty arrays
 			];
 			setgbuf(cbuf);
 			if (view)
@@ -625,106 +625,164 @@ inline void TableInfo<Types...>::print(const char* __restrict sep, const char* _
 		std::cout << end;
 	}
 }
-template <class T1, class T2, template<typename ...> class VT, template<typename ...> class VT2>
-decayed_t<VT, typename types::Coercion<T1, T2>::type> operator -(const VT<T1>& lhs, const VT2<T2>& rhs) {
-	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size);
+template <class T1,
+			template<typename> class VT,
+			class TRet>
+using test_vt_support = typename std::enable_if_t<std::is_same_v<VT<T1>, ColRef<T1>> || 
+				std::is_same_v<VT<T1>, ColView<T1>> || 
+				std::is_same_v<VT<T1>, vector_type<T1>>, TRet>;
+
+template <class T1, class T2,
+			template<typename> class VT>
+using get_autoext_type = test_vt_support<T1, VT, 
+		decayed_t<VT, typename types::Coercion<T1, T2>::type>>;
+
+template <class T1, class T2,
+			template<typename> class VT>
+using get_long_type = test_vt_support<T1, VT, 
+		decayed_t<VT, types::GetLongType<typename types::Coercion<T1, T2>::type>>>;
+
+template <class T1, class T2,
+			template<typename> class VT>
+using get_fp_type = test_vt_support<T1, VT, 
+		decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>>>;
+
+template <class T1, 
+			template<typename> class VT, template<typename> class VT2,
+			class TRet>
+using test_vt_support2 = typename std::enable_if_t<(std::is_same_v<VT<T1>, ColRef<T1>> || 
+				std::is_same_v<VT<T1>, ColView<T1>> || 
+				std::is_same_v<VT<T1>, vector_type<T1>>) &&
+				(std::is_same_v<VT2<T1>, ColRef<T1>> || 
+				std::is_same_v<VT2<T1>, ColView<T1>> || 
+				std::is_same_v<VT2<T1>, vector_type<T1>>), TRet >;
+template <class T1, class T2,
+			template<typename> class VT, template<typename> class VT2>
+using get_autoext_type2 = test_vt_support2<T1, VT, VT2,
+		decayed_t<VT, typename types::Coercion<T1, T2>::type>>;
+
+template <class T1, class T2,
+			template<typename> class VT, template<typename> class VT2>
+using get_long_type2 = test_vt_support2<T1, VT, VT2,
+		decayed_t<VT, types::GetLongType<typename types::Coercion<T1, T2>::type>>>;
+
+template <class T1, class T2,
+			template<typename> class VT, template<typename> class VT2>
+using get_fp_type2 = test_vt_support2<T1, VT, VT2,
+		decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>>>;
+
+template <class T1, class T2, template<typename> class VT, template<typename> class VT2>
+get_autoext_type2<T1, T2, VT, VT2>
+operator -(const VT<T1>& lhs, const VT2<T2>& rhs) {
+	auto ret = get_autoext_type2<T1, T2, VT, VT2>(lhs.size);
 	for (uint32_t i = 0; i < lhs.size; ++i)
 		ret[i] = lhs[i] - rhs[i];
 	return ret;
 }
-template <class T1, class T2, template<typename ...> class VT>
-decayed_t<VT, typename types::Coercion<T1, T2>::type> operator -(const VT<T1>& lhs, const T2& rhs) {
-	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size);
+template <class T1, class T2, template<typename> class VT>
+get_autoext_type<T1, T2, VT>
+operator -(const VT<T1>& lhs, const T2& rhs) {
+	auto ret = get_autoext_type<T1, T2, VT>(lhs.size);
 	for (uint32_t i = 0; i < lhs.size; ++i)
 		ret[i] = lhs[i] - rhs;
 	return ret;
 }
-template <class T1, class T2, template<typename ...> class VT>
-decayed_t<VT, typename types::Coercion<T1, T2>::type> operator -(const T2& lhs, const VT<T1>& rhs) {
-	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(rhs.size);
+template <class T1, class T2, template<typename> class VT>
+get_autoext_type<T1, T2, VT>
+operator -(const T2& lhs, const VT<T1>& rhs) {
+	auto ret = get_autoext_type<T1, T2, VT>(rhs.size);
 	for (uint32_t i = 0; i < rhs.size; ++i)
 		ret[i] = lhs - rhs[i];
 	return ret;
 }
-template <class T1, class T2, template<typename ...> class VT, template<typename ...> class VT2>
-decayed_t<VT, typename types::Coercion<T1, T2>::type> operator +(const VT<T1>& lhs, const VT2<T2>& rhs) {
-	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size);
+template <class T1, class T2, template<typename> class VT, template<typename> class VT2>
+get_autoext_type2<T1, T2, VT, VT2>
+operator +(const VT<T1>& lhs, const VT2<T2>& rhs) {
+	auto ret = get_autoext_type2<T1, T2, VT, VT2>(lhs.size);
 	for (uint32_t i = 0; i < lhs.size; ++i)
 		ret[i] = lhs[i] + rhs[i];
 	return ret;
 }
-template <class T1, class T2, template<typename ...> class VT>
-decayed_t<VT, typename types::Coercion<T1, T2>::type> operator +(const VT<T1>& lhs, const T2& rhs) {
-	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size);
+template <class T1, class T2, template<typename> class VT>
+get_autoext_type<T1, T2, VT> 
+operator +(const VT<T1>& lhs, const T2& rhs) {
+	auto ret = get_autoext_type<T1, T2, VT>(lhs.size);
 	for (uint32_t i = 0; i < lhs.size; ++i)
 		ret[i] = lhs[i] + rhs;
 	return ret;
 }
-template <class T1, class T2, template<typename ...> class VT>
-decayed_t<VT, typename types::Coercion<T1, T2>::type> operator +(const T2& lhs, const VT<T1>& rhs) {
-	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(rhs.size);
+template <class T1, class T2, template<typename> class VT>
+get_autoext_type<T1, T2, VT> 
+operator +(const T2& lhs, const VT<T1>& rhs) {
+	auto ret = get_autoext_type<T1, T2, VT> (rhs.size);
 	for (uint32_t i = 0; i < rhs.size; ++i)
 		ret[i] = lhs + rhs[i];
 	return ret;
 }
-template <class T1, class T2, template<typename ...> class VT, template<typename ...> class VT2>
-decayed_t<VT, typename types::Coercion<T1, T2>::type> operator *(const VT<T1>& lhs, const VT2<T2>& rhs) {
-	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size);
+template <class T1, class T2, template<typename> class VT, template<typename> class VT2>
+get_long_type2<T1, T2, VT, VT2> 
+operator *(const VT<T1>& lhs, const VT2<T2>& rhs) {
+	auto ret = get_long_type2<T1, T2, VT, VT2>(lhs.size);
 	for (uint32_t i = 0; i < lhs.size; ++i)
 		ret[i] = lhs[i] * rhs[i];
 	return ret;
 }
-template <class T1, class T2, template<typename ...> class VT>
-decayed_t<VT, typename types::Coercion<T1, T2>::type> operator *(const VT<T1>& lhs, const T2& rhs) {
-	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(lhs.size);
+template <class T1, class T2, template<typename> class VT>
+get_long_type<T1, T2, VT>
+operator *(const VT<T1>& lhs, const T2& rhs) {
+	auto ret = get_long_type<T1, T2, VT>(lhs.size);
 	for (uint32_t i = 0; i < lhs.size; ++i)
 		ret[i] = lhs[i] * rhs;
 	return ret;
 }
-template <class T1, class T2, template<typename ...> class VT>
-decayed_t<VT, typename types::Coercion<T1, T2>::type> operator *(const T2& lhs, const VT<T1>& rhs) {
-	auto ret = decayed_t<VT, typename types::Coercion<T1, T2>::type>(rhs.size);
+template <class T1, class T2, template<typename> class VT>
+get_long_type<T1, T2, VT>
+operator *(const T2& lhs, const VT<T1>& rhs) {
+	auto ret = get_long_type<T1, T2, VT>(rhs.size);
 	for (uint32_t i = 0; i < rhs.size; ++i)
 		ret[i] = lhs * rhs[i];
 	return ret;
 }
-template <class T1, class T2, template<typename ...> class VT, template<typename ...> class VT2>
-decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>> operator /(const VT<T1>& lhs, const VT2<T2>& rhs) {
-	auto ret = decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>>(lhs.size);
+template <class T1, class T2, template<typename> class VT, template<typename> class VT2>
+get_fp_type2<T1, T2, VT, VT2>
+operator /(const VT<T1>& lhs, const VT2<T2>& rhs) {
+	auto ret = get_fp_type2<T1, T2, VT, VT2>(lhs.size);
 	for (uint32_t i = 0; i < lhs.size; ++i)
 		ret[i] = lhs[i] / rhs[i];
 	return ret;
 }
-template <class T1, class T2, template<typename ...> class VT>
-decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>> operator /(const VT<T1>& lhs, const T2& rhs) {
-	auto ret = decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>>(lhs.size);
+template <class T1, class T2, template<typename> class VT>
+get_fp_type<T1, T2, VT> 
+operator /(const VT<T1>& lhs, const T2& rhs) {
+	auto ret = get_fp_type<T1, T2, VT>(lhs.size);
 	for (uint32_t i = 0; i < lhs.size; ++i)
 		ret[i] = lhs[i] / rhs;
 	return ret;
 }
-template <class T1, class T2, template<typename ...> class VT>
-decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>> operator /(const T2& lhs, const VT<T1>& rhs) {
-	auto ret = decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>>(rhs.size);
+template <class T1, class T2, template<typename> class VT>
+get_fp_type<T1, T2, VT> 
+operator /(const T2& lhs, const VT<T1>& rhs) {
+	auto ret = get_fp_type<T1, T2, VT>(rhs.size);
 	for (uint32_t i = 0; i < rhs.size; ++i)
 		ret[i] = lhs / rhs[i];
 	return ret;
 }
 
-template <class T1, class T2, template<typename ...> class VT, template<typename ...> class VT2>
+template <class T1, class T2, template<typename> class VT, template<typename> class VT2>
 VT<bool> operator >(const VT<T1>& lhs, const VT2<T2>& rhs) {
 	auto ret = VT<bool>(lhs.size);
 	for (uint32_t i = 0; i < lhs.size; ++i)
 		ret[i] = lhs[i] > rhs[i];
 	return ret;
 }
-template <class T1, class T2, template<typename ...> class VT>
+template <class T1, class T2, template<typename> class VT>
 VT<bool> operator >(const VT<T1>& lhs, const T2& rhs) {
 	auto ret = VT<bool>(lhs.size);
 	for (uint32_t i = 0; i < lhs.size; ++i)
 		ret[i] = lhs[i] > rhs;
 	return ret;
 }
-template <class T1, class T2, template<typename ...> class VT>
+template <class T1, class T2, template<typename> class VT>
 VT<bool> operator >(const T2& lhs, const VT<T1>& rhs) {
 	auto ret = VT<bool>(rhs.size);
 	for (uint32_t i = 0; i < rhs.size; ++i)

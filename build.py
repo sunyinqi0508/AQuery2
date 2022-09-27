@@ -14,16 +14,17 @@ class checksums:
     libaquery_a : Optional[Union[bytes, bool]] = None
     pch_hpp_gch : Optional[Union[bytes, bool]] = None
     server : Optional[Union[bytes, bool]] = None
-    sources : Union[Dict[str, bytes], bool] = None
+    sources : Optional[Union[Dict[str, bytes], bool]] = None
     env : str = ''
-    def calc(self, libaquery_a = 'libaquery.a' , 
+    def calc(self, compiler_name, libaquery_a = 'libaquery.a' , 
                 pch_hpp_gch = 'server/pch.hpp.gch', 
                 server = 'server.so'
         ):
         from platform import machine
         self.env = (aquery_config.os_platform +
                     machine() + 
-                    aquery_config.build_driver
+                    aquery_config.build_driver + 
+                    compiler_name
                 )
         for key in self.__dict__.keys():
             try:
@@ -69,7 +70,7 @@ class checksums:
         
 class build_manager:
     sourcefiles = [
-                   'build.py', 
+                   'build.py', 'Makefile',
                    'server/server.cpp', 'server/io.cpp',  
                    'server/monetdb_conn.cpp', 'server/threading.cpp',
                    'server/winhelper.cpp'
@@ -93,8 +94,8 @@ class build_manager:
             ret = True
             for c in self.build_cmd:
                 if c:
-                    try:
-                        ret = subprocess.call(c, stdout = stdout, stderr = stderr) and ret
+                    try: # only last success matters
+                        ret = not subprocess.call(c, stdout = stdout, stderr = stderr) # and ret
                     except (FileNotFoundError):
                         ret = False
                         pass
@@ -104,7 +105,10 @@ class build_manager:
         def __init__(self, mgr : 'build_manager') -> None:
             super().__init__(mgr)
             os.environ['PCH'] = f'{mgr.PCH}'
-            os.environ['CXX'] = mgr.cxx if mgr.cxx else 'c++'
+            if 'CXX' not in os.environ:
+                os.environ['CXX'] = mgr.cxx if mgr.cxx else 'c++'
+            else:
+                mgr.cxx = os.environ['CXX']
         
         def libaquery_a(self):
             self.build_cmd = [['rm', 'libaquery.a'],['make', 'libaquery.a']]
@@ -129,6 +133,10 @@ class build_manager:
     class MSBuildDriver(DriverBase):
         platform_map = {'amd64':'x64', 'arm64':'arm64', 'x86':'win32'}
         opt_map = {'0':'Debug', '1':'RelWithDebugInfo', '2':'Release', '3':'Release', '4':'Release'}
+        def __init__(self, mgr : 'build_manager') -> None:
+            super().__init__(mgr)
+            mgr.cxx = aquery_config.msbuildroot
+            
         def get_flags(self):
             self.platform = self.platform_map[self.mgr.Platform]
             self.platform = f'/p:platform={self.platform}'
@@ -142,7 +150,7 @@ class build_manager:
             return self.build()
 
         def pch(self):
-            pass
+            return True
 
         def server(self):
             loc = os.path.abspath('./msc-plugin/server.vcxproj')
@@ -184,7 +192,7 @@ class build_manager:
         libaquery_a = 'libaquery.a' 
         if aquery_config.os_platform == 'win':
             libaquery_a = 'libaquery.lib'
-        current.calc(libaquery_a)
+        current.calc(self.cxx, libaquery_a)
         try:
             with open('.cached', 'rb') as cache_sig:
                 cached = pickle.loads(cache_sig.read())
@@ -193,22 +201,27 @@ class build_manager:
         self.cache_status = current != cached
         
         success = True
-        if  force or self.cache_status.sources:
-            self.driver.pch()
-            self.driver.libaquery_a()
-            self.driver.server()
+        if  (force or 
+             self.cache_status.sources or 
+             self.cache_status.env
+        ):
+            success &= self.driver.pch()
+            success &= self.driver.libaquery_a()
+            success &= self.driver.server()
         else:
             if self.cache_status.libaquery_a:
-                success = self.driver.libaquery_a() and success
+                success &= self.driver.libaquery_a() 
             if self.cache_status.pch_hpp_gch:
-                success = self.driver.pch() and success
+                success &= self.driver.pch() 
             if self.cache_status.server:
-                success = self.driver.server() and success
+                success &= self.driver.server() 
         if success:
-            current.calc(libaquery_a)
+            current.calc(self.cxx, libaquery_a)
             with open('.cached', 'wb') as cache_sig:
                 cache_sig.write(pickle.dumps(current))
         else:
+            if aquery_config.os_platform == 'mac':
+                os.system('./arch-check.sh')
             try:
                 os.remove('./.cached')
             except:

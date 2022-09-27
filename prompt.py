@@ -29,7 +29,7 @@ prompt_help = '''\
 ******** AQuery Prompt Help *********
 
 help:
-    print out this message
+    print this help message
 help commandline:
     print help message for AQuery Commandline
 <sql statement>: 
@@ -43,7 +43,7 @@ dbg:
 print: 
     printout parsed sql statements
 exec: 
-    execute last parsed statement(s) with AQuery Execution Engine
+    execute last parsed statement(s) with AQuery Execution Engine (disabled)
 xexec: 
     execute last parsed statement(s) with Hybrid Execution Engine
 r: 
@@ -336,7 +336,7 @@ def prompt(running = lambda:True, next = lambda:input('> '), state = None):
                 time.sleep(.00001)
             og_q : str = next()
             q = og_q.lower().strip()
-            if q == 'exec': # generate build and run (AQuery Engine)
+            if False and q == 'exec': # generate build and run (AQuery Engine)
                 state.cfg.backend_type = Backend_Type.BACKEND_AQuery.value
                 cxt = engine.exec(state.stmts, cxt, keep)
                 if state.buildmgr.build_dll() == 0:
@@ -352,7 +352,7 @@ def prompt(running = lambda:True, next = lambda:input('> '), state = None):
                 else:
                     print(prompt_help)
                 continue
-            elif q.startswith('xexec'): # generate build and run (MonetDB Engine)
+            elif q.startswith('xexec') or q.startswith('exec'): # generate build and run (MonetDB Engine)
                 state.cfg.backend_type = Backend_Type.BACKEND_MonetDB.value
                 cxt = xengine.exec(state.stmts, cxt, keep)
                 
@@ -420,7 +420,7 @@ def prompt(running = lambda:True, next = lambda:input('> '), state = None):
                 continue
             elif q == 'format' or q == 'fmt':
                 subprocess.call(['clang-format', 'out.cpp'])
-            elif q == 'exit':
+            elif q == 'exit' or q == 'exit()':
                 rm(state)
                 exit()
             elif q == 'r': # build and run
