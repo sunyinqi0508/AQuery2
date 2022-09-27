@@ -3,6 +3,8 @@ tests/datagen_jose/tickgen
 datagen
 tests/private
 *.dSYM
+launcher.exp
+launcher.lib
 testmain.lib
 testmain.exp
 test.lib

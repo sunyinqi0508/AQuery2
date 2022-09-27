@@ -210,8 +210,8 @@ class Context:
         from aquery_config import build_driver, os_platform
         if not self.finalized:
             headers = ''
-            if build_driver == 'MSBuild':
-                headers ='#include \"./server/pch.hpp\"\n'
+            # if build_driver == 'MSBuild':
+                # headers ='#include \"./server/pch.hpp\"\n'
              
             for h in self.headers:
                 if h[0] != '"':
