@@ -24,6 +24,7 @@ ifeq ($(COMPILER), clang )
 		RANLIB = llvm-ranlib
 	endif
 else 
+	LIBTOOL = ar rcs
 	ifneq (, $(shell which gcc-ar))
 		LIBTOOL = gcc-ar rcs
 	endif
@@ -51,7 +52,6 @@ else
 	UNAME_M = $(shell uname -m)
 	NULL_DEVICE = /dev/null
 	MonetDB_LIB = 
-	LIBTOOL = ar rcs
 	ifeq ($(UNAME_S),Darwin)
 		USELIB_FLAG = -Wl,-force_load
 		MonetDB_LIB += -L$(shell brew --prefix monetdb)/lib 
