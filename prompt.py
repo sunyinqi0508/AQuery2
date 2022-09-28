@@ -397,11 +397,15 @@ def prompt(running = lambda:True, next = lambda:input('> '), state = None):
                 from copy import deepcopy
                 var = {**globals(), **locals()}
                 sh = code.InteractiveConsole(var)
+                __stdin = os.dup(0)
                 try:
                     sh.interact(banner = 'debugging session began.', exitmsg = 'debugging session ended.')
-                except BaseException as e: 
-                # don't care about anything happened in interactive console
+                except BaseException as e:
+                    # dont care about whatever happened in dbg session
                     print(e)
+                finally:
+                    import io
+                    sys.stdin = io.TextIOWrapper(io.BufferedReader(io.FileIO(__stdin, mode='rb', closefd=False)), encoding='utf8')
                 continue
             elif q.startswith('log'):
                 qs = re.split(r'[ \t]', q)

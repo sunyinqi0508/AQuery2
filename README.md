@@ -69,9 +69,9 @@ There're multiple options to run AQuery on Windows. You can use the native toolc
    In this case, upgrade anaconda or your compiler or use the python from your OS or package manager instead. Or (**NOT recommended**) copy/link the library from your system (e.g. /usr/lib/x86_64-linux-gnu/libstdc++.so.6) to anaconda's library directory (e.g. ~/Anaconda3/lib/).
 
 ### Docker: 
-   - Alternatively, you can also use docker to run AQuery.
-   - Type `make docker` to build the docker image from scratch. 
-   - For Arm-based Mac users, you would have to build and run the x86_64 docker image because MonetDB doesn't offer official binaries for arm64 Linux. (Run `docker buildx build --platform=linux/amd64 -t aquery .` instead of `make docker`)
+   - See installation instructions from [docker.com](https://www.docker.com). Run docker desktop to start docker engine.
+   - In AQuery root directory, type `make docker` to build the docker image from scratch. 
+   - For Arm-based Mac users, you would have to build and run the **x86_64** docker image because MonetDB doesn't offer official binaries for arm64 Linux. (Run `docker buildx build --platform=linux/amd64 -t aquery .` instead of `make docker`)
    - Finally run the image in **interactive** mode (`docker run -it --rm aquery`)
 ## Usage
 `python3 prompt.py` will launch the interactive command prompt. The server binary will be automatically rebuilt and started.
