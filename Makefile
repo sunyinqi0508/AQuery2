@@ -4,7 +4,7 @@ MonetDB_INC =
 Threading = 
 CXXFLAGS = --std=c++1z
 OPTFLAGS = -O3 -DNDEBUG
-LINKFLAGS = -flto + $(AQ_LINK_FLAG)
+LINKFLAGS = -flto # + $(AQ_LINK_FLAG)
 SHAREDFLAGS = -shared  
 FPIC = -fPIC
 COMPILER = $(shell $(CXX) --version | grep -q clang && echo clang|| echo gcc) 
