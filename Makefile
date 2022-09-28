@@ -14,6 +14,7 @@ LIBAQ_SRC = server/server.cpp server/monetdb_conn.cpp server/io.cpp
 LIBAQ_OBJ = server.o monetdb_conn.o io.o 
 SEMANTIC_INTERPOSITION = -fno-semantic-interposition
 RANLIB = ranlib
+
 ifeq ($(COMPILER), clang )
 	CLANG_GE_10 = $(shell expr `$(CXX) -dumpversion | cut -f1 -d.` \>= 10)
 	ifneq ($(CLANG_GE_10), 1)
@@ -21,6 +22,10 @@ ifeq ($(COMPILER), clang )
 	endif
 	ifneq (, $(shell which llvm-ranlib))
 		RANLIB = llvm-ranlib
+	endif
+else 
+	ifneq (, $(shell which gcc-ar))
+		LIBTOOL = gcc-ar rcs
 	endif
 endif
 OPTFLAGS += $(SEMANTIC_INTERPOSITION)
