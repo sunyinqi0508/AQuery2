@@ -21,7 +21,7 @@ def init_config():
     import os
     from engine.utils import add_dll_dir
     # os.environ['CXX'] = 'C:/Program Files/LLVM/bin/clang.exe'
-    os.environ['THREADING'] = '1'
+    # os.environ['THREADING'] = '1'
 
     if  ('__config_initialized__' not in globals() or 
             not __config_initialized__):
