@@ -9,9 +9,6 @@ template <class T>
 inline const char* str(const T& v) {
 	return "";
 }
-template <>
-inline const char* str(const bool& v) {
-	return v ? "true" : "false";
-}
+
 #include<string>
 extern std::string base62uuid(int l = 6);

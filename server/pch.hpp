@@ -6,9 +6,9 @@
 #include <iostream>
 #include <chrono>
 #include "monetdb_conn.h"
-#include "monetdbe.h"
 #include "threading.h"
 #include "../csv.h"
+#include "table_ext_monetdb.hpp"
 #ifdef _WIN32
 #include "winhelper.h"
 #undef max

@@ -261,6 +261,10 @@ std::string base62uuid(int l) {
     return ret;
 }
 
+template <>
+inline const char* str(const bool& v) {
+	return v ? "true" : "false";
+}
 
 // template<typename _Ty>
 // inline void vector_type<_Ty>::out(uint32_t n, const char* sep) const
