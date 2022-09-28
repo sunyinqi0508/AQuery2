@@ -23,13 +23,12 @@ ifeq ($(COMPILER), clang )
 	ifneq (, $(shell which llvm-ranlib))
 		RANLIB = llvm-ranlib
 	endif
-	LINKFLAGS += -lc++ 
 else 
+	RANLIB = echo
 	LIBTOOL = ar rcs
 	ifneq (, $(shell which gcc-ar))
 		LIBTOOL = gcc-ar rcs
 	endif
-	LINKFLAGS +=  -lstdc++ 
 endif
 OPTFLAGS += $(SEMANTIC_INTERPOSITION)
 
