@@ -173,7 +173,7 @@ class build_manager:
         self.cxx = ''
         self.OptimizationLv = '4' # [O0, O1, O2, O3, Ofast]
         self.Platform = 'amd64'
-        self.PCH = 1
+        self.PCH = os.environ['PCH'] if 'PCH' in os.environ else 1
         self.StaticLib = 1
         self.fLTO = 1
         self.fmarchnative = 1

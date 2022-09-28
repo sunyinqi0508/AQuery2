@@ -3,7 +3,7 @@ MonetDB_LIB =
 MonetDB_INC = 
 Threading = 
 CXXFLAGS = --std=c++1z
-OPTFLAGS = -O3 -fno-semantic-interposition -DNDEBUG
+OPTFLAGS = -O3 -DNDEBUG
 LINKFLAGS = -flto
 SHAREDFLAGS = -shared  
 FPIC = -fPIC
@@ -12,13 +12,24 @@ LIBTOOL =
 USELIB_FLAG = -Wl,--whole-archive,libaquery.a -Wl,-no-whole-archive
 LIBAQ_SRC = server/server.cpp server/monetdb_conn.cpp server/io.cpp 
 LIBAQ_OBJ = server.o monetdb_conn.o io.o 
+SEMANTIC_INTERPOSITION = -fno-semantic-interposition
+RANLIB = ranlib
+ifeq ($(COMPILER), clang )
+	CLANG_GE_10 = $(shell expr `$(CXX) -dumpversion | cut -f1 -d.` \>= 10)
+	ifneq ($(CLANG_GE_10), 1)
+		SEMANTIC_INTERPOSITION = 
+	endif
+	ifeq (, $(shell llvm-ranlib))
+		RANLIB = llvm-ranlib
+	endif
+endif
+OPTFLAGS += $(SEMANTIC_INTERPOSITION)
 
 ifeq ($(PCH), 1)
 	PCHFLAGS = -include server/pch.hpp
 else
 	PCHFLAGS = 
 endif
-
 
 ifeq ($(OS),Windows_NT)
 	NULL_DEVICE = NUL
@@ -48,8 +59,8 @@ else
 		endif
 	else
 		OPTFLAGS += -march=native
-		MonetDB_LIB += $AQ_MONETDB_LIB
-		MonetDB_INC += $AQ_MONETDB_INC
+		MonetDB_LIB += $(AQ_MONETDB_LIB)
+		MonetDB_INC += $(AQ_MONETDB_INC)
 		MonetDB_INC += -I/usr/local/include/monetdb -I/usr/include/monetdb 
 	endif
 	MonetDB_LIB += -lmonetdbe
@@ -64,6 +75,7 @@ endif
 SHAREDFLAGS += $(FPIC)
 
 info:
+	$(info $(OPTFLAGS))
 	$(info $(OS_SUPPORT))
 	$(info $(OS)) 
 	$(info $(Threading))
@@ -78,14 +90,14 @@ pch:
 libaquery.a:
 	$(CXX) -c $(FPIC) $(PCHFLAGS) $(LIBAQ_SRC) $(MonetDB_INC) $(MonetDB_LIB) $(OS_SUPPORT) $(Threading) $(OPTFLAGS) $(LINKFLAGS) $(CXXFLAGS) &&\
 	$(LIBTOOL) libaquery.a $(LIBAQ_OBJ) &&\
-	ranlib libaquery.a
+	$(RANLIB) libaquery.a
 
 server.bin:
 	$(CXX) $(LIBAQ_SRC) $(LINKFLAGS) $(OS_SUPPORT) $(Threading)  $(MonetDB_INC) $(MonetDB_LIB) $(OPTFLAGS) $(CXXFLAGS) -o server.bin
 launcher:
 	$(CXX) -D__AQ_BUILD_LAUNCHER__ $(LIBAQ_SRC) $(LINKFLAGS) $(OS_SUPPORT) $(Threading)  $(MonetDB_INC) $(MonetDB_LIB) $(OPTFLAGS) $(CXXFLAGS) -o aq
 server.so:
-#	$(CXX) server/server.cpp server/monetdb_conn.cpp -fPIC -shared $(OS_SUPPORT) monetdb/msvc/monetdbe.dll --std=c++1z -O3 -march=native -o server.so -I./monetdb/msvc 
+#	$(CXX) -z muldefs server/server.cpp server/monetdb_conn.cpp -fPIC -shared $(OS_SUPPORT) monetdb/msvc/monetdbe.dll --std=c++1z -O3 -march=native -o server.so -I./monetdb/msvc 
 	$(CXX) $(SHAREDFLAGS) $(PCHFLAGS) $(LIBAQ_SRC) $(OS_SUPPORT) $(Threading) $(MonetDB_INC) $(MonetDB_LIB) $(OPTFLAGS) $(LINKFLAGS) $(CXXFLAGS) -o server.so 
 server_uselib:
 	$(CXX) $(SHAREDFLAGS) $(USELIB_FLAG),libaquery.a $(MonetDB_LIB) $(OPTFLAGS) $(LINKFLAGS) $(CXXFLAGS) -o server.so

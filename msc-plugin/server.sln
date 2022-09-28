@@ -9,9 +9,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "server", "server.vcxproj", 
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "msc-plugin", "msc-plugin.vcxproj", "{8081FDAA-4D13-4B7A-ADB2-8224AF7F1C81}"
-	ProjectSection(ProjectDependencies) = postProject
-		{B52AACF7-16A6-4FCA-90AD-867D367BDA4F} = {B52AACF7-16A6-4FCA-90AD-867D367BDA4F}
-	EndProjectSection
 EndProject
 Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "msvs-py", "..\msvs-py\msvs-py.pyproj", "{CCC243F5-663E-45B7-A6DE-B2468C58B3A7}"
 EndProject
