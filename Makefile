@@ -19,7 +19,7 @@ ifeq ($(COMPILER), clang )
 	ifneq ($(CLANG_GE_10), 1)
 		SEMANTIC_INTERPOSITION = 
 	endif
-	ifeq (, $(shell llvm-ranlib))
+	ifneq (, $(shell which llvm-ranlib))
 		RANLIB = llvm-ranlib
 	endif
 endif
