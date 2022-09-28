@@ -78,8 +78,6 @@ void skip(const char*& buf){
 }
 
 namespace types {
-	using namespace std;
-	using namespace chrono;
 
 	date_t::date_t(const char* str) { fromString(str); }
 	date_t& date_t::fromString(const char* str)  {
@@ -245,16 +243,15 @@ std::ostream& operator<<(std::ostream& os, types::timestamp_t & v)
 }
 
 
-using std::string;
-string base62uuid(int l) {
+std::string base62uuid(int l) {
     using namespace std;
     constexpr static const char* base62alp = 
 		"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     static mt19937_64 engine(
-		chrono::system_clock::now().time_since_epoch().count());
+		std::chrono::system_clock::now().time_since_epoch().count());
     static uniform_int_distribution<uint64_t> u(0x10000, 0xfffff);
     uint64_t uuid = (u(engine) << 32ull) + 
-		(chrono::system_clock::now().time_since_epoch().count() & 0xffffffff);
+		(std::chrono::system_clock::now().time_since_epoch().count() & 0xffffffff);
     //printf("%llu\n", uuid);
     string ret;
     while (uuid && l-- >= 0) {
