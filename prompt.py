@@ -334,7 +334,10 @@ def prompt(running = lambda:True, next = lambda:input('> '), state = None):
                 state.init()
             while state.get_ready():
                 time.sleep(.00001)
-            og_q : str = next()
+            try:
+                og_q : str = next()
+            except EOFError:
+                continue
             q = og_q.lower().strip()
             if False and q == 'exec': # generate build and run (AQuery Engine)
                 state.cfg.backend_type = Backend_Type.BACKEND_AQuery.value
