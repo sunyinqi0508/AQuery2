@@ -4,7 +4,7 @@ MonetDB_INC =
 Threading = 
 CXXFLAGS = --std=c++1z
 OPTFLAGS = -O3 -DNDEBUG
-LINKFLAGS = -flto 
+LINKFLAGS = -flto + $(AQ_LINK_FLAG)
 SHAREDFLAGS = -shared  
 FPIC = -fPIC
 COMPILER = $(shell $(CXX) --version | grep -q clang && echo clang|| echo gcc) 
@@ -23,14 +23,12 @@ ifeq ($(COMPILER), clang )
 	ifneq (, $(shell which llvm-ranlib))
 		RANLIB = llvm-ranlib
 	endif
-	LINKFLAGS += -Wl,-undefined,error
 else 
 	RANLIB = echo
 	LIBTOOL = ar rcs
 	ifneq (, $(shell which gcc-ar))
 		LIBTOOL = gcc-ar rcs
 	endif
-	LINKFLAGS += -Wl,-no-undefined
 endif
 OPTFLAGS += $(SEMANTIC_INTERPOSITION)
 
