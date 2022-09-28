@@ -337,7 +337,8 @@ def prompt(running = lambda:True, next = lambda:input('> '), state = None):
             try:
                 og_q : str = next()
             except EOFError:
-                continue
+                print('stdin inreadable, Exiting...')
+                exit(0)
             q = og_q.lower().strip()
             if False and q == 'exec': # generate build and run (AQuery Engine)
                 state.cfg.backend_type = Backend_Type.BACKEND_AQuery.value

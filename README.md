@@ -71,7 +71,8 @@ There're multiple options to run AQuery on Windows. You can use the native toolc
 ### Docker: 
    - Alternatively, you can also use docker to run AQuery.
    - Type `make docker` to build the docker image from scratch. 
-   - For Arm-based Mac users, you would have to build and run the x86_64 docker image because MonetDB doesn't offer official binaries for arm64 Linux. 
+   - For Arm-based Mac users, you would have to build and run the x86_64 docker image because MonetDB doesn't offer official binaries for arm64 Linux. (Run `docker buildx build --platform=linux/amd64 -t aquery .` instead of `make docker`)
+   - Finally run the image in **interactive** mode (`docker run -it --rm aquery`)
 ## Usage
 `python3 prompt.py` will launch the interactive command prompt. The server binary will be automatically rebuilt and started.
 #### Commands:
