@@ -96,6 +96,9 @@ class projection(ast_node):
         else:
             self.where = None    
 
+        if type(self.datasource) is join:
+            self.datasource.process_join_conditions()
+        
         if 'groupby' in node:
             self.context.special_gb = groupby.check_special(self, node['groupby'])
 
@@ -624,6 +627,7 @@ class join(ast_node):
             self.joins.append((alias(tbls.__str__()), tbls.have_sep))
             self.tables += tbls.tables
             self.tables_dir = {**self.tables_dir, **tbls.tables_dir}
+            self.join_conditions += tbls.join_conditions
             
         elif type(tbls) is TableInfo:
             self.joins.append((alias(tbls.table_name), False))
@@ -661,12 +665,17 @@ class join(ast_node):
                 if keys[0].lower().endswith('join'):
                     self.have_sep = True
                     j = join(self, node[keys[0]])
+                    self.join_conditions += j.join_conditions
                     tablename = f' {keys[0]} {j}'
                     if len(keys) > 1 :
+                        _ex = expr(self, node[keys[1]])
                         if keys[1].lower() == 'on':
-                            tablename += f' ON {expr(self, node[keys[1]])}' 
+                            self.join_conditions += _ex.join_conditions
+                            tablename += f' ON {_ex}' 
                         elif keys[1].lower() == 'using':
-                            tablename += f' USING {expr(self, node[keys[1]])}'
+                            if _ex.is_ColExpr:
+                                self.join_conditions += (_ex.raw_col, j.get_cols(_ex.raw_col.name))
+                            tablename += f' USING {_ex}'
                     self.joins.append((tablename, self.have_sep))
                     self.tables += j.tables
                     self.tables_dir = {**self.tables_dir, **j.tables_dir}
@@ -711,7 +720,9 @@ class join(ast_node):
     
     # TODO: join condition awareness
     def process_join_conditions(self):
-        pass
+        # This is done after both from 
+        # and where clause are processed
+        print(self.join_conditions)
     
     def consume(self, node):
         self.sql = ''
@@ -720,7 +731,6 @@ class join(ast_node):
                 self.sql += j[0] # using JOIN keyword
             else:
                 self.sql += ', ' + j[0] # using comma
-        self.process_join_conditions()
                     
         if node and self.sql and self.top_level:
             self.sql = ' FROM ' + self.sql 

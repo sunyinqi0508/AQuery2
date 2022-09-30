@@ -119,4 +119,4 @@ docker:
 clean:
 	rm .cached *.shm *.o dll.so server.so server.bin libaquery.a libaquery.lib -rf 2> $(NULL_DEVICE) || true
 
-
+.PHONY: clean

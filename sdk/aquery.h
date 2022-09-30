@@ -67,10 +67,15 @@ struct Context{
 #define __AQEXPORT__(_Ty) extern "C" _Ty __DLLEXPORT__ 
 
 typedef void (*deallocator_t) (void*);
+extern void default_deallocator(void* ptr);
 
-extern void* Aalloc(unsigned long long sz);
+extern void* Aalloc(unsigned long long sz, 
+	deallocator_t deallocator = default_deallocator
+);
 extern void Afree(void * mem);
-extern void register_memory(void* ptr, deallocator_t deallocator);
+extern void register_memory(void* ptr,
+ 	deallocator_t deallocator = default_deallocator
+);
 
 __AQEXPORT__(void) init_session(Context* cxt);
 

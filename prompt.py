@@ -118,8 +118,50 @@ class Backend_Type(enum.Enum):
 	BACKEND_MonetDB = 1
 	BACKEND_MariaDB = 2
 
+@dataclass 
+class QueryStats:
+    last_time : int = time.time()
+    parse_time : int = 0
+    codegen_time : int = 0
+    compile_time : int = 0
+    exec_time : int = 0
+    need_print : bool = False
+    def clear(self):
+        self.parse_time = 0
+        self.codegen_time = 0
+        self.compile_time = 0
+        self.exec_time  = 0
+        self.last_time = time.time()
+        
+    def stop(self):
+        ret = time.time() - self.last_time
+        self.last_time = time.time()
+        return ret
+    
+    def cumulate(self, other : Optional['QueryStats']):
+        if other:
+            other.parse_time += self.parse_time
+            other.codegen_time += self.codegen_time
+            other.compile_time += self.compile_time
+            other.exec_time += self.exec_time
+        
+    def print(self, cumulative = None, clear = True, need_print = True):
+        if self.need_print:
+            if cumulative:
+                self.exec_time = self.stop()
+                self.cumulate(cumulative)
+            if need_print:
+                print(f'Parse Time: {self.parse_time}, Codegen Time: {self.codegen_time}, Compile Time: {self.compile_time}, Execution Time: {self.exec_time}.')
+                print(f'Total Time: {self.parse_time + self.codegen_time + self.compile_time + self.exec_time}')
+                self.need_print = False
+            if clear:
+                self.clear()
 class Config:
-    __all_attrs__ = ['running', 'new_query', 'server_mode', 'backend_type', 'has_dll', 'n_buffers']
+    __all_attrs__ = ['running', 'new_query', 'server_mode', 
+                     'backend_type', 'has_dll', 
+                     'postproc_time', 'sql_time', 
+                     'n_buffers'
+                     ]
     __init_attributes__ = False
     
     @staticmethod
@@ -134,7 +176,7 @@ class Config:
     def __init__(self, mode, nq = 0, n_bufs = 0, bf_szs = []) -> None:
         Config.__init_self__()
         self.int_size = 4
-        self.n_attrib = 6
+        self.n_attrib = len(Config.__all_attrs__)
         self.buf = bytearray((self.n_attrib + n_bufs) * self.int_size)
         self.np_buf = np.ndarray(shape=(self.n_attrib), buffer=self.buf, dtype=np.int32)
         self.new_query = nq
@@ -179,6 +221,9 @@ class PromptState():
     init : Callable[['PromptState'], None] = lambda _:None
     stmts = ['']
     payloads = {}
+    need_print : bool = False
+    stats : Optional[QueryStats] = None
+    currstats : Optional[QueryStats] = None
     buildmgr : Optional[build_manager]= None
 ## CLASSES END
 
@@ -274,7 +319,9 @@ def init_prompt() -> PromptState:
     state.buildmgr = build_manager()  
     state.buildmgr.build_caches()  
     state.cfg = Config(state.server_mode)
-        
+    state.stats = QueryStats()
+    state.currstats = QueryStats()
+    
     if state.server_mode == RunType.IPC:
         atexit.register(lambda: rm(state))
         state.init = init_ipc
@@ -327,15 +374,18 @@ def prompt(running = lambda:True, next = lambda:input('> '), state = None):
     payload = None
     keep = True
     cxt = engine.initialize()
-
+    # state.currstats = QueryStats()
+    # state.need_print = False
     while running():
         try:
             if state.server_status():
                 state.init()
             while state.get_ready():
                 time.sleep(.00001)
+            state.currstats.print(state.stats, need_print=state.need_print)
             try:
                 og_q : str = next()
+                state.currstats.stop()
             except EOFError:
                 print('stdin inreadable, Exiting...')
                 exit(0)
@@ -376,20 +426,25 @@ def prompt(running = lambda:True, next = lambda:input('> '), state = None):
                         state.send(sz, payload)
                     except TypeError as e:
                         print(e)
-
+                state.currstats.codegen_time = state.currstats.stop()
+                state.currstats.compile_time = 0
+                state.currstats.exec_time = 0
                 qs = re.split(r'[ \t]', q)
                 build_this = not(len(qs) > 1 and qs[1].startswith('n'))
                 if cxt.has_dll:
                     with open('out.cpp', 'wb') as outfile:
                         outfile.write((cxt.finalize()).encode('utf-8'))
+                    state.currstats.codegen_time += state.currstats.stop()
+                        
                     if build_this:
                         state.buildmgr.build_dll()
                         state.cfg.has_dll = 1
                 else:
                     state.cfg.has_dll = 0
+                state.currstats.compile_time = state.currstats.stop()
                 if build_this:
                     state.set_ready()
-                
+                state.currstats.need_print = True
                 continue
             
             elif q == 'dbg':
@@ -469,6 +524,22 @@ def prompt(running = lambda:True, next = lambda:input('> '), state = None):
                 with open(filename, 'wb') as outfile:
                     outfile.write((cxt.finalize()).encode('utf-8'))
                 continue
+            elif q.startswith('stats'):
+                qs = re.split(r'[ \t]', q)
+                if len(qs) > 1:
+                    if qs[1].startswith('on'):
+                        state.need_print = True
+                        continue
+                    elif qs[1].startswith('off'):
+                        state.need_print = False
+                        continue
+                    elif qs[1].startswith('last'):
+                        state.currstats.need_print = True
+                        state.currstats.print()
+                        continue
+                state.stats.need_print = True
+                state.stats.print(clear = False)
+                continue
             trimed = ws.sub(' ', q.lower()).split(' ') 
             if trimed[0].startswith('f'):
                 fn = 'stock.a' if len(trimed) <= 1 or len(trimed[1]) == 0 \
@@ -480,9 +551,11 @@ def prompt(running = lambda:True, next = lambda:input('> '), state = None):
                     with open('tests/' + fn, 'r') as file:
                         contents = file.read()
                 state.stmts = parser.parse(contents)
+                state.currstats.parse_time = state.currstats.stop()
                 continue
             state.stmts = parser.parse(q)
             cxt.Info(state.stmts)
+            state.currstats.parse_time = state.currstats.stop()
         except ParseException as e:
             print(e)
             continue

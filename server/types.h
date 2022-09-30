@@ -297,6 +297,26 @@ template <class T>
 using decays = typename decayS<typename std::decay<T>::type>::type;
 template <class T>
 using decay_inner = typename decayS<T>::type;
+template <class T1, class T2>
+struct aqis_same_impl {
+	constexpr static bool value = 
+		std::conditional_t<
+			std::is_signed_v<T1> == std::is_signed_v<T2>,
+			Cond(
+				std::is_floating_point_v<T1> == std::is_floating_point_v<T2>,
+				Cond(
+					sizeof(T1) == sizeof(T2),
+					std::true_type,
+					std::false_type
+				),
+				std::false_type
+			),
+			std::false_type
+		>::value;
+};
+
+template <class T1, class T2>
+constexpr bool aqis_same = aqis_same_impl<T1, T2>::value;
 
 template <class, template <class...> class T>
 struct instance_of_impl : std::false_type {};

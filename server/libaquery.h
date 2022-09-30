@@ -17,7 +17,7 @@ enum Backend_Type {
 };
 struct Config{
     int running, new_query, server_mode,
-	 	backend_type, has_dll, n_buffers;
+	 	backend_type, has_dll, exec_time, n_buffers;
     int buffer_sizes[];
 };
 

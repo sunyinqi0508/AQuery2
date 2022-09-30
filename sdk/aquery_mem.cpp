@@ -26,6 +26,10 @@ void register_memory(void* ptr, deallocator_t deallocator){
     memmap->operator[](ptr) = deallocator;
 }
 
+void default_deallocator(void* ptr){
+    free(ptr);
+}
+
 __AQEXPORT__(void) init_session(Context* cxt){
     session = &cxt->current;
 }

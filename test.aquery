@@ -1,5 +1,7 @@
 #!aquery
 
+# stats on 
+
 select "hello world"
 xexec
 
@@ -38,5 +40,7 @@ xexec
 echo Testing Sample Queries
 f network.a
 xexec 
+
+stats
 
 exit
