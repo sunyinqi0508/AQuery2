@@ -674,8 +674,19 @@ class join(ast_node):
                             tablename += f' ON {_ex}' 
                         elif keys[1].lower() == 'using':
                             if _ex.is_ColExpr:
-                                self.join_conditions += (_ex.raw_col, j.get_cols(_ex.raw_col.name))
+                                self.join_conditions.append( (_ex.raw_col, j.get_cols(_ex.raw_col.name)) )
                             tablename += f' USING {_ex}'
+                    if keys[0].lower().startswith('natural'):
+                        ltbls : List[TableInfo] = []
+                        if isinstance(self.parent, join):
+                            ltbls = self.parent.tables
+                        elif isinstance(self.parent, TableInfo):
+                            ltbls = [self.parent]
+                        for tl in ltbls:
+                            for cl in tl.columns:
+                                cr = j.get_cols(cl.name)
+                                if cr:
+                                    self.join_conditions.append( (cl, cr) )
                     self.joins.append((tablename, self.have_sep))
                     self.tables += j.tables
                     self.tables_dir = {**self.tables_dir, **j.tables_dir}
@@ -686,13 +697,14 @@ class join(ast_node):
             else:
                 print(f'Error: table {node} not found.')
     
-    def get_cols(self, colExpr: str) -> ColRef:
+    def get_cols(self, colExpr: str) -> Optional[ColRef]:
         for t in self.tables:
             if colExpr in t.columns_byname:
                 col = t.columns_byname[colExpr]
                 if type(self.rec) is set:
                     self.rec.add(col)
                 return col
+        return None
             
     def parse_col_names(self, colExpr:str) -> ColRef:
         parsedColExpr = colExpr.split('.')
@@ -771,7 +783,7 @@ class create_table(ast_node):
     def produce(self, node):
         ct = node[self.name]
         tbl = self.context.add_table(ct['name'], ct['columns'])
-        self.sql = f'CREATE TABLE {tbl.table_name}('
+        self.sql = f'CREATE TABLE IF NOT EXISTS {tbl.table_name}('
         columns = []
         for c in tbl.columns:
             columns.append(f'{c.name} {c.type.sqlname}')
@@ -787,7 +799,9 @@ class drop(ast_node):
         node = node['drop']
         tbl_name = node['table']
         if tbl_name in self.context.tables_byname:
-            tbl_obj = self.context.tables_byname[tbl_name]
+            tbl_obj : TableInfo = self.context.tables_byname[tbl_name]
+            for a in tbl_obj.alias:
+                self.context.tables_byname.pop(a, None) 
             # TODO: delete in postproc engine
             self.context.tables_byname.pop(tbl_name)
             self.context.tables.remove(tbl_obj)

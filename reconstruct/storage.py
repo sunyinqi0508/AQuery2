@@ -121,7 +121,7 @@ class Context:
     def __init__(self):
         self.tables_byname = dict()
         self.col_byname = dict()
-        self.tables = []
+        self.tables : List[TableInfo] = []
         self.cols = []
         self.datasource = None
         self.module_stubs = ''
@@ -176,6 +176,15 @@ class Context:
         self.queries.insert(self.module_init_loc, 'P__builtin_init_user_module')
         return ret + '}\n'
     
+    def finalize_query(self):
+        # clear aliases
+        for t in self.tables:
+            for a in t.alias:
+                if a != t.table_name:
+                    self.tables_byname.pop(a, None)
+            t.alias.clear()
+            t.alias.add(t.table_name)
+    
     def sql_begin(self):
         self.sql = ''
 
@@ -195,7 +204,8 @@ class Context:
         self.procs.append(self.ccode + 'return 0;\n}')
         self.ccode = ''
         self.queries.append('P' + proc_name)    
-    
+        self.finalize_query()
+        
     def finalize_udf(self):
         if self.udf is not None:
             return (Context.udf_head 
