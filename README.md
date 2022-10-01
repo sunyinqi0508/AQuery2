@@ -4,7 +4,15 @@
 
 AQuery++ Database is a cross-platform, In-Memory Column-Store Database that incorporates compiled query execution.
 
-## Requirements
+## Docker (Recommended): 
+   - See installation instructions from [docker.com](https://www.docker.com). Run **docker desktop** to start docker engine.
+   - In AQuery root directory, type `make docker` to build the docker image from scratch. 
+   - For Arm-based Mac users, you would have to build and run the **x86_64** docker image because MonetDB doesn't offer official binaries for arm64 Linux. (Run `docker buildx build --platform=linux/amd64 -t aquery .` instead of `make docker`)
+   - Finally run the image in **interactive** mode (`docker run -it --rm aquery`)
+   - If there is a need to access the system shell, type `dbg` to activate python interpreter and type `os.system('sh')` to launch a shell.
+
+## Native Installation:
+### Requirements
 1. Recent version of Linux, Windows or MacOS, with recent C++ compiler that has C++17 (1z) support. (however c++20 is recommended if available for heterogeneous lookup on unordered containers)
      - GCC: 9.0 or above (g++ 7.x, 8.x fail to handle fold-expressions due to a compiler bug)
      - Clang: 5.0 or above (Recommended)
@@ -17,15 +25,9 @@ AQuery++ Database is a cross-platform, In-Memory Column-Store Database that inco
 
 3. Python 3.6 or above and install required packages in requirements.txt by `python3 -m pip install -r requirements.txt` 
 
-## Installation
+### Installation
 AQuery is tested on mainstream operating systems such as Windows, macOS and Linux
 
-### Docker (Recommended): 
-   - See installation instructions from [docker.com](https://www.docker.com). Run **docker desktop** to start docker engine.
-   - In AQuery root directory, type `make docker` to build the docker image from scratch. 
-   - For Arm-based Mac users, you would have to build and run the **x86_64** docker image because MonetDB doesn't offer official binaries for arm64 Linux. (Run `docker buildx build --platform=linux/amd64 -t aquery .` instead of `make docker`)
-   - Finally run the image in **interactive** mode (`docker run -it --rm aquery`)
-   - If there is a need to access the system shell, type `dbg` to activate python interpreter and type `os.system('sh')` to launch a shell.
 ### Windows
 There're multiple options to run AQuery on Windows. You can use the native toolchain from Microsoft Visual Studio or gcc from Cygwin/MinGW or run it under Windows Subsystem for Linux.
 
@@ -86,6 +88,7 @@ There're multiple options to run AQuery on Windows. You can use the native toolc
   - no options: show statistics for all queries so far.
   - `on` : statistics will be shown for every future query.
   - `off`: statistics will not be shown for every future query.
+- `script <filename>`: use automated testing script, this will execute all commands in the script
 - `dbg` start python interactive interpreter at the current context. 
 - `print`: print parsed AQuery statements (AST in JSON form)
 - `save <OPTIONAL: filename>`: save current code snippet. will use random filename if not specified.
@@ -97,7 +100,10 @@ There're multiple options to run AQuery on Windows. You can use the native toolc
 
 See ./tests/ for more examples. 
 
-
+### Automated Testing Scripts
+- A series of commands can be put in a script file and execute using `script` command.
+- Can be executed using `script` command
+- See `test.aquery` as an example
 ## Architecture 
 ![Architecture](./docs/arch-hybrid.svg)
 

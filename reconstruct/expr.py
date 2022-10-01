@@ -220,7 +220,7 @@ class expr(ast_node):
                 if (is_joincond and len(self.children) == 2
                     and all([c.is_ColExpr for c in self.children])) :
                     self.root.join_conditions.append(
-                            self.children[0].raw_col, self.children[1].raw_col
+                            (self.children[0].raw_col, self.children[1].raw_col)
                         )
                     
         if type(node) is str:

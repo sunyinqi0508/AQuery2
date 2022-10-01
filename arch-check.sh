@@ -18,4 +18,3 @@ done
 if [[ PASSED -eq 1 ]]; then
 	echo "\033[1;32mBinary archtechure check passed\033[0m"
 fi
-
