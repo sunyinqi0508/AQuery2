@@ -78,10 +78,10 @@ class expr(ast_node):
         ast_node.__init__(self, parent, node, None)
 
     def init(self, _):
-        from reconstruct.ast import projection
+        from reconstruct.ast import projection, _tmp_join_union
         parent = self.parent
         self.is_compound = parent.is_compound if type(parent) is expr else False
-        if type(parent) in [projection, expr]:
+        if type(parent) in [projection, expr, _tmp_join_union]:
             self.datasource = parent.datasource
         else:
             self.datasource = self.context.datasource

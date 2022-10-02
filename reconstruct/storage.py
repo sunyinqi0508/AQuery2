@@ -21,6 +21,16 @@ class ColRef:
         
         self.__arr__ = (_ty, cobj, table, name, id)
         
+    def get_name(self):
+        it_alias = iter(self.alias)
+        alias = next(it_alias, self.name)
+        try:
+            while alias == self.name:
+                alias = next(it_alias)
+        except StopIteration:
+            alias = self.name
+        return alias
+    
     def get_full_name(self):
         table_name = self.table.table_name
         it_alias = iter(self.table.alias)
@@ -30,7 +40,7 @@ class ColRef:
                 alias = next(it_alias)
         except StopIteration:
             alias = table_name
-        return f'{alias}.{self.name}'
+        return f'{alias}.{self.get_name()}'
     
     def __getitem__(self, key):
         if type(key) is str:
@@ -103,6 +113,10 @@ class TableInfo:
             self.rec.update(self.columns)
         return set(self.columns)
             
+    @property
+    def single_table(self):
+        return True
+    
 class Context:
     def new(self):
         self.headers = set(['\"./server/libaquery.h\"', 

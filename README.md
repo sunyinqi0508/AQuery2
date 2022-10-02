@@ -152,6 +152,7 @@ See ./tests/ for more examples.
 - [x] Bug fixes: type deduction misaligned in Hybrid Engine
 - [ ] Investigation: Using postproc only for q1 in Hybrid Engine (make is_special always on)
 - [ ] C++ Meta-Programming: Eliminate template recursions as much as possible.
-- [ ] Functionality: Basic helper functions in aquery 
+- [x] Functionality: Basic helper functions in aquery 
 - [ ] Bug: Join-Aware Column management
 - [ ] Bug: Order By after Group By
+- [ ] Functionality: Having clause

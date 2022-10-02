@@ -2,7 +2,7 @@
 
 ## GLOBAL CONFIGURATION FLAGS
 
-version_string = '0.4.7a'
+version_string = '0.4.8a'
 add_path_to_ldpath = True
 rebuild_backend = False
 run_backend = True

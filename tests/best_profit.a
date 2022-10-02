@@ -41,6 +41,6 @@ from TradedStocks
 
 SELECT ID, avgs(10, ClosePrice)  
 FROM   td  NATURAL JOIN
-       HistoricQuotes 
+       HistoricQuotes hq
               ASSUMING ASC TradeDate
-GROUP BY ID
+GROUP BY hq.ID
