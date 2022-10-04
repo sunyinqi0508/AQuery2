@@ -628,11 +628,12 @@ class join(ast_node):
 
     def strip_joint_cols(self, cols : Set[ColRef]):
         stripped = type(cols)(cols)
-        for c in stripped:
-            jc = self.get_joint_cols([c])
-            for j in jc:
-                if j != c and j in stripped:
-                    stripped.remove(j)
+        for c in cols:
+            if c in stripped:
+                jc = self.get_joint_cols([c])
+                for j in jc:
+                    if j != c and j in stripped:
+                        stripped.remove(j)
         return stripped
     
     def init(self, _):
