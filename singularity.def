@@ -1,0 +1,22 @@
+Bootstrap: docker
+From: ubuntu:latest
+
+%post
+    apt update && apt install -y wget
+    export OS_VER=`cat /etc/os-release | grep VERSION_CODENAME` &&\
+    export OS_VER=${OS_VER#*=} &&\
+    printf "deb https://dev.monetdb.org/downloads/deb/ "${OS_VER}" monetdb \ndeb-src https://dev.monetdb.org/downloads/deb/ "${OS_VER}" monetdb\n">/etc/apt/sources.list.d/monetdb.list
+    wget --output-document=/etc/apt/trusted.gpg.d/monetdb.gpg https://dev.monetdb.org/downloads/MonetDB-GPG-KEY.gpg
+    apt update && apt install -y python3 python3-pip clang-14 libmonetdbe-dev git 
+    git clone https://github.com/sunyinqi0508/AQuery2 
+    python3 -m pip install -r AQuery2/requirements.txt
+    export IS_DOCKER_IMAGE=1 &&\
+    export CXX=clang++-14 &&\
+    cd AQuery2 && python3 prompt.py
+
+%environment
+    export IS_DOCKER_IMAGE=1 
+    export CXX=clang++-14
+
+%runscript
+    cd AQuery2 && python3 prompt.py

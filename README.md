@@ -2,7 +2,7 @@
 # AQuery++ Database
 ## Introduction
 
-AQuery++ Database is a cross-platform, In-Memory Column-Store Database that incorporates compiled query execution.
+AQuery++ Database is a cross-platform, In-Memory Column-Store Database that incorporates compiled query execution. (**Note**: If you encounter any problems, feel free to contact me via ys3540@nyu.edu)
 
 ## Docker (Recommended): 
    - See installation instructions from [docker.com](https://www.docker.com). Run **docker desktop** to start docker engine.
@@ -16,6 +16,11 @@ AQuery++ Database is a cross-platform, In-Memory Column-Store Database that inco
   2. Download the [patch](https://drive.google.com/file/d/1YkykhM6u0acZ-btQb4EUn4jAEXPT81cN/view?usp=sharing) 
   3. Decompress the patch to any directory and execute script inside by typing (`source ./cims.sh`). Please use the source command or `. ./cims.sh` (dot space) to execute the script because it contains configurations for environment variables.
   4. Execute `python3 ./prompt.py`
+
+## Singularity Container
+ 1. build container `singularity build aquery.sif aquery.def`
+ 2. execute container `singularity exec aquery.sif sh`
+ 3. run AQuery `python3 ./prompt.py`
 # Native Installation:
 ## Requirements
 1. Recent version of Linux, Windows or MacOS, with recent C++ compiler that has C++17 (1z) support. (however c++20 is recommended if available for heterogeneous lookup on unordered containers)
