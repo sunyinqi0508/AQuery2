@@ -2,7 +2,7 @@
 
 # stats on 
 
-select "hello world"
+select "Hello, World!"
 xexec
 
 echo Testing Insert, Filters and Nested Aggregation

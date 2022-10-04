@@ -1,0 +1,12 @@
+create table ticks(id varchar(20), timestamp int, tradeDate date, price int)
+
+load data infile "data/stocksym_price.csv"
+into table ticks fields terminated by ","
+
+-- select max(price - mins(price))
+-- from ticks assuming asc timestamp
+-- where ID = "S" and tradeDate= '01-10-22';
+
+select max(price - mins(price))
+from ticks assuming asc timestamp
+where ID = "S" and tradeDate= '2022-10-01';

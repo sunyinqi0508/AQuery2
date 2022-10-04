@@ -2,6 +2,7 @@ mo-future==6.2.21303
 mo-dots==9.173.22126
 mo-parsing==8.183.22158
 mo-imports==7.169.22121
+ordered-set
 dataclasses; python_version < '3.7'
 vswhere; sys_platform == 'win32'
 numpy

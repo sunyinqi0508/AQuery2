@@ -144,14 +144,20 @@ class projection(ast_node):
                     alias = proj['name']
                         
                 if not proj_expr.is_special:
-                    if proj_expr.node == '*':
+                    if str(proj_expr.node).strip().endswith('*'):
+                        _datasource = self.datasource
+                        if '.' in proj_expr.node:
+                            tbl = proj_expr.node.split('.')[0]
+                            if tbl in self.datasource.tables_dir:
+                                _datasource = self.datasource.tables_dir[tbl]
+                        _datasource = _datasource.all_cols(ordered = True, stripped = True)
                         name = [(c.get_name()
                                  if self.datasource.single_table
                                  else c.get_full_name()
-                                 ) for c in self.datasource.rec]
-                        this_type = [c.type for c in self.datasource.rec]
-                        compound = [c.compound for c in self.datasource.rec]
-                        proj_expr = [expr(self, c.name) for c in self.datasource.rec]
+                                 ) for c in _datasource]
+                        this_type = [c.type for c in _datasource]
+                        compound = [c.compound for c in _datasource]
+                        proj_expr = [expr(self, c.name) for c in _datasource]
                     else:
                         y = lambda x:x
                         count = lambda : 'count(*)'
@@ -185,7 +191,7 @@ class projection(ast_node):
                 this_type = enlist(this_type)
                 
             elif type(proj) is str:
-                col = self.datasource.get_col(proj)
+                col = self.datasource.get_cols(proj)
                 this_type = col.type
                 disp_name = proj
                 print('Unknown behavior:', proj, 'is str')    
@@ -619,6 +625,15 @@ class join(ast_node):
         for col in cols:
             joint_cols |= self.joint_cols.get(col, set())
         return joint_cols
+
+    def strip_joint_cols(self, cols : Set[ColRef]):
+        stripped = type(cols)(cols)
+        for c in stripped:
+            jc = self.get_joint_cols([c])
+            for j in jc:
+                if j != c and j in stripped:
+                    stripped.remove(j)
+        return stripped
     
     def init(self, _):
         self.joins : List[join] = []
@@ -724,6 +739,8 @@ class join(ast_node):
                 print(f'Error: table {node} not found.')
     
     def get_cols(self, colExpr: str) -> Optional[ColRef]:
+        if colExpr == '*':
+            return self.all_cols(ordered = True, stripped = True)
         for t in self.tables:
             if colExpr in t.columns_byname:
                 col = t.columns_byname[colExpr]
@@ -751,13 +768,16 @@ class join(ast_node):
         return len(self.tables) == 1
     
 #    @property
-    def all_cols(self):
-        ret = set()
+    def all_cols(self, ordered = False, stripped = True):
+        from ordered_set import OrderedSet
+        ret = OrderedSet() if ordered else set()
         for table in self.tables:
             rec = table.rec
             table.rec = self.rec
-            ret.update(table.all_cols())
+            ret.update(table.all_cols(ordered = ordered))
             table.rec = rec
+        if stripped:
+            return self.strip_joint_cols(ret)
         return ret
     
     # TODO: join condition awareness

@@ -108,10 +108,12 @@ class TableInfo:
             else:
                 return datasource.parse_col_names(parsedColExpr[1])
     
-    def all_cols(self):
+    def all_cols(self, ordered = False):
+        from ordered_set import OrderedSet
+        _ret_set_t = OrderedSet if ordered else set
         if type(self.rec) is set:
             self.rec.update(self.columns)
-        return set(self.columns)
+        return _ret_set_t(self.columns)
             
     @property
     def single_table(self):

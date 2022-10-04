@@ -257,7 +257,7 @@ class expr(ast_node):
                     if (node == '*' and 
                         not (type(self.parent) is expr 
                              and 'count' in self.parent.node)):
-                        self.datasource.all_cols()
+                        self.datasource.all_cols(ordered = True)
                     else:
                         self.raw_col = self.datasource.parse_col_names(node)
                         self.raw_col = self.raw_col if type(self.raw_col) is ColRef else None

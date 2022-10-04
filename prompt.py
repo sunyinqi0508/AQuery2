@@ -390,6 +390,8 @@ def prompt(running = lambda:True, next = lambda:input('> '), state = None):
                 print('stdin inreadable, Exiting...')
                 exit(0)
             q = og_q.lower().strip()
+            if (not re.sub(r'[ \r\n\t;]', '', q)):
+                continue
             if False and q == 'exec': # generate build and run (AQuery Engine)
                 state.cfg.backend_type = Backend_Type.BACKEND_AQuery.value
                 cxt = engine.exec(state.stmts, cxt, keep)
@@ -483,7 +485,7 @@ def prompt(running = lambda:True, next = lambda:input('> '), state = None):
                 continue
             elif q == 'format' or q == 'fmt':
                 subprocess.call(['clang-format', 'out.cpp'])
-            elif q == 'exit' or q == 'exit()':
+            elif q == 'exit' or q == 'exit()' or q == 'quit' or q == 'quit()' or q == '\\q':
                 rm(state)
                 exit()
             elif q == 'r': # build and run
@@ -553,7 +555,7 @@ def prompt(running = lambda:True, next = lambda:input('> '), state = None):
                 state.stmts = parser.parse(contents)
                 state.currstats.parse_time = state.currstats.stop()
                 continue
-            state.stmts = parser.parse(q)
+            state.stmts = parser.parse(og_q.strip())
             cxt.Info(state.stmts)
             state.currstats.parse_time = state.currstats.stop()
         except ParseException as e:

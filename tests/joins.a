@@ -32,3 +32,5 @@ FIELDS TERMINATED BY ","
 
 select sd(a) + sales from tt, sale1 where tt.a = sale1.Mont
 
+select * from tt, sale1 where tt.a = sale1.Mont
+
