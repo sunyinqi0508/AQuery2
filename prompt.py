@@ -558,7 +558,7 @@ def prompt(running = lambda:True, next = lambda:input('> '), state = None):
             state.stmts = parser.parse(og_q.strip())
             cxt.Info(state.stmts)
             state.currstats.parse_time = state.currstats.stop()
-        except ParseException as e:
+        except (ParseException, KeyError) as e:
             print(e)
             continue
         except (ValueError, FileNotFoundError) as e:
@@ -574,9 +574,15 @@ def prompt(running = lambda:True, next = lambda:input('> '), state = None):
             raise
         except ValueError as e:
             import code, traceback
+            __stdin = os.dup(0)
             raise_exception = True
             sh = code.InteractiveConsole({**globals(), **locals()})
-            sh.interact(banner = traceback.format_exc(), exitmsg = 'debugging session ended.')
+            try:
+                sh.interact(banner = traceback.format_exc(), exitmsg = 'debugging session ended.')
+            except:
+                pass
+            finally:
+                sys.stdin = io.TextIOWrapper(io.BufferedReader(io.FileIO(__stdin, mode='rb', closefd=False)), encoding='utf8')
             save('', cxt)
             rm(state)
             # control whether to raise exception in interactive console

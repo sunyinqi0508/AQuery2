@@ -43,7 +43,7 @@ There're multiple options to run AQuery on Windows. You can use the native toolc
 
 - For WSL, Docker or Linux virtual machines, see Linux, Docker sections below
 - For Visual Studio (Recommended):
-  1. Install python3.6 or above from [official website](https://www.python.org/downloads/windows/) or Microsoft Store.
+1. Install python3.6 or above from [official website](https://www.python.org/downloads/windows/) or Microsoft Store.
   2. Install Microsoft Visual Studio 2022 or later with **Desktop development with C++** selected.
   3. Clone AQuery repo from [Github](https://github.com/sunyinqi0508/AQuery2)
   4. Install python requirements with pip `python3 -m pip install -r requirements.txt`
@@ -108,7 +108,7 @@ There're multiple options to run AQuery on Windows. You can use the native toolc
    `f moving_avg.a` <br>
    `xexec`
 
-See ./tests/ for more examples. 
+See files in ./tests/ for more examples. 
 
 ## Automated Testing Scripts
 - A series of commands can be put in a script file and execute using `script` command.
@@ -174,4 +174,4 @@ See ./tests/ for more examples.
 - [x] Functionality: Basic helper functions in aquery 
 - [ ] Bug: Join-Aware Column management
 - [ ] Bug: Order By after Group By
-- [ ] Functionality: Having clause
+- [ ] Functionality: Having clause, With clause

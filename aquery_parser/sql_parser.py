@@ -672,13 +672,15 @@ def parser(literal_string, ident, sqlserver=False):
         module_func_def = (
             var_name("fname")
             + LB 
-            + delimited_list(
-                (
-                    var_name("arg") 
-                    + COLON 
-                    + var_name("type")
-                )("vars")
-            ) 
+            + Optional(
+                delimited_list(
+                    (
+                        var_name("arg") 
+                        + COLON 
+                        + var_name("type")
+                    )("vars")
+                ) 
+            )
             + RB
             + LAMBDA
             + var_name("ret_type")

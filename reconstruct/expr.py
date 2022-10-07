@@ -362,7 +362,7 @@ class expr(ast_node):
                     elif self.is_recursive_call_inudf:
                         for b in builtin_vars:
                             exec(f'loc["{b}"] = lambda : "{b}"')
-                    
+                
             x = self.c_code if c_code is None else c_code
             from engine.utils import escape_qoutes
             if decltypestr:

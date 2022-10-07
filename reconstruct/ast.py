@@ -916,7 +916,7 @@ class insert(ast_node):
         #     raise ValueError("Column Mismatch")
 
         list_values = []
-        for i, s in enumerate(values):
+        for i, s in enumerate(enlist(values)):
             if 'value' in s:
                 list_values.append(f"{s['value']}")
             else:
