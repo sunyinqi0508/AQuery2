@@ -7,7 +7,10 @@
 #include <fstream>
 #include <float.h>
 #include <ctime>
+#include <random>
 
+std::random_device rd;
+std::mt19937 g(rd());
 struct minEval{
 	double value;
 	int* values;
@@ -54,7 +57,7 @@ long* Rands(long feature, long maxFeature){
 	if(maxFeature==feature){
 		return ret;
 	}
-	std::random_shuffle(ret, &ret[feature]);
+	std::shuffle(ret, &ret[feature], g);
 	long* ret2 = (long*) malloc(maxFeature*sizeof(long)); 
 	for(i=0; i<maxFeature; i++)ret2[i] = ret[i];
 	free(ret);
@@ -473,7 +476,7 @@ void DecisionTree::IncrementalUpdate(double** data, long* result, long size, DT*
 		for(i=0; i<current->size; i++){
 			index[i] = i;
 		}
-		std::random_shuffle(index, index+current->size);
+		std::shuffle(index, index+current->size, g);
 		long x = 0;
 		for(i=0;i<current->size;i++){
 			if(i>=current->size-forgetSize){

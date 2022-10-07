@@ -1,22 +1,8 @@
-LOAD MODULE FROM "./libirf.so"
+LOAD MODULE FROM "./test.so" 
 FUNCTIONS (
-    newtree(height:int, f:int64, sparse:vecint, forget:double, maxf:int64, noclasses:int64, e:int, r:int64, rb:int64) -> bool,
-    additem(X:vecdouble, y:int64, size:int64) -> bool,
-    fit() -> bool,
-    predict() -> vecint
+    mydiv(a:int, b:int) -> double, 
+    mulvec(a:int, b:vecfloat) -> vecfloat
 );
 
-create table tb(x int);
-create table tb2(x double, y double, z double);
-insert into tb values (0);
-insert into tb values (0);
-insert into tb values (0);
-select newtree(5, 3, tb.x, 0, 3, 2, 0, 100, 1) from tb;
-insert into tb2 values (1, 0, 1);
-insert into tb2 values (0, 1, 1);
-insert into tb2 values (1, 1, 1);
-select additem(tb2.x, 1, 3) from tb2;
-select additem(tb2.y, 0, -1) from tb2;
-select additem(tb2.z, 1, -1) from tb2;
-select fit();
-select predict();
+select mydiv(2,3);
+

@@ -1,14 +1,11 @@
 LOAD MODULE FROM "./libirf.so"
 FUNCTIONS (
-    mydiv(a:int, b:int) -> double,
-    mulvec(a:int, b:vecfloat) -> vecfloat,
-    newtree(height:int, f:int64, sparse:vecint, forget:double, maxF:int64, noClasses:int64, e:int, r:int64, rb:int64) -> bool,
+    newtree(height:int, f:int64, sparse:vecint, forget:double, maxf:int64, noclasses:int64, e:int, r:int64, rb:int64) -> bool,
     additem(X:vecdouble, y:int64, size:int64) -> bool,
     fit() -> bool,
     predict() -> vecint
 );
 
-select mydiv(2,3);
 create table tb(x int);
 create table tb2(x double, y double, z double);
 insert into tb values (0);

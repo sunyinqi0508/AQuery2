@@ -33,6 +33,7 @@ __AQEXPORT__(bool) additem(ColRef<double>X, long y, long size){
 		data[pt][j]=X.container[j];
 	}
 	result[pt] = y;
+	pt ++;
 	return 1;
 }
 __AQEXPORT__(bool) fit(){
@@ -46,8 +47,8 @@ __AQEXPORT__(ColRef_storage) predict(){
 	for(long i=0; i<pt; i++){
 		result[i]=dt->Test(data[i], dt->DTree);
 	}
-	ColRef_storage ret(result, pt, pt, "prediction", 0);
-	return ret;
+	
+	return ColRef_storage(new ColRef_storage(result, pt, 0, "prediction", 0), 1, 0, "prediction", 0);
 }
 
 
