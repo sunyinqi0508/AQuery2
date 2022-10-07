@@ -727,3 +727,4 @@ def parser(literal_string, ident, sqlserver=False):
         )
         
         return stmts.finalize()
+
