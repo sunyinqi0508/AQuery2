@@ -98,7 +98,7 @@ FloatT = Types(16, name = 'float', cname = 'float', sqlname = 'REAL',
 HgeT = Types(9, name = 'int128',cname='__int128_t', sqlname = 'HUGEINT', fp_type = DoubleT)
 UHgeT = Types(10, name = 'uint128', cname='__uint128_t', sqlname = 'HUGEINT', fp_type = DoubleT)
 LongT = Types(4, name = 'int64', sqlname = 'BIGINT', fp_type = DoubleT)
-BoolT = Types(0, name = 'bool', sqlname = 'BOOL', long_type=LongT, fp_type=FloatT)
+BoolT = Types(0, name = 'bool', cname='bool', sqlname = 'BOOL', long_type=LongT, fp_type=FloatT)
 ByteT = Types(1, name = 'int8', sqlname = 'TINYINT', long_type=LongT, fp_type=FloatT)
 ShortT = Types(2, name = 'int16', sqlname='SMALLINT', long_type=LongT, fp_type=FloatT)
 IntT = Types(3, name = 'int', cname = 'int', long_type=LongT, fp_type=FloatT)
@@ -338,4 +338,3 @@ user_module_func = {}
 builtin_operators : Dict[str, OperatorBase] = {**builtin_binary_arith, **builtin_binary_logical, 
     **builtin_unary_arith, **builtin_unary_logical, **builtin_unary_special, **builtin_func, **builtin_cstdlib, 
     **user_module_func}
-    
