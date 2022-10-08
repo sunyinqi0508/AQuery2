@@ -5,7 +5,6 @@ FUNCTIONS (
     fit() -> bool,
     predict() -> vecint
 );
-
 create table tb(x int);
 create table tb2(x double, y double, z double);
 insert into tb values (0);

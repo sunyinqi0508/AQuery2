@@ -10,3 +10,4 @@ FROM	 network
 	     ASSUMING ASC src, ASC dst, ASC _time 
 GROUP BY src, dst, sums (deltas(_time) > 120)
 
+-- Assuming preserve order at the end.

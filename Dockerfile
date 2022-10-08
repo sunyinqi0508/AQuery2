@@ -21,7 +21,6 @@ ENV IS_DOCKER_IMAGE=1 CXX=clang++-14
 # First run will build cache into image
 RUN cd AQuery2 && python3 prompt.py
 
-CMD cd AQuery2 && python3 prompt.py
-
-
+# CMD cd AQuery2 && python3 prompt.py
+CMD echo "Welcome. Type python3 prompt.py to start AQuery." && cd AQuery2 && bash
 
