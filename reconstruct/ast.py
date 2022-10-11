@@ -882,10 +882,11 @@ class drop(ast_node):
             for a in tbl_obj.alias:
                 self.context.tables_byname.pop(a, None) 
             # TODO: delete in postproc engine
-            self.context.tables_byname.pop(tbl_name)
-            self.context.tables.remove(tbl_obj)
+            self.context.tables_byname.pop(tbl_name, None)
+            self.context.tables.discard(tbl_obj)
             self.sql += 'TABLE IF EXISTS ' + tbl_name
             return
+        
         elif 'if_exists' not in node or not node['if_exists']:
             print(f'Error: table {tbl_name} not found.')
         self.sql = ''

@@ -67,7 +67,8 @@ class TableInfo:
         self.order = [] # assumptions
 
         cxt.tables_byname[self.table_name] = self # construct reverse map
-
+        cxt.tables.add(self)
+        
     def add_cols(self, cols, new = True):
         for c in enlist(cols):
             self.add_col(c, new)
@@ -137,7 +138,7 @@ class Context:
     def __init__(self):
         self.tables_byname = dict()
         self.col_byname = dict()
-        self.tables : List[TableInfo] = []
+        self.tables : Set[TableInfo] = set()
         self.cols = []
         self.datasource = None
         self.module_stubs = ''
@@ -166,7 +167,7 @@ class Context:
         self.ccode += c + '\n'    
     def add_table(self, table_name, cols):
         tbl = TableInfo(table_name, cols, self)
-        self.tables.append(tbl)
+        self.tables.add(tbl)
         return tbl
     def remove_scan(self, scan, str_scan):
         self.emitc(str_scan)

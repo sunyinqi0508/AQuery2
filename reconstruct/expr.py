@@ -307,9 +307,15 @@ class expr(ast_node):
             self.opname = node
             if type(node) is int:
                 if (node >= 2**63 - 1 or node <= -2**63):
+                    self.type = HgeT
+                elif (node >= 2**31 - 1 or node <= -2**31):
                     self.type = LongT
-                else:
+                elif node >= 2**15 - 1 or node <= -2**15:
                     self.type = IntT
+                elif node >= 2**7 - 1 or node <= -2**7:
+                    self.type = ShortT
+                else:
+                    self.type = ByteT
             elif type(node) is float:
                 self.type = DoubleT
     

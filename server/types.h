@@ -21,7 +21,27 @@ template <class T>
 struct is_vector_impl : std::false_type {};
 template <class T>
 constexpr static bool is_vector_type = is_vector_impl<T>::value;
+#define Cond(c, x, y) typename std::conditional<c, x, y>::type
+template <class T1, class T2>
+struct aqis_same_impl {
+	constexpr static bool value = 
+		std::conditional_t<
+			std::is_signed_v<T1> == std::is_signed_v<T2>,
+			Cond(
+				std::is_floating_point_v<T1> == std::is_floating_point_v<T2>,
+				Cond(
+					sizeof(T1) == sizeof(T2),
+					std::true_type,
+					std::false_type
+				),
+				std::false_type
+			),
+			std::false_type
+		>::value;
+};
 
+template <class T1, class T2>
+constexpr bool aqis_same = aqis_same_impl<T1, T2>::value;
 namespace types {
 	enum Type_t {
 		AINT32, AFLOAT, ASTR, ADOUBLE, ALDOUBLE, AINT64, AINT128, AINT16, ADATE, ATIME, AINT8,
@@ -124,17 +144,17 @@ namespace types {
 		f(short, AINT16) \
 		f(date_t, ADATE) \
 		f(time_t, ATIME) \
-		f(unsigned char, AINT8) \
+		f(unsigned char, AUINT8) \
+		f(char, AINT8) \
 		f(unsigned int, AUINT32) \
 		f(unsigned long, AUINT64) \
 		f(unsigned short, AUINT16) \
-		f(unsigned char, AUINT8) \
 		f(bool, ABOOL) \
 		f(timestamp_t, ATIMESTAMP) \
 		F_INT128(f)
 
 		inline constexpr static Type_t getType() {
-#define	TypeConnect(x, y) if constexpr(std::is_same<x, T>::value) return y; else
+#define	TypeConnect(x, y) if constexpr(aqis_same<x, T>) return y; else
 			ConnectTypes(TypeConnect)
 				if constexpr (is_vector_type<T>)
 					return VECTOR;
@@ -144,7 +164,6 @@ namespace types {
 	};
 #define ATypeSize(t, at) sizeof(t),
 	static constexpr size_t AType_sizes[] = { ConnectTypes(ATypeSize) 1 };
-#define Cond(c, x, y) typename std::conditional<c, x, y>::type
 #define Comp(o) (sizeof(T1) o sizeof(T2))
 #define Same(x, y) (std::is_same_v<x, y>)
 #define __U(x) std::is_unsigned<x>::value
@@ -297,26 +316,7 @@ template <class T>
 using decays = typename decayS<typename std::decay<T>::type>::type;
 template <class T>
 using decay_inner = typename decayS<T>::type;
-template <class T1, class T2>
-struct aqis_same_impl {
-	constexpr static bool value = 
-		std::conditional_t<
-			std::is_signed_v<T1> == std::is_signed_v<T2>,
-			Cond(
-				std::is_floating_point_v<T1> == std::is_floating_point_v<T2>,
-				Cond(
-					sizeof(T1) == sizeof(T2),
-					std::true_type,
-					std::false_type
-				),
-				std::false_type
-			),
-			std::false_type
-		>::value;
-};
 
-template <class T1, class T2>
-constexpr bool aqis_same = aqis_same_impl<T1, T2>::value;
 
 template <class, template <class...> class T>
 struct instance_of_impl : std::false_type {};

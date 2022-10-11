@@ -401,6 +401,15 @@ def prompt(running = lambda:True, next = lambda:input('> '), state = None):
             elif q.startswith('echo '):
                 print(og_q[5:].lstrip())
                 continue
+            elif q.startswith('list '):
+                qs = re.split(r'[ \t]', q)
+                if len(qs) > 1 and qs[1].startswith('table'):
+                    for t in cxt.tables:
+                        lst_cols = []
+                        for c in t.columns:
+                            lst_cols.append(f'{c.name} : {c.type}')
+                        print(f'{t.table_name} ({", ".join(lst_cols)})')
+                continue
             elif q.startswith('help'):
                 qs = re.split(r'[ \t]', q)
                 if len(qs) > 1 and qs[1].startswith('c'):
@@ -511,12 +520,18 @@ def prompt(running = lambda:True, next = lambda:input('> '), state = None):
                 with open(qs) as file:
                     qs = file.readline()
                     from engine.utils import _Counter
+                    lst_tell = -1
                     while(qs):
                         while(not ws.sub('', qs) or qs.strip().startswith('#')):
                             qs = file.readline()
+                            if lst_tell == file.tell():
+                                break
+                            else:
+                                lst_tell = file.tell()
                         cnt = _Counter(1)
                         prompt(lambda : cnt.inc(-1) > 0, lambda:qs.strip(), state)
                         qs = file.readline()
+                continue
             elif q.startswith('save2'):
                 filename = re.split(r'[ \t]', q)
                 if (len(filename) > 1):
