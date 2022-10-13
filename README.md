@@ -57,12 +57,12 @@ There're multiple options to run AQuery on Windows. But for better consistency I
   - Copy or link `mingw64/libexec/gcc/<arch>/<version>/liblto-plugin.dll` to `mingw64/lib/bfd-plugins/` For Link time optimization support on gcc-ar and gcc-ranlib 
   
 - For Visual Studio: 
-1. Install python3.6 or above from [official website](https://www.python.org/downloads/windows/) or Microsoft Store.
-  1. Install Microsoft Visual Studio 2022 or later with **Desktop development with C++** selected.
-  2. Clone AQuery repo from [Github](https://github.com/sunyinqi0508/AQuery2)
-  3. Install python requirements with pip `python3 -m pip install -r requirements.txt`
-  4. Change the build_driver variable in aquery_config.py to "MSBuild"
-  5. The libraries and headers for Monetdb are already included in msc-plugins, however you can also choose to download them from [Monetdb Easy Setup](https://www.monetdb.org/easy-setup/) and put them in the same place.
+  1. Install python3.6 or above from [official website](https://www.python.org/downloads/windows/) or Microsoft Store.
+  2. Install Microsoft Visual Studio 2022 or later with **Desktop development with C++** selected.
+  3. Clone AQuery repo from [Github](https://github.com/sunyinqi0508/AQuery2)
+  4. Install python requirements with pip `python3 -m pip install -r requirements.txt`
+  5. Change the build_driver variable in aquery_config.py to "MSBuild"
+  6. The libraries and headers for Monetdb are already included in msc-plugins, however you can also choose to download them from [Monetdb Easy Setup](https://www.monetdb.org/easy-setup/) and put them in the same place.
 
 - For CygWin/MinGW:
    1. Install gcc and python3 using its **builtin package manager** instead of the one from python.org or windows store. (For Msys2, `pacman -S gcc python3`). Otherwise, ABI breakage may happen.
