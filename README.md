@@ -11,7 +11,7 @@ AQuery++ Database is a cross-platform, In-Memory Column-Store Database that inco
    - Finally run the image in **interactive** mode (`docker run --name aquery -it aquery`) 
    - When you need to access the container again run `docker start -ai aquery` 
    - If there is a need to access the system shell within AQuery, type `dbg` to activate python interpreter and type `os.system('sh')` to launch a shell.
-
+   - Docker image is available on [Docker Hub](https://hub.docker.com/repository/docker/sunyinqi0508/aquery) but building image yourself is highly recommended (see #2) 
 ## CIMS Computer Lab (Only for NYU affiliates who have access)
   1. Clone this git repo in CIMS.
   2. Download the [patch](https://drive.google.com/file/d/1YkykhM6u0acZ-btQb4EUn4jAEXPT81cN/view?usp=sharing) 
