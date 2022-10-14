@@ -274,10 +274,17 @@ class projection(ast_node):
         # Create table into context
         out_typenames = [None] * len(proj_map)
         
+        def get_proj_name(proj_name):
+            if '*' in proj_name:
+                lst_names = self.datasource.get_cols(proj_name)
+                return ', '.join([self.pyname2cname[n.name] for n in lst_names])
+            else:
+                return self.pyname2cname[proj_name]
+        
         for key, val in proj_map.items():
             if type(val[1]) is str:
                 x = True
-                y = lambda t: self.pyname2cname[t]
+                y = get_proj_name
                 count = lambda : '0'
                 if vid2cname:
                     count = lambda : f'{vid2cname[0]}.size'
@@ -286,7 +293,7 @@ class projection(ast_node):
                     val[1] = val[1](False)
                 
             if val[0] == LazyT:
-                decltypestring = val[2].eval(x,y,gettype=True)(True)
+                decltypestring = val[2].eval(x,y,gettype=True,c_code=True)(True)
                 decltypestring = f'value_type<decays<decltype({decltypestring})>>'
                 out_typenames[key] = decltypestring
             else:
@@ -740,8 +747,18 @@ class join(ast_node):
                 print(f'Error: table {node} not found.')
     
     def get_cols(self, colExpr: str) -> Optional[ColRef]:
-        if colExpr == '*':
-            return self.all_cols(ordered = True, stripped = True)
+        if '*' in colExpr:
+            if colExpr == '*':
+                return self.all_cols(ordered = True, stripped = True)
+            elif colExpr.endswith('.*'):
+                tbl = colExpr.split('.')
+                if len(tbl) > 2:
+                    raise KeyError(f'Invalid expression: {colExpr}')
+                if tbl[0] in self.tables_dir:
+                    tbl : TableInfo= self.tables_dir[tbl[0]]
+                    return tbl.all_cols(ordered = True)
+                else:
+                    raise KeyError(f'Invalid table name: {colExpr}') 
         for t in self.tables:
             if colExpr in t.columns_byname:
                 col = t.columns_byname[colExpr]

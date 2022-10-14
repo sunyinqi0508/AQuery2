@@ -124,7 +124,7 @@ class VectorT(Types):
         return 'BIGINT'
     @property
     def cname(self) -> str:
-        return self.name
+        return f'{self.vector_type}<{self.inner_type.cname}>'
     @property
     def fp_type(self) -> Types:
         return VectorT(self.inner_type.fp_type, self.vector_type)
@@ -287,7 +287,7 @@ def pack_behavior(op: OperatorBase, c_code, *x):
     if not c_code:
         return f'{op.sqlname}({", ".join([f"{xx}" for xx in x])})'
     else:
-        return f'decltype({x[0]})::pack(len(x) + 1, {", ".join([f"{xx}.s()" for xx in x])})'
+        return f'decltype({x[0]})::pack({len(x)}, {", ".join([f"{xx}.s()" for xx in x])})'
     
 # arithmetic 
 opadd = OperatorBase('add', 2, auto_extension, cname = '+', sqlname = '+', call = binary_op_behavior)
@@ -337,6 +337,7 @@ spnull = OperatorBase('missing', 1, logical, cname = "", sqlname = "", call = is
 
 # cstdlib
 # If in aggregation functions, using monetdb builtins. If in nested agg, inside udfs, using cstdlib.
+fntrunc = OperatorBase('truncate', 2, ty_clamp(as_is, 0, 1), cname = 'truncate', sqlname = 'TRUNCATE', call = fn_behavior)
 fnsqrt = OperatorBase('sqrt', 1, lambda *_ : DoubleT, cname = 'sqrt', sqlname = 'SQRT', call = fn_behavior)
 fnlog = OperatorBase('log', 2, lambda *_ : DoubleT, cname = 'log', sqlname = 'LOG', call = fn_behavior)
 fnsin = OperatorBase('sin', 1, lambda *_ : DoubleT, cname = 'sin', sqlname = 'SIN', call = fn_behavior)
@@ -357,7 +358,7 @@ builtin_cstdlib = _op_make_dict(fnsqrt, fnlog, fnsin, fncos, fntan, fnpow)
 builtin_func = _op_make_dict(fnmax, fnmin, fnsum, fnavg, fnmaxs, 
                              fnmins, fndeltas, fnratios, fnlast,
                              fnfirst, fnsums, fnavgs, fncnt, 
-                             fnpack)
+                             fnpack, fntrunc)
 user_module_func = {}
 builtin_operators : Dict[str, OperatorBase] = {**builtin_binary_arith, **builtin_binary_logical, 
     **builtin_unary_arith, **builtin_unary_logical, **builtin_unary_special, **builtin_func, **builtin_cstdlib, 

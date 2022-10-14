@@ -37,6 +37,27 @@ VT<double> sqrt(const VT<T>& v) {
 	}
 	return ret;
 }
+template <class T>
+T truncate(const T& v, const uint32_t precision) {
+	auto multiplier = pow(10, precision);
+	if (v >= std::numeric_limits<T>::max()/multiplier || 
+			aq_fp_precision<T> <= precision)
+		return v;
+	else
+		return round(v * multiplier)/multiplier;
+}
+template<class T, template<typename ...> class VT>
+VT<T> truncate(const VT<T>& v, const uint32_t precision) {
+	if (aq_fp_precision<T> <= precision)
+		return v.subvec_memcpy();
+	auto multiplier = pow(10, precision);
+	auto max_truncate = std::numeric_limits<T>::max()/multiplier;
+	VT<T> ret{ v.size };
+	for (uint32_t i = 0; i < v.size; ++i) { // round or trunc??
+		ret[i] = v[i] < max_truncate ? round(v[i] * multiplier)/multiplier : v[i];
+	}
+	return ret;
+}
 
 template <class T, template<typename ...> class VT>
 T max(const VT<T>& v) {
@@ -206,6 +227,7 @@ T first(const VT<T>& arr) {
 	const uint32_t& len = arr.size;
 	return arr[0];
 }
+
 
 #define __DEFAULT_AGGREGATE_FUNCTION__(NAME, RET) \
 template <class T> constexpr inline T NAME(const T& v) { return RET; }

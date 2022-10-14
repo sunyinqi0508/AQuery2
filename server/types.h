@@ -53,12 +53,12 @@ constexpr bool aqis_same<T1, T2> = aqis_same_impl<T1, T2>::value;
 namespace types {
 	enum Type_t {
 		AINT32, AFLOAT, ASTR, ADOUBLE, ALDOUBLE, AINT64, AINT128, AINT16, ADATE, ATIME, AINT8,
-		AUINT32, AUINT64, AUINT128, AUINT16, AUINT8, ABOOL, VECTOR, ATIMESTAMP, NONE, ERROR
+		AUINT32, AUINT64, AUINT128, AUINT16, AUINT8, ABOOL, VECTOR, ATIMESTAMP, ACHAR, NONE, ERROR
 	};
-	static constexpr const char* printf_str[] = { "%d", "%f", "%s", "%lf", "%Lf", "%ld", "%d", "%hi", "%s", "%s", "%c",
-		"%u", "%lu", "%s", "%hu", "%hhu", "%s", "%s", "Vector<%s>", "%s", "NULL", "ERROR" };
+	static constexpr const char* printf_str[] = { "%d", "%f", "%s", "%lf", "%Lf", "%ld", "%d", "%hi", "%s", "%s", "%hhd",
+		"%u", "%lu", "%s", "%hu", "%hhu", "%s", "%s", "Vector<%s>", "%s", "%c", "NULL", "ERROR" };
 	static constexpr const char* SQL_Type[] = { "INT", "REAL", "TEXT", "DOUBLE", "DOUBLE", "BIGINT", "HUGEINT", "SMALLINT", "DATE", "TIME", "TINYINT",
-		"INT", "BIGINT", "HUGEINT", "SMALLINT", "TINYINT", "BOOL", "HUGEINT", "TIMESTAMP", "NULL", "ERROR"};
+		"INT", "BIGINT", "HUGEINT", "SMALLINT", "TINYINT", "BOOL", "HUGEINT", "TIMESTAMP", "CHAR", "NULL", "ERROR"};
 	
 	
 	// TODO: deal with data/time <=> str/uint conversion
@@ -433,6 +433,19 @@ template<>
 struct nullval_impl<float> { constexpr static float value = -std::numeric_limits<float>::quiet_NaN(); };
 template<>
 struct nullval_impl<double> { constexpr static double value = -std::numeric_limits<double>::quiet_NaN(); };
+
+template <class T>
+constexpr uint32_t my_rlog10_approx(T v){
+	uint32_t r = 0;
+	while (v + std::numeric_limits<T>::epsilon() < 1){
+		v *= 10;
+		r++;
+	}
+	return r;
+}
+template <class T>
+inline constexpr uint32_t aq_fp_precision = std::is_floating_point_v<T> ? 
+    my_rlog10_approx(std::numeric_limits<T>::epsilon()) : 0;
 
 constexpr size_t sum_type(size_t a[], size_t sz) {
 	size_t ret = 0;

@@ -590,7 +590,7 @@ def prompt(running = lambda:True, next = lambda:input('> '), state = None):
             state.stmts = parser.parse(og_q.strip())
             cxt.Info(state.stmts)
             state.currstats.parse_time = state.currstats.stop()
-        except (ParseException, KeyError) as e:
+        except (ParseException) as e:
             print(e)
             continue
         except (ValueError, FileNotFoundError) as e:

@@ -124,8 +124,22 @@ class expr(ast_node):
                         if key == 'count' and type(val) is dict and 'distinct' in val:
                             count_distinct = True
                             val = val['distinct']
+                            
                         val = enlist(val)
-                        exp_vals = [expr(self, v, c_code = self.c_code) for v in val]
+                        exp_vals = []
+                        for v in val:
+                            if (
+                                    type(v) is str and  
+                                    '*' in v and 
+                                    key != 'count'
+                                ):
+                                cols = self.datasource.get_cols(v)
+                                if cols:
+                                    for c in cols:
+                                        exp_vals.append(expr(self, c.name, c_code=self.c_code))
+                            else:
+                                exp_vals.append(expr(self, v, c_code=self.c_code))
+                                
                         self.children = exp_vals
                         self.opname = key
                         
@@ -151,7 +165,8 @@ class expr(ast_node):
                             self.sql = op(self.c_code, *str_vals)
                             
                         special_func = [*self.context.udf_map.keys(), *self.context.module_map.keys(), 
-                                        "maxs", "mins", "avgs", "sums", "deltas", "last", "first", "ratios"]
+                                        "maxs", "mins", "avgs", "sums", "deltas", "last", "first", 
+                                        "ratios", "pack", "truncate"]
                         if self.context.special_gb:
                             special_func = [*special_func, *self.ext_aggfuncs]
                             

@@ -241,7 +241,16 @@ std::ostream& operator<<(std::ostream& os, types::timestamp_t & v)
 	print_datetime(v);
 	return os;
 }
-
+std::ostream& operator<<(std::ostream& os, int8_t & v)
+{
+	os<<static_cast<int>(v);
+	return os;
+}
+std::ostream& operator<<(std::ostream& os, uint8_t & v)
+{
+	os<<static_cast<unsigned>(v);
+	return os;
+}
 
 std::string base62uuid(int l) {
     using namespace std;

@@ -46,6 +46,8 @@ std::ostream& operator<<(std::ostream& os, __int128& v);
 std::ostream& operator<<(std::ostream& os, __uint128_t& v);
 #endif
 
+std::ostream& operator<<(std::ostream& os, int8_t& v);
+std::ostream& operator<<(std::ostream& os, uint8_t& v);
 std::ostream& operator<<(std::ostream& os, types::date_t& v);
 std::ostream& operator<<(std::ostream& os, types::time_t& v);
 std::ostream& operator<<(std::ostream& os, types::timestamp_t& v);

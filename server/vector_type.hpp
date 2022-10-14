@@ -290,8 +290,8 @@ public:
 		return subvec;
 	}
 	inline vector_type<_Ty> subvec(uint32_t start = 0) { return subvec(start, size); }
-	inline vector_type<_Ty> subvec_memcpy(uint32_t start = 0) { return subvec_memcpy(start, size); }
-	inline vector_type<_Ty> subvec_deep(uint32_t start = 0) { return subvec_deep(start, size); }
+	inline vector_type<_Ty> subvec_memcpy(uint32_t start = 0) const { return subvec_memcpy(start, size); }
+	inline vector_type<_Ty> subvec_deep(uint32_t start = 0) const { return subvec_deep(start, size); }
 	vector_type<_Ty> getRef() { return vector_type<_Ty>(container, size); }
 	~vector_type() {
 		if (capacity > 0) free(container);
