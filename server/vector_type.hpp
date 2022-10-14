@@ -17,10 +17,11 @@
 #include "types.h"
 
 #pragma pack(push, 1)
-template <typename _Ty>
-class slim_vector {
-
+struct vectortype_cstorage{
+	void* container;
+	unsigned int size, capacity;
 };
+
 template <typename _Ty>
 class vector_type {
 public:
@@ -291,7 +292,7 @@ public:
 	inline vector_type<_Ty> subvec(uint32_t start = 0) { return subvec(start, size); }
 	inline vector_type<_Ty> subvec_memcpy(uint32_t start = 0) { return subvec_memcpy(start, size); }
 	inline vector_type<_Ty> subvec_deep(uint32_t start = 0) { return subvec_deep(start, size); }
-	
+	vector_type<_Ty> getRef() { return vector_type<_Ty>(container, size); }
 	~vector_type() {
 		if (capacity > 0) free(container);
 		container = 0; size = capacity = 0;

@@ -22,6 +22,10 @@ struct is_vector_impl : std::false_type {};
 template <class T>
 constexpr static bool is_vector_type = is_vector_impl<T>::value;
 #define Cond(c, x, y) typename std::conditional<c, x, y>::type
+template <class T>
+constexpr size_t aq_szof = sizeof(T);
+template <>
+inline constexpr size_t aq_szof<void> = 0;
 template <class T1, class T2>
 struct aqis_same_impl {
 	constexpr static bool value = 
@@ -30,7 +34,7 @@ struct aqis_same_impl {
 			Cond(
 				std::is_floating_point_v<T1> == std::is_floating_point_v<T2>,
 				Cond(
-					sizeof(T1) == sizeof(T2),
+					aq_szof<T1> == aq_szof<T2>, // deal with sizeof(void)
 					std::true_type,
 					std::false_type
 				),
@@ -40,8 +44,12 @@ struct aqis_same_impl {
 		>::value;
 };
 
+template <class T1, class T2, class ...Ts>
+constexpr bool aqis_same = aqis_same_impl<T1, T2>::value &&
+aqis_same<T2, Ts...>;
+
 template <class T1, class T2>
-constexpr bool aqis_same = aqis_same_impl<T1, T2>::value;
+constexpr bool aqis_same<T1, T2> = aqis_same_impl<T1, T2>::value;
 namespace types {
 	enum Type_t {
 		AINT32, AFLOAT, ASTR, ADOUBLE, ALDOUBLE, AINT64, AINT128, AINT16, ADATE, ATIME, AINT8,
@@ -165,15 +173,9 @@ namespace types {
 #define ATypeSize(t, at) sizeof(t),
 	static constexpr size_t AType_sizes[] = { ConnectTypes(ATypeSize) 1 };
 #define Comp(o) (sizeof(T1) o sizeof(T2))
-#define Same(x, y) (std::is_same_v<x, y>)
+#define Same(x, y) (aqis_same<x, y>)
 #define __U(x) std::is_unsigned<x>::value
 #define Fp(x) std::is_floating_point<x>::value
-	template <class T1, class T2>
-	struct Coercion {
-		using t1 = Cond(Comp(<= ), Cond(Comp(== ), Cond(Fp(T1), T1, Cond(Fp(T2), T2, Cond(__U(T1), T2, T1))), T2), T1);
-		using t2 = Cond(Same(T1, T2), T1, Cond(Same(T1, const char*) || Same(T2, const char*), const char*, void));
-		using type = Cond(Same(t2, void), Cond(Same(T1, date_t) && Same(T2, time_t) || Same(T1, time_t) && Same(T2, time_t), void, t1), t2);
-	};
 #define __Eq(x) (sizeof(T) == sizeof(x))
 	template<class T>
 	struct GetFPTypeImpl {
@@ -210,6 +212,50 @@ namespace types {
 	};
 	template<class T>
 	using GetLongerType = typename GetLongerTypeImpl<typename std::decay<T>::type>::type;
+#ifdef __AQ__HAS__INT128__
+    #define __AQ_HELPER_INT128__(x, y) x
+#else
+    #define __AQ_HELPER_INT128__(x, y) y
+#endif
+	template <class T>
+	struct GetSignedType_impl{
+		using type = Cond(Same(T, unsigned char), char,
+			Cond(Same(T, unsigned short), short,
+				Cond(Same(T, unsigned int), int,
+					Cond(Same(T, unsigned long), long,
+// #ifdef __AQ__HAS__INT128__				
+						__AQ_HELPER_INT128__(
+							Cond(Same(T, unsigned long long), long long,
+								Cond(Same(T, unsigned __int128), __int128_t,
+									T
+								)
+							), 
+// #else
+							T
+						)
+// #endif
+					)
+				)
+			)
+		);
+	};
+	template <class T>
+	using GetSignedType = typename GetSignedType_impl<T>::type;
+
+	template <class T1, class T2, class ...Ts>
+	struct Coercion{
+		using type = typename Coercion<T1, typename Coercion<T2, Ts...>::type>::type;
+	};
+	
+	template <class T1, class T2>
+	struct Coercion<T1, T2> {
+		using t0 = Cond(Comp(<= ), Cond(Comp(== ), Cond(Fp(T1), T1, Cond(Fp(T2), T2, Cond(__U(T1), T2, T1))), T2), T1);
+		using t1 = Cond(Fp(T1)||Fp(T2), GetFPType<t0>, Cond(!(__U(T1) && __U(T2)), GetSignedType<t0>,t0));
+		using t2 = Cond(Same(T1, T2), T1, Cond(Same(T1, const char*) || Same(T2, const char*), const char*, void));
+		using type = Cond(Same(t2, void), Cond(Same(T1, date_t) && Same(T2, time_t) || Same(T1, time_t) && Same(T2, time_t), void, t1), t2);
+	};
+	
+
 }
 
 

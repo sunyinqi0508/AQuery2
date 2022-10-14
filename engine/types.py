@@ -226,7 +226,17 @@ def long_return(*_ : Types) -> Types:
     return LongT.long_type
 def lfp_return(*_ : Types) -> Types:
     return LongT.fp_type
-
+def pack_return(*args : Types) -> Types:
+    if len(args) == 0:
+        raise ValueError('0 arguments in pack expression')
+    inner_ty = args[0]
+    for a in args:
+        if a != inner_ty:
+            raise ValueError('pack expression with different types')
+    if isinstance(inner_ty, VectorT):
+        print('warning: packing vector types')
+        inner_ty = inner_ty.inner_type
+    return VectorT(args[0])
 def as_is (t: Types) -> Types:
     return t
 
@@ -269,6 +279,15 @@ def windowed_fn_behavor(op: OperatorBase, c_code, *x):
     else: 
         name = op.cname if len(x) == 1 else op.cname[:-1] + 'w'
         return f'{name}({", ".join([f"{xx}" for xx in x])})'
+
+def pack_behavior(op: OperatorBase, c_code, *x):
+    if len(x) == 0:
+        raise ValueError('0 arguments in pack expression')
+        
+    if not c_code:
+        return f'{op.sqlname}({", ".join([f"{xx}" for xx in x])})'
+    else:
+        return f'decltype({x[0]})::pack(len(x) + 1, {", ".join([f"{xx}.s()" for xx in x])})'
     
 # arithmetic 
 opadd = OperatorBase('add', 2, auto_extension, cname = '+', sqlname = '+', call = binary_op_behavior)
@@ -307,6 +326,7 @@ fnmins = OperatorBase('mins', [1, 2], ty_clamp(as_is, -1), cname = 'mins', sqlna
 fnsums = OperatorBase('sums', [1, 2], ext(ty_clamp(auto_extension, -1)), cname = 'sums', sqlname = 'SUMS', call = windowed_fn_behavor)
 fnavgs = OperatorBase('avgs', [1, 2], fp(ext(ty_clamp(auto_extension, -1))), cname = 'avgs', sqlname = 'AVGS', call = windowed_fn_behavor)
 fncnt = OperatorBase('count', 1, int_return, cname = 'count', sqlname = 'COUNT', call = count_behavior)
+fnpack = OperatorBase('pack', -1, pack_return, cname = 'pack', sqlname = 'PACK', call = pack_behavior)
 # special
 def is_null_call_behavior(op:OperatorBase, c_code : bool, x : str):
     if c_code : 
@@ -328,12 +348,16 @@ fnpow = OperatorBase('pow', 2, lambda *_ : DoubleT, cname = 'pow', sqlname = 'PO
 def _op_make_dict(*items : OperatorBase):
     return { i.name: i for i in items}
 builtin_binary_arith = _op_make_dict(opadd, opdiv, opmul, opsub, opmod)
-builtin_binary_logical = _op_make_dict(opand, opor, opxor, opgt, oplt, opge, oplte, opneq, opeq)
+builtin_binary_logical = _op_make_dict(opand, opor, opxor, opgt, oplt, 
+                                       opge, oplte, opneq, opeq)
 builtin_unary_logical = _op_make_dict(opnot)
 builtin_unary_arith = _op_make_dict(opneg)
 builtin_unary_special = _op_make_dict(spnull, opdistinct)
 builtin_cstdlib = _op_make_dict(fnsqrt, fnlog, fnsin, fncos, fntan, fnpow)
-builtin_func = _op_make_dict(fnmax, fnmin, fnsum, fnavg, fnmaxs, fnmins, fndeltas, fnratios, fnlast, fnfirst, fnsums, fnavgs, fncnt)
+builtin_func = _op_make_dict(fnmax, fnmin, fnsum, fnavg, fnmaxs, 
+                             fnmins, fndeltas, fnratios, fnlast,
+                             fnfirst, fnsums, fnavgs, fncnt, 
+                             fnpack)
 user_module_func = {}
 builtin_operators : Dict[str, OperatorBase] = {**builtin_binary_arith, **builtin_binary_logical, 
     **builtin_unary_arith, **builtin_unary_logical, **builtin_unary_special, **builtin_func, **builtin_cstdlib, 

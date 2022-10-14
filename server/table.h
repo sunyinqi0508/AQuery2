@@ -8,6 +8,7 @@
 #include <iostream>
 #include <string>
 #include <algorithm>
+#include <cstdarg>
 #include "io.h"
 #include "hasher.h"
 
@@ -26,6 +27,13 @@ namespace types {
 	struct Coercion;
 }
 #endif
+struct ColRef_cstorage {
+	void* container;
+	unsigned int size, capacity;
+	const char* name;
+	int ty; // what if enum is not int?
+};
+
 template <template <class...> class VT, class T>
 std::ostream& operator<<(std::ostream& os, const VT<T>& v)
 {
@@ -80,6 +88,10 @@ public:
 		vt.capacity = 0; // rvalue's 
 		return *this;
 	}
+	template <class T>
+	ColRef<_Ty> getRef(){
+		return ColRef<_Ty>(this->size, this->container, this->name);
+	}
 	ColRef(const char* name, types::Type_t ty) : name(name), ty(ty) {}
 	using vector_type<_Ty>::operator[];
 	//using vector_type<_Ty>::operator=;
@@ -127,7 +139,37 @@ public:
 		this->name = name;
 		return this;
 	}
-
+	static ColRef<vector_type<_Ty>> pack(uint32_t cnt, ...){
+		va_list cols;
+		va_start(cols, cnt);
+		ColRef<_Ty> *col = (ColRef<_Ty>*)malloc(sizeof(ColRef<_Ty>) * cnt);
+		for (uint32_t i = 0; i < cnt; ++i){
+			ColRef_cstorage tmp = va_arg(cols, ColRef_cstorage);
+			memcpy(&col[i], &tmp, sizeof(ColRef_cstorage));
+			col[i].capacity = 0;
+		}
+		va_end(cols);
+		if(cnt > 0){
+			auto sz = col[0].size;
+			ColRef<vector_type<_Ty>> ret(sz);
+			for(uint32_t i = 0; i < sz; ++i){
+				decltype(auto) v = ret[i];
+				v.size = cnt;
+				v.capacity = cnt;
+				v.container = (_Ty*)malloc(sizeof(_Ty) * cnt);
+				for(uint32_t j = 0; j < cnt; ++j) {
+					v.container[j] = col[j][i];
+				}
+			}
+			free(col);
+			return ret;
+		}
+		else 
+			return ColRef<vector_type<_Ty>>();
+	}
+	ColRef_cstorage s() {
+		return *(ColRef_cstorage*)(this);
+	}
 	// defined in table_ext_monetdb.hpp
 	void* monetdb_get_col(void** gc_vecs, uint32_t& cnt);
 	

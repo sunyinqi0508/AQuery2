@@ -109,7 +109,9 @@ class build_manager:
                 os.environ['CXX'] = mgr.cxx if mgr.cxx else 'c++'
             else:
                 mgr.cxx = os.environ['CXX']
-        
+            if 'AQ_DEBUG' not in os.environ:
+                os.environ['AQ_DEBUG'] = '0' if mgr.OptimizationLv else '1'
+                
         def libaquery_a(self):
             self.build_cmd = [['rm', 'libaquery.a'],['make', 'libaquery.a']]
             return self.build()

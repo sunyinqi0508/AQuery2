@@ -3,7 +3,11 @@ MonetDB_LIB =
 MonetDB_INC = 
 Threading = 
 CXXFLAGS = --std=c++1z
-OPTFLAGS = -O3 -DNDEBUG 
+ifeq ($(AQ_DEBUG), 1)
+	OPTFLAGS = -g3 
+else
+	OPTFLAGS = -O3 -DNDEBUG -fno-stack-protector
+endif
 LINKFLAGS = -flto # + $(AQ_LINK_FLAG)
 SHAREDFLAGS = -shared  
 FPIC = -fPIC

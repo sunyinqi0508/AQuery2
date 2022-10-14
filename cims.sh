@@ -1,4 +1,4 @@
-#!/usr/bash
+#!/bin/bash
 echo  "Don't execute this script if it's not on CIMS servers."
 echo "run this script with source command. e.g. source ./cims.sh or . ./cims.sh"
 module load gcc-11.2

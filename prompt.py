@@ -497,6 +497,23 @@ def prompt(running = lambda:True, next = lambda:input('> '), state = None):
             elif q == 'exit' or q == 'exit()' or q == 'quit' or q == 'quit()' or q == '\\q':
                 rm(state)
                 exit()
+            elif q.startswith('sh'):
+                from distutils.spawn import find_executable
+                qs = re.split(r'[ \t]', q)
+                shells = ('zsh', 'bash', 'sh', 'fish', 'cmd', 'pwsh', 'powershell', 'csh', 'tcsh', 'ksh')
+                shell_path = ''
+                if len(qs) > 1 and qs[1] in shells:
+                    shell_path = find_executable(qs[1])
+                    if shell_path:
+                        os.system(shell_path)
+                else:
+                    for sh in shells:
+                        shell_path = find_executable(sh)
+                        if shell_path:
+                            os.system(shell_path)
+                            break
+                
+                continue
             elif q == 'r': # build and run
                 if state.server_mode == RunType.Threaded:
                     qs = [ctypes.c_char_p(bytes(q, 'utf-8')) for q in cxt.queries if len(q)]
