@@ -8,14 +8,14 @@ AQuery++ Database is a cross-platform, In-Memory Column-Store Database that inco
    - See installation instructions from [docker.com](https://www.docker.com). Run **docker desktop** to start docker engine.
    - In AQuery root directory, type `make docker` to build the docker image from scratch. 
    - For Arm-based Mac users, you would have to build and run the **x86_64** docker image because MonetDB doesn't offer official binaries for arm64 Linux. (Run `docker buildx build --platform=linux/amd64 -t aquery .` instead of `make docker`)
-   - Finally run the image in **interactive** mode (`docker run -it aquery --name aquery`) 
+   - Finally run the image in **interactive** mode (`docker run --name aquery -it aquery`) 
    - When you need to access the container again run `docker start -ai aquery` 
    - If there is a need to access the system shell within AQuery, type `dbg` to activate python interpreter and type `os.system('sh')` to launch a shell.
-
+   - Docker image is available on [Docker Hub](https://hub.docker.com/repository/docker/sunyinqi0508/aquery) but building image yourself is highly recommended (see [#2](../../issues/2)) 
 ## CIMS Computer Lab (Only for NYU affiliates who have access)
   1. Clone this git repo in CIMS.
   2. Download the [patch](https://drive.google.com/file/d/1YkykhM6u0acZ-btQb4EUn4jAEXPT81cN/view?usp=sharing) 
-  3. Decompress the patch to any directory and execute script inside by typing (`source ./cims.sh`). Please use the source command or `. ./cims.sh` (dot space) to execute the script because it contains configurations for environment variables.
+  3. Decompress the patch to any directory and execute script inside by typing (`source ./cims.sh`). Please use the source command or `. ./cims.sh` (dot space) to execute the script because it contains configurations for environment variables. Also note that this script can only work with bash and compatible shells (e.g. dash, zsh. but not csh)
   4. Execute `python3 ./prompt.py`
 
 ## Singularity Container
@@ -57,12 +57,12 @@ There're multiple options to run AQuery on Windows. But for better consistency I
   - Copy or link `mingw64/libexec/gcc/<arch>/<version>/liblto-plugin.dll` to `mingw64/lib/bfd-plugins/` For Link time optimization support on gcc-ar and gcc-ranlib 
   
 - For Visual Studio: 
-1. Install python3.6 or above from [official website](https://www.python.org/downloads/windows/) or Microsoft Store.
-  1. Install Microsoft Visual Studio 2022 or later with **Desktop development with C++** selected.
-  2. Clone AQuery repo from [Github](https://github.com/sunyinqi0508/AQuery2)
-  3. Install python requirements with pip `python3 -m pip install -r requirements.txt`
-  4. Change the build_driver variable in aquery_config.py to "MSBuild"
-  5. The libraries and headers for Monetdb are already included in msc-plugins, however you can also choose to download them from [Monetdb Easy Setup](https://www.monetdb.org/easy-setup/) and put them in the same place.
+  1. Install python3.6 or above from [official website](https://www.python.org/downloads/windows/) or Microsoft Store.
+  2. Install Microsoft Visual Studio 2022 or later with **Desktop development with C++** selected.
+  3. Clone AQuery repo from [Github](https://github.com/sunyinqi0508/AQuery2)
+  4. Install python requirements with pip `python3 -m pip install -r requirements.txt`
+  5. Change the build_driver variable in aquery_config.py to "MSBuild"
+  6. The libraries and headers for Monetdb are already included in msc-plugins, however you can also choose to download them from [Monetdb Easy Setup](https://www.monetdb.org/easy-setup/) and put them in the same place.
 
 - For CygWin/MinGW:
    1. Install gcc and python3 using its **builtin package manager** instead of the one from python.org or windows store. (For Msys2, `pacman -S gcc python3`). Otherwise, ABI breakage may happen.
