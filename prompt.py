@@ -563,14 +563,14 @@ def prompt(running = lambda:True, next = lambda:input('> '), state = None):
                 if len(qs) > 1:
                     if qs[1].startswith('on'):
                         state.need_print = True
-                        continue
                     elif qs[1].startswith('off'):
                         state.need_print = False
-                        continue
                     elif qs[1].startswith('last'):
                         state.currstats.need_print = True
                         state.currstats.print()
-                        continue
+                    elif qs[1].startswith('reset'):
+                        state.currstats.clear()
+                    continue
                 state.stats.need_print = True
                 state.stats.print(clear = False)
                 continue

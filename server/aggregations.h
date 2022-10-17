@@ -215,6 +215,28 @@ decayed_t<VT, T> deltas(const VT<T>& arr) {
 }
 
 template<class T, template<typename ...> class VT>
+decayed_t<VT, T> prev(const VT<T>& arr) {
+	const uint32_t& len = arr.size;
+	decayed_t<VT, T> ret(len);
+	uint32_t i = 0;
+	if (len) ret[i++] = arr[0];
+	for (; i < len; ++i)
+		ret[i] = arr[i - 1];
+	return ret;
+}
+
+template<class T, template<typename ...> class VT>
+decayed_t<VT, T> aggnext(const VT<T>& arr) {
+	const uint32_t& len = arr.size;
+	decayed_t<VT, T> ret(len);
+	uint32_t i = 1;
+	for (; i < len; ++i)
+		ret[i - 1] = arr[i];
+	if (len > 0) ret[len - 1] = arr[len - 1];
+	return ret;
+}
+
+template<class T, template<typename ...> class VT>
 T last(const VT<T>& arr) {
 	if (!arr.size) return 0;
 	const uint32_t& len = arr.size;
@@ -232,7 +254,7 @@ T first(const VT<T>& arr) {
 #define __DEFAULT_AGGREGATE_FUNCTION__(NAME, RET) \
 template <class T> constexpr inline T NAME(const T& v) { return RET; }
 
-// wrong behavior with count(0)
+// non-aggreation count. E.g. SELECT COUNT(col) from table; 
 template <class T> constexpr inline T count(const T& v) { return 1; }
 template <class T> constexpr inline T max(const T& v) { return v; }
 template <class T> constexpr inline T min(const T& v) { return v; }
@@ -248,5 +270,7 @@ template <class T> constexpr inline T mins(const T& v) { return v; }
 template <class T> constexpr inline T avgs(const T& v) { return v; }
 template <class T> constexpr inline T sums(const T& v) { return v; }
 template <class T> constexpr inline T last(const T& v) { return v; }
+template <class T> constexpr inline T prev(const T& v) { return v; }
+template <class T> constexpr inline T aggnext(const T& v) { return v; }
 template <class T> constexpr inline T daltas(const T& v) { return 0; }
 template <class T> constexpr inline T ratios(const T& v) { return 1; }

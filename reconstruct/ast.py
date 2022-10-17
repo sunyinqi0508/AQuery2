@@ -293,7 +293,7 @@ class projection(ast_node):
                     val[1] = val[1](False)
                 
             if val[0] == LazyT:
-                decltypestring = val[2].eval(x,y,gettype=True,c_code=True)(True)
+                decltypestring = val[2].eval(y=y,gettype=True,c_code=True)(True)
                 decltypestring = f'value_type<decays<decltype({decltypestring})>>'
                 out_typenames[key] = decltypestring
             else:

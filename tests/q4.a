@@ -10,3 +10,11 @@ into table ticks fields terminated by ","
 select max(price - mins(price))
 from ticks assuming asc timestamp
 where ID = "S" and tradeDate= '2022-10-01';
+DROP TABLE IF EXISTS ticks
+CREATE TABLE ticks(ID varchar(20), date int, endofdayprice int)
+LOAD DATA INFILE "data/ticks.csv" INTO TABLE TICKS FIELDS TERMINATED BY ","
+
+SELECT max(endofdayprice/prev(endofdayprice)) as Max_Ratio
+FROM ticks
+ASSUMING ASC date
+WHERE ID = "3001"

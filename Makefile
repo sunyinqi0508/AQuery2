@@ -6,7 +6,7 @@ CXXFLAGS = --std=c++1z
 ifeq ($(AQ_DEBUG), 1)
 	OPTFLAGS = -g3 
 else
-	OPTFLAGS = -O3 -DNDEBUG -fno-stack-protector
+	OPTFLAGS = -O3 -DNDEBUG -fno-stack-protector 
 endif
 LINKFLAGS = -flto # + $(AQ_LINK_FLAG)
 SHAREDFLAGS = -shared  

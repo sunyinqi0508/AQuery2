@@ -311,6 +311,8 @@ opeq = OperatorBase('eq', 2, logical, cname = '==', sqlname = '=', call = binary
 opnot = OperatorBase('not', 1, logical, cname = '!', sqlname = 'NOT', call = unary_op_behavior)
 opdistinct = OperatorBase('distinct', 1, as_is, cname = '.distinct()', sqlname = 'distinct', call = distinct_behavior)
 # functional
+fnprev = OperatorBase('prev', 1, as_is, cname = 'prev', sqlname = 'PREV', call = fn_behavior)
+fnnext = OperatorBase('next', 1, as_is, cname = 'aggnext', sqlname = 'NEXT', call = fn_behavior)
 fnmax = OperatorBase('max', 1, as_is, cname = 'max', sqlname = 'MAX', call = fn_behavior)
 fnmin = OperatorBase('min', 1, as_is, cname = 'min', sqlname = 'MIN', call = fn_behavior)
 fndeltas = OperatorBase('deltas', 1, as_is, cname = 'deltas', sqlname = 'DELTAS', call = fn_behavior)
@@ -358,7 +360,7 @@ builtin_cstdlib = _op_make_dict(fnsqrt, fnlog, fnsin, fncos, fntan, fnpow)
 builtin_func = _op_make_dict(fnmax, fnmin, fnsum, fnavg, fnmaxs, 
                              fnmins, fndeltas, fnratios, fnlast,
                              fnfirst, fnsums, fnavgs, fncnt, 
-                             fnpack, fntrunc)
+                             fnpack, fntrunc, fnprev, fnnext)
 user_module_func = {}
 builtin_operators : Dict[str, OperatorBase] = {**builtin_binary_arith, **builtin_binary_logical, 
     **builtin_unary_arith, **builtin_unary_logical, **builtin_unary_special, **builtin_func, **builtin_cstdlib, 
