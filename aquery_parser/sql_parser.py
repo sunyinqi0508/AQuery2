@@ -8,6 +8,7 @@
 #
 
 from sre_parse import WHITESPACE
+
 from mo_parsing.helpers import restOfLine
 from mo_parsing.infix import delimited_list
 from mo_parsing.whitespaces import NO_WHITESPACE, Whitespace
@@ -655,7 +656,8 @@ def parser(literal_string, ident, sqlserver=False):
         ) / to_json_call
 
         load_data = (
-            keyword("data") ("file_type")
+            Optional(keyword("complex")("complex"))
+            + keyword("data") ("file_type")
             + keyword("infile")("loc")  
             + literal_string ("file")
             + INTO
@@ -666,6 +668,12 @@ def parser(literal_string, ident, sqlserver=False):
                   + keyword("terminated").suppress()
                   + keyword("by").suppress() 
                   + literal_string ("term")
+            )
+            + Optional(
+                  keyword("element").suppress()
+                  + keyword("terminated").suppress()
+                  + keyword("by").suppress() 
+                  + literal_string ("ele")
             )
         )
         

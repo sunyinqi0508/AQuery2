@@ -1,0 +1,3 @@
+create table f (a float, b vecfloat, c int)
+load complex data infile 'data/test_complex.csv' into table f fields terminated by ',' element terminated by ';'
+select * from f

@@ -1,12 +1,14 @@
+from typing import Dict, List, Set
+
 from engine.types import *
 from engine.utils import CaseInsensitiveDict, base62uuid, enlist
-from typing import List, Dict, Set
+
 
 class ColRef:
     def __init__(self, _ty, cobj, table:'TableInfo', name, id, compound = False, _ty_args = None):
         self.type : Types = AnyT
         if type(_ty) is str:
-            self.type = builtin_types[_ty.lower()]
+            self.type = Types.decode(_ty)
             if _ty_args:
                 self.type = self.type(enlist(_ty_args))
         elif type(_ty) is Types:
@@ -17,6 +19,7 @@ class ColRef:
         self.alias = set()
         self.id = id # position in table
         self.compound = compound # compound field (list as a field) 
+        self.cxt_name = ''
         # e.g. order by, group by, filter by expressions
         
         self.__arr__ = (_ty, cobj, table, name, id)

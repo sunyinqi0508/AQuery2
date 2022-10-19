@@ -1,4 +1,4 @@
-// Copyright: (2012-2015) Ben Strasser <code@ben-strasser.net>
+// Copyright: (2012-2015) Ben Strasser <code@ben-strasser.net>, 2022 Bill Sun
 // License: BSD-3
 //
 // All rights reserved.
@@ -49,6 +49,7 @@
 #include <cerrno>
 #include <istream>
 #include <limits>
+#include "server/vector_type.hpp"
 
 namespace io{
         ////////////////////////////////////////////////////////////////////////////
@@ -974,8 +975,7 @@ namespace io{
                                                 return;
                                         }
                                         x = 10*x+y;
-                                }else
-                                        throw error::no_digit();
+                                }
                                 ++col;
                         }
                 }
@@ -1005,8 +1005,7 @@ namespace io{
                                                         return;
                                                 }
                                                 x = 10*x-y;
-                                        }else
-                                                throw error::no_digit();
+                                        }
                                         ++col;
                                 }
                                 return;
@@ -1080,19 +1079,37 @@ namespace io{
                                         }
                                         x *= base;
                                 }
-                        }else{
-                                if(*col != '\0')
-                                        throw error::no_digit();
                         }
 
                         if(is_neg)
                                 x = -x;
                 }
 
+
                 template<class overflow_policy> void parse(char*col, float&x) { parse_float(col, x); }
                 template<class overflow_policy> void parse(char*col, double&x) { parse_float(col, x); }
                 template<class overflow_policy> void parse(char*col, long double&x) { parse_float(col, x); }
+                
 
+                template<class overflow_policy, class T, char sep2 = ';'>
+                void parse_vector(char* col, vector_type<T>& x) {
+                    while (*col != '\0') {
+                        char* next_col = col;
+                        while (*next_col != sep2 && *next_col != '\0')
+                            ++next_col;
+                        while (*next_col == ' ' || *next_col == '\t' || 
+                            *next_col == sep2 || *next_col == '\r' || 
+                            *next_col == '\n') 
+                            ++next_col;
+                        char _next_end = *next_col;
+                        *next_col = '\0';
+                        T y;
+                        ::io::detail::parse<overflow_policy>(col, y);
+                        x.emplace_back(y);
+                        col = next_col;
+                        *next_col = _next_end;
+                    }
+                }
                 template<class overflow_policy, class T>
                 void parse(char*col, T&x){
                         // Mute unused variable compiler warning
@@ -1108,6 +1125,7 @@ namespace io{
         }
 
         template<unsigned column_count,
+                char sep2 = -2,
                 class trim_policy = trim_chars<' ', '\t'>,
                 class quote_policy = no_quote_escape<','>,
                 class overflow_policy = throw_on_overflow,
@@ -1234,7 +1252,23 @@ namespace io{
                         parse_helper(r+1, cols...);
                 }
 
-
+                template<class T, class ...ColType>
+                void parse_helper(std::size_t r, vector_type<T>&t, ColType&...cols){
+                        if(row[r]){
+                                try{
+                                        try{
+                                                ::io::detail::parse_vector<overflow_policy, T, sep2>(row[r], t);
+                                        }catch(error::with_column_content&err){
+                                                err.set_column_content(row[r]);
+                                                throw;
+                                        }
+                                }catch(error::with_column_name&err){
+                                        err.set_column_name(column_names[r].c_str());
+                                        throw;
+                                }
+                        }
+                        parse_helper(r+1, cols...);
+                }
         public:
                 template<class ...ColType>
                 bool read_row(ColType& ...cols){
@@ -1269,5 +1303,12 @@ namespace io{
                 }
         };
 }
+
+template <unsigned column_count, char sep1 = ',', char sep2 = ';'>
+using AQCSVReader = io::CSVReader<column_count, sep2, 
+        io::trim_chars<(char)32, (char)9>, io::no_quote_escape<sep1>, 
+        io::ignore_overflow, io::empty_line_comment
+        >;
+
 #endif
 

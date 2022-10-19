@@ -1,7 +1,8 @@
 from typing import Optional, Set
+
+from engine.types import *
 from reconstruct.ast import ast_node
 from reconstruct.storage import ColRef, Context
-from engine.types import *
 
 # TODO: Decouple expr and upgrade architecture
 # C_CODE : get ccode/sql code?
@@ -31,6 +32,7 @@ class expr(ast_node):
     
     def __init__(self, parent, node, *, c_code = None, supress_undefined = False):
         from reconstruct.ast import projection, udf
+
         # gen2 expr have multi-passes
         # first pass parse json into expr tree
         # generate target code in later passes upon need
@@ -78,7 +80,7 @@ class expr(ast_node):
         ast_node.__init__(self, parent, node, None)
 
     def init(self, _):
-        from reconstruct.ast import projection, _tmp_join_union
+        from reconstruct.ast import _tmp_join_union, projection
         parent = self.parent
         self.is_compound = parent.is_compound if type(parent) is expr else False
         if type(parent) in [projection, expr, _tmp_join_union]:

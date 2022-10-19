@@ -1,7 +1,8 @@
 from copy import deepcopy
-from engine.utils import base62uuid, defval
-from aquery_config import have_hge
 from typing import Dict, List
+
+from aquery_config import have_hge
+from engine.utils import base62uuid, defval
 
 type_table: Dict[str, "Types"] = {}
 
@@ -65,10 +66,10 @@ class Types:
         return self.sqlname
     
     @staticmethod
-    def decode(aquery_type : str, vector_type:str = 'ColRef') -> "Types":
-        if (aquery_type.startswith('vec')):
+    def decode(aquery_type : str, vector_type:str = 'vector_type') -> "Types":
+        if (aquery_type.lower().startswith('vec')):
             return VectorT(Types.decode(aquery_type[3:]), vector_type)
-        return type_table[aquery_type]
+        return type_table[aquery_type.lower()]
     
 class TypeCollection:
     def __init__(self, sz, deftype, fptype = None, utype = None, *, collection = None) -> None:
@@ -121,7 +122,7 @@ class VectorT(Types):
         return f'{self.vector_type}<{self.inner_type.name}>'
     @property
     def sqlname(self) -> str:
-        return 'BIGINT'
+        return 'HUGEINT' # Store vector_type into 16 bit integers
     @property
     def cname(self) -> str:
         return f'{self.vector_type}<{self.inner_type.cname}>'
@@ -142,7 +143,7 @@ fp_types : Dict[str, Types] = _ty_make_dict('t.sqlname.lower()', FloatT, DoubleT
 temporal_types : Dict[str, Types] = _ty_make_dict('t.sqlname.lower()', DateT, TimeT, TimeStampT)
 builtin_types : Dict[str, Types] = {
     'string' : StrT,
-    **_ty_make_dict('t.sqlname.lower()', AnyT, TextT, VarcharT),
+    **_ty_make_dict('t.sqlname.lower()', AnyT, TextT, VarcharT, HgeT),
     **int_types, **fp_types, **temporal_types}
 
 def get_int128_support():
@@ -365,3 +366,5 @@ user_module_func = {}
 builtin_operators : Dict[str, OperatorBase] = {**builtin_binary_arith, **builtin_binary_logical, 
     **builtin_unary_arith, **builtin_unary_logical, **builtin_unary_special, **builtin_func, **builtin_cstdlib, 
     **user_module_func}
+
+type_table = {**builtin_types, **type_table}

@@ -1,12 +1,13 @@
 from copy import deepcopy
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Set, Tuple, Dict, Union, List, Optional
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 from engine.types import *
-from engine.utils import enlist, base62uuid, base62alp, get_legal_name
-from reconstruct.storage import Context, TableInfo, ColRef
-    
+from engine.utils import base62alp, base62uuid, enlist, get_legal_name
+from reconstruct.storage import ColRef, Context, TableInfo
+
+
 class ast_node:
     header = []
     types = dict()
@@ -70,7 +71,11 @@ class projection(ast_node):
         elif 'select_distinct' in node:
             p = node['select_distinct']
             self.distinct = True
-
+        if 'with' in node:
+            self.with_clause = projection(self, node['value'])
+        else:
+            self.with_clause = None
+            
         self.projections = p if type(p) is list else [p]
         if self.parent is None:
             self.context.sql_begin()
@@ -951,6 +956,9 @@ class load(ast_node):
         if node['load']['file_type'] == 'module':
             self.produce = self.produce_module
             self.module = True
+        elif 'complex' in node['load']:
+            self.produce = self.produce_cpp
+            self.consume = lambda *_: None
         elif self.context.dialect == 'MonetDB':
             self.produce = self.produce_monetdb
         else: 
@@ -1019,7 +1027,56 @@ class load(ast_node):
         self.sql = f'{s1} \'{p}\' {s2} '
         if 'term' in node:
             self.sql += f' {s3} \'{node["term"]["literal"]}\''
-                    
+            
+    def produce_cpp(self, node):
+        self.context.has_dll = True
+        self.context.headers.add('"csv.h"')
+        node = node['load']
+        self.postproc_fname = 'ld_' + base62uuid(5)
+        self.context.postproc_begin(self.postproc_fname)
+        
+        table:TableInfo = self.context.tables_byname[node['table']]
+        self.sql = F"SELECT {', '.join([c.name for c in table.columns])} FROM {table.table_name};"
+        self.emit(self.sql+';\n')
+        self.context.sql_end()
+        length_name = 'len_' + base62uuid(6)
+        self.context.emitc(f'auto {length_name} = server->cnt;')
+        
+        out_typenames = [t.type.cname for t in table.columns]
+        outtable_col_nameslist = ', '.join([f'"{c.name}"' for c in table.columns])
+        
+        self.outtable_col_names = 'names_' + base62uuid(4)
+        self.context.emitc(f'const char* {self.outtable_col_names}[] = {{{outtable_col_nameslist}}};')
+        
+        self.out_table = 'tbl_' + base62uuid(4)
+        self.context.emitc(f'auto {self.out_table} = new TableInfo<{",".join(out_typenames)}>("{table.table_name}", {self.outtable_col_names});')
+        for i, c in enumerate(table.columns):
+            c.cxt_name = 'c_' + base62uuid(6) 
+            self.context.emitc(f'decltype(auto) {c.cxt_name} = {self.out_table}->get_col<{i}>();')
+            self.context.emitc(f'{c.cxt_name}.initfrom({length_name}, server->getCol({i}), "{table.columns[i].name}");')
+        csv_reader_name = 'csv_reader_' + base62uuid(6)
+        col_types = [c.type.cname for c in table.columns]
+        col_tmp_names = ['tmp_'+base62uuid(8) for _ in range(len(table.columns))]
+        #col_names = ','.join([f'"{c.name}"' for c in table.columns])
+        term_field = ',' if 'term' not in node else node['term']['literal']
+        term_ele = ';' if 'ele' not in node else node['ele']['literal']
+        self.context.emitc(f'AQCSVReader<{len(col_types)}, \'{term_field.strip()[0]}\', \'{term_ele.strip()[0]}\'> {csv_reader_name}("{node["file"]["literal"]}");')
+        # self.context.emitc(f'{csv_reader_name}.read_header(io::ignore_extra_column, {col_names});')
+        self.context.emitc(f'{csv_reader_name}.next_line();')
+
+        for t, n in zip(col_types, col_tmp_names):
+            self.context.emitc(f'{t} {n};')
+        self.context.emitc(f'while({csv_reader_name}.read_row({",".join(col_tmp_names)})) {{ \n')
+        for i, c in enumerate(table.columns):
+            self.context.emitc(f'print({col_tmp_names[i]});')
+            self.context.emitc(f'{c.cxt_name}.emplace_back({col_tmp_names[i]});')
+            
+        self.context.emitc('}')
+        self.context.emitc(f'print(*{self.out_table});')
+        self.context.emitc(f'{self.out_table}->monetdb_append_table(cxt->alt_server, "{table.table_name}");')
+        
+        self.context.postproc_end(self.postproc_fname)
+
 class outfile(ast_node):
     name="_outfile"
     def __init__(self, parent, node, context = None, *, sql = None):
@@ -1121,7 +1178,7 @@ class udf(ast_node):
                 
         
     def produce(self, node):
-        from engine.utils import get_legal_name, check_legal_name
+        from engine.utils import check_legal_name, get_legal_name
         node = node[self.name]
         # register udf
         self.agg = 'Agg' in node
@@ -1216,7 +1273,7 @@ class udf(ast_node):
                     
                     
     def consume(self, node):
-        from engine.utils import get_legal_name, check_legal_name
+        from engine.utils import check_legal_name, get_legal_name
         node = node[self.name]
                     
         if 'params' in node:
@@ -1339,4 +1396,5 @@ def include(objs):
             
             
 import sys
+
 include(sys.modules[__name__])

@@ -1,4 +1,5 @@
 import aquery_config
+
 help_message = '''\
 ======================================================
                 AQUERY COMMANDLINE HELP
@@ -82,31 +83,31 @@ if __name__ == '__main__':
     
 
     
-import os
-from dataclasses import dataclass
+import atexit
+import ctypes
 import enum
-import time
+import mmap
+import os
 # import dbconn
 import re
+import subprocess
+import sys
+import threading
+import time
+from dataclasses import dataclass
 from typing import Callable, List, Optional
+
+import numpy as np
 from mo_parsing import ParseException
+
 import aquery_parser as parser
 import engine
-import engine.projection
 import engine.ddl
+import engine.projection
 import reconstruct as xengine
-import subprocess
-import mmap
-import sys
-from engine.utils import base62uuid
-import atexit
-import threading
-import ctypes
-import numpy as np
-from engine.utils import ws
-from engine.utils import add_dll_dir
-from engine.utils import nullstream
 from build import build_manager
+from engine.utils import add_dll_dir, base62uuid, nullstream, ws
+
 
 ## CLASSES BEGIN
 class RunType(enum.Enum):
@@ -407,7 +408,7 @@ def prompt(running = lambda:True, next = lambda:input('> '), state = None):
                     for t in cxt.tables:
                         lst_cols = []
                         for c in t.columns:
-                            lst_cols.append(f'{c.name} : {c.type}')
+                            lst_cols.append(f'{c.name} : {c.type.name}')
                         print(f'{t.table_name} ({", ".join(lst_cols)})')
                 continue
             elif q.startswith('help'):
@@ -605,7 +606,8 @@ def prompt(running = lambda:True, next = lambda:input('> '), state = None):
             print("\nBye.")
             raise
         except ValueError as e:
-            import code, traceback
+            import code
+            import traceback
             __stdin = os.dup(0)
             raise_exception = True
             sh = code.InteractiveConsole({**globals(), **locals()})

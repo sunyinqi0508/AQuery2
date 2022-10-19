@@ -159,6 +159,10 @@ public:
 		grow();
 		container[size++] = _val;
 	}
+	void emplace_back(_Ty& _val) {
+		grow();
+		container[size++] = std::move(_val);
+	}
 	void emplace_back(_Ty&& _val) {
 		grow();
 		container[size++] = std::move(_val);

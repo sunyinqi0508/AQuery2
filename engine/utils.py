@@ -1,6 +1,6 @@
-from collections import OrderedDict
-from collections.abc import MutableMapping, Mapping
 import uuid
+from collections import OrderedDict
+from collections.abc import Mapping, MutableMapping
 
 lower_alp = 'abcdefghijklmnopqrstuvwxyz'
 upper_alp = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -107,6 +107,8 @@ def defval(val, default):
 
 # escape must be readonly
 from typing import Mapping, Set
+
+
 def remove_last(pattern : str, string : str, escape : Set[str] = set()) -> str:
     idx = string.rfind(pattern)
     if idx == -1:
@@ -126,8 +128,10 @@ class _Counter:
         return cnt
 
 import re
+
 ws = re.compile(r'\s+')
 import os
+
 
 def add_dll_dir(dll: str):
     import sys

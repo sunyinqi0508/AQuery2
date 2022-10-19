@@ -18,3 +18,9 @@ SELECT max(endofdayprice/prev(endofdayprice)) as Max_Ratio
 FROM ticks
 ASSUMING ASC date
 WHERE ID = "3001"
+
+CREATE TABLE ticks2(ID VARCHAR(20), max REAL, min REAL)
+INSERT INTO ticks2 SELECT ID AS ID, max(ratios(endofdayprice)) AS max, min(ratios(endofdayprice)) AS min from ticks  group by ID;
+
+SELECT ID, max, min
+FROM ticks2;
