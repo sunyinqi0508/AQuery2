@@ -1068,7 +1068,7 @@ class load(ast_node):
             self.context.emitc(f'{t} {n};')
         self.context.emitc(f'while({csv_reader_name}.read_row({",".join(col_tmp_names)})) {{ \n')
         for i, c in enumerate(table.columns):
-            self.context.emitc(f'print({col_tmp_names[i]});')
+            # self.context.emitc(f'print({col_tmp_names[i]});')
             self.context.emitc(f'{c.cxt_name}.emplace_back({col_tmp_names[i]});')
             
         self.context.emitc('}')

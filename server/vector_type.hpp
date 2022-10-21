@@ -71,6 +71,9 @@ public:
 	constexpr explicit vector_type(const vector_type<_Ty>& vt) noexcept : capacity(0) {
 		_copy(vt);
 	}
+	constexpr vector_type(vector_type<_Ty>& vt) noexcept : capacity(0) {
+		_move(std::move(vt));
+	}
 	constexpr vector_type(vector_type<_Ty>&& vt) noexcept : capacity(0) {
 		_move(std::move(vt));
 	}

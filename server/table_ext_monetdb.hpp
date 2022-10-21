@@ -45,16 +45,16 @@ void TableInfo<Ts ...>::monetdb_append_table(void* srv, const char* alt_name) {
 	puts("getcols...");
 	uint32_t cnt = 0;
 	const auto get_col = [&monetdbe_cols, &i, *this, &gc_vecs, &cnt](auto v) {
-		printf("%d %d\n", i, (ColRef<void>*)v - colrefs);
+		// printf("%d %d\n", i, (ColRef<void>*)v - colrefs);
 		monetdbe_cols[i++] = (monetdbe_column*)v->monetdb_get_col(gc_vecs, cnt);
 	};
 	(get_col((ColRef<Ts>*)(colrefs + i)), ...);
 	puts("getcols done");
-	for(int i = 0; i < sizeof...(Ts); ++i)
-	{
-		printf("no:%d name: %s count:%d data: %p type:%d \n", 
-		i, monetdbe_cols[i]->name, monetdbe_cols[i]->count, monetdbe_cols[i]->data, monetdbe_cols[i]->type);
-	}
+	// for(int i = 0; i < sizeof...(Ts); ++i)
+	// {
+	// 	printf("no:%d name: %s count:%d data: %p type:%d \n", 
+	// 	i, monetdbe_cols[i]->name, monetdbe_cols[i]->count, monetdbe_cols[i]->data, monetdbe_cols[i]->type);
+	// }
 	std::string create_table_str = "CREATE TABLE IF NOT EXISTS ";
 	create_table_str += alt_name;
 	create_table_str += " (";
