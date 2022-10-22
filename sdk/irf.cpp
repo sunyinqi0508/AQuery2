@@ -4,9 +4,6 @@
 #include "../server/table.h"
 
 DecisionTree* dt = nullptr;
-long pt = 0;
-double** data = nullptr;
-long* result = nullptr;
 
 __AQEXPORT__(bool) newtree(int height, long f, ColRef<int> sparse, double forget, long maxf, long noclasses, Evaluation e, long r, long rb){
 	if(sparse.size!=f)return 0;
@@ -19,14 +16,13 @@ __AQEXPORT__(bool) newtree(int height, long f, ColRef<int> sparse, double forget
 	return 1;
 }
 
-__AQEXPORT__(bool) additem(ColRef<double>X, long y, long size){
-	long j = 0;
-	if(size>0){
-		free(data);
-		free(result);
-		pt = 0;
-		data=(double**)malloc(size*sizeof(double*));
-		result=(long*)malloc(size*sizeof(long));
+__AQEXPORT__(bool) fit(ColRef<ColRef<double>> X, ColRef<int> y){
+	if(X.size != y.size)return 0;
+	double** data = (double**)malloc(X.size*sizeof(double*));
+	long* result = (long*)malloc(y.size*sizeof(long));
+	for(long i=0; i<X.size; i++){
+		data[i] = X.container[i].container;
+		result[i] = y.container[i];
 	}
 	data[pt] = (double*)malloc(X.size*sizeof(double));
 	for(j=0; j<X.size; j++){
