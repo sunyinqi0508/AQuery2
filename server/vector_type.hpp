@@ -77,6 +77,9 @@ public:
 	constexpr vector_type(vector_type<_Ty>&& vt) noexcept : capacity(0) {
 		_move(std::move(vt));
 	}
+	vector_type(vectortype_cstorage vt) noexcept : capacity(vt.capacity), size(vt.size), container((_Ty*)vt.container) {
+		out(10);
+	};
 	// size >= capacity ==> readonly vector
 	constexpr vector_type(const uint32_t size, void* data) : 
 		size(size), capacity(0), container(static_cast<_Ty*>(data)) {}

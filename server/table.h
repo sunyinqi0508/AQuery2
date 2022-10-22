@@ -74,12 +74,27 @@ public:
 		this->container = (_Ty*)container;
 		this->name = name;
 	}
-	template<template <typename ...> class VT, typename T>
+	template<template <typename> class VT, typename T>
 	void initfrom(const VT<T>& v, const char* name = "") {
 		ty = types::Types<_Ty>::getType();
 		this->size = v.size;
 		this->capacity = 0;
 		this->container = (_Ty*)(v.container);
+		this->name = name;
+	}
+	void initfrom(vectortype_cstorage v, const char* name = "") {
+		ty = types::Types<_Ty>::getType();
+		this->size = v.size;
+		this->capacity = v.capacity;
+		this->container = (_Ty*)v.container;
+		this->name = name;
+	}
+	template<typename T>
+	void initfrom(const T& v, const char* name = "") {
+		ty = types::Types<_Ty>::getType();
+		this->size = 0;
+		this->capacity = 0;
+		this->emplace_back(v);
 		this->name = name;
 	}
 	template <class T>

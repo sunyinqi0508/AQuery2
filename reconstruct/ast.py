@@ -343,7 +343,7 @@ class projection(ast_node):
                     )
                 else:
                     # for funcs evaluate f_i(x, ...)
-                    self.context.emitc(f'{self.out_table.contextname_cpp}->get_col<{key}>() = {val[1]};')
+                    self.context.emitc(f'{self.out_table.contextname_cpp}->get_col<{key}>().initfrom({val[1]}, "{cols[i].name}");')
         # print out col_is
         if 'into' not in node:
             self.context.emitc(f'print(*{self.out_table.contextname_cpp});')
@@ -990,7 +990,7 @@ class load(ast_node):
                 self.context.queries.append(f'F{fname}')
                 ret_type = VoidT
                 if 'ret_type' in f:
-                    ret_type = Types.decode(f['ret_type'])
+                    ret_type = Types.decode(f['ret_type'], vector_type='vector_type')
                 nargs = 0
                 arglist = ''
                 if 'vars' in f:
@@ -1000,7 +1000,7 @@ class load(ast_node):
                     nargs = len(arglist)
                     arglist = ', '.join(arglist)
                 # create c++ stub 
-                cpp_stub = f'{ret_type.cname} (*{fname})({arglist}) = nullptr;'
+                cpp_stub = f'{"vectortype_cstorage" if isinstance(ret_type, VectorT) else ret_type.cname} (*{fname})({arglist}) = nullptr;'
                 self.context.module_stubs += cpp_stub + '\n'
                 self.context.module_map[fname] = cpp_stub
                 #registration for parser

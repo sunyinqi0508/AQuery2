@@ -8,5 +8,3 @@ SELECT sum(c), b, d
 FROM testq1
 group by a,b,d
 order by d DESC, b ASC;
-
--- aaaa

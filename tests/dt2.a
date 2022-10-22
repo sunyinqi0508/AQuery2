@@ -1,26 +1,22 @@
 LOAD MODULE FROM "./libirf.so"
-FUNCTIONS (
-    newtree(height:int, f:int64, sparse:vecint64, forget:double, maxf:int64, noclasses:int64, e:int, r:int64, rb:int64) -> bool,
-    fit(X:vecvecdouble, y:vecint64) -> bool,
-    predict(X:vecvecdouble) -> vecint64
-);
+ FUNCTIONS (
+     newtree(height:int, f:int64, sparse:vecint, forget:double, maxf:int64, noclasses:int64, e:int, r:int64, rb:int64) -> bool,
+     fit(X:vecvecdouble, y:vecint64) -> bool,
+     predict(X:vecvecdouble) -> vecint
+ );
 
-create table source(x1 double, x2 double, x3 double, x4 double, x5 int64);
-load data infile "data/benchmark" into table source fields terminated by ",";
+ create table source(x1 double, x2 double, x3 double, x4 double, x5 int64);
+ load data infile "data/benchmark" into table source fields terminated by ",";
 
-create table sparse(x int64);
-insert into sparse values (1);
-insert into sparse values (1);
-insert into sparse values (1);
-insert into sparse values (1);
+ create table sparse(x int);
+ insert into sparse values (1);
+ insert into sparse values (1);
+ insert into sparse values (1);
+ insert into sparse values (1);
 
-select * from source;
+ select newtree(6, 4, sparse.x, 0, 4, 2, 0, 400, 2147483647) from sparse
 
-select newtree(6, 4, sparse.x, 0, 4, 2, 0, 400, 2147483647) from sparse;
+ select fit(pack(x1, x2, x3, x4), x5) from source
 
-select fit(pack(x1, x2, x3, x4), x5) from source limit 100;
-select fit(pack(x1, x2, x3, x4), x5) from source limit 100;
-select fit(pack(x1, x2, x3, x4), x5) from source limit 100;
-select fit(pack(x1, x2, x3, x4), x5) from source limit 100;
-
-select predict(pack(x1, x2, x3, x4)) from source limit 100;
+-- select pack(x1, x2, x3, x4) from source
+  select predict(pack(x1, x2, x3, x4)) from source

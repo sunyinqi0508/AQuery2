@@ -4,11 +4,12 @@ MonetDB_INC =
 Threading = 
 CXXFLAGS = --std=c++1z
 ifeq ($(AQ_DEBUG), 1)
-	OPTFLAGS = -g3 
+	OPTFLAGS = -g3 -fsanitize=address -fsanitize=leak
+	LINKFLAGS = 
 else
 	OPTFLAGS = -O3 -DNDEBUG -fno-stack-protector 
+	LINKFLAGS = -flto
 endif
-LINKFLAGS = -flto # + $(AQ_LINK_FLAG)
 SHAREDFLAGS = -shared  
 FPIC = -fPIC
 COMPILER = $(shell $(CXX) --version | grep -q clang && echo clang|| echo gcc) 

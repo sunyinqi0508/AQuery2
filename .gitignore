@@ -51,6 +51,7 @@ k
 **/Debug
 **/Release
 test*.c*
+data/benchmark
 *.csv
 !test.csv
 !test2.csv
