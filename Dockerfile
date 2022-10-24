@@ -1,6 +1,6 @@
 FROM ubuntu:latest
 
-RUN cp /bin/bash /bin/sh
+# RUN cp /bin/bash /bin/sh
 
 RUN apt update && apt install -y wget
 
