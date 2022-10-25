@@ -94,7 +94,7 @@ class expr(ast_node):
         
     def produce(self, node):
         from engine.utils import enlist
-        from reconstruct.ast import udf
+        from reconstruct.ast import udf, projection
         
         if type(node) is dict:
             if 'literal' in node:
@@ -169,7 +169,16 @@ class expr(ast_node):
                         special_func = [*self.context.udf_map.keys(), *self.context.module_map.keys(), 
                                         "maxs", "mins", "avgs", "sums", "deltas", "last", "first", 
                                         "ratios", "pack", "truncate"]
-                        if self.context.special_gb:
+                        
+                        if (
+                                self.context.special_gb 
+                                    or 
+                                (
+                                    type(self.root.parent) is projection 
+                                        and
+                                    self.root.parent.force_use_spgb
+                                )
+                           ):
                             special_func = [*special_func, *self.ext_aggfuncs]
                             
                         if key in special_func and not self.is_special:

@@ -576,7 +576,7 @@ def prompt(running = lambda:True, next = lambda:input('> '), state = None):
                 state.stats.print(clear = False)
                 continue
             trimed = ws.sub(' ', og_q).split(' ') 
-            if trimed[0].lower().startswith('f'):
+            if len(trimed) > 1 and trimed[0].lower().startswith('fi') or trimed[0].lower() == 'f':
                 fn = 'stock.a' if len(trimed) <= 1 or len(trimed[1]) == 0 \
                                 else trimed[1]
                 try:

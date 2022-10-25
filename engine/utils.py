@@ -148,3 +148,13 @@ def clamp(val, minval, maxval):
 
 def escape_qoutes(string : str):
     return re.sub(r'^\'', r'\'',re.sub(r'([^\\])\'', r'\1\'', string))
+
+def get_innermost(sl):
+    if sl and type(sl) is dict:
+        if 'literal' in sl and type(sl['literal']) is str:
+            return f"'{get_innermost(sl['literal'])}'"
+        return get_innermost(next(iter(sl.values()), None))
+    elif sl and type(sl) is list:
+        return get_innermost(sl[0])
+    else:
+        return sl

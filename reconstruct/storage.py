@@ -226,6 +226,11 @@ class Context:
         self.queries.append('P' + proc_name)    
         self.finalize_query()
         
+    def abandon_query(self):
+        self.sql = ''
+        self.ccode = ''
+        self.finalize_query()
+        
     def finalize_udf(self):
         if self.udf is not None:
             return (Context.udf_head 

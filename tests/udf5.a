@@ -1,0 +1,10 @@
+FUNCTION myCov(x, y) {
+  center_x := x - avg(x);
+  center_y := y - avg(y);
+  num := sum(center_x * center_y);
+  denom := sqrt(sum(center_x * center_x)) * sqrt(sum(center_y * center_y));
+  num / denom
+  }
+
+
+select myCov(1,2);

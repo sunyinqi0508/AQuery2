@@ -1125,7 +1125,7 @@ namespace io{
         }
 
         template<unsigned column_count,
-                char sep2 = -2,
+                char sep2 = ';',
                 class trim_policy = trim_chars<' ', '\t'>,
                 class quote_policy = no_quote_escape<','>,
                 class overflow_policy = throw_on_overflow,
