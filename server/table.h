@@ -75,6 +75,15 @@ public:
 		this->name = name;
 	}
 	template<template <typename> class VT, typename T>
+	void initfrom(VT<T>&& v, const char* name = "") {
+		ty = types::Types<_Ty>::getType();
+		this->size = v.size;
+		this->capacity = v.capacity;
+		this->container = (_Ty*)(v.container);
+		this->name = name;
+		v.capacity = 0;
+	}
+	template<template <typename> class VT, typename T>
 	void initfrom(const VT<T>& v, const char* name = "") {
 		ty = types::Types<_Ty>::getType();
 		this->size = v.size;

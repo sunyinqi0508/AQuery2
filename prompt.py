@@ -499,17 +499,17 @@ def prompt(running = lambda:True, next = lambda:input('> '), state = None):
                 rm(state)
                 exit()
             elif q.startswith('sh'):
-                from distutils.spawn import find_executable
+                from shutil import which
                 qs = re.split(r'[ \t]', q)
                 shells = ('zsh', 'bash', 'sh', 'fish', 'cmd', 'pwsh', 'powershell', 'csh', 'tcsh', 'ksh')
                 shell_path = ''
                 if len(qs) > 1 and qs[1] in shells:
-                    shell_path = find_executable(qs[1])
+                    shell_path = which(qs[1])
                     if shell_path:
                         os.system(shell_path)
                 else:
                     for sh in shells:
-                        shell_path = find_executable(sh)
+                        shell_path = which(sh)
                         if shell_path:
                             os.system(shell_path)
                             break
