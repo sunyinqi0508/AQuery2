@@ -262,6 +262,9 @@ class projection(ast_node):
         if self.col_ext or self.group_node and self.group_node.use_sp_gb:
             self.has_postproc = True
         
+        if self.group_node and self.group_node.use_sp_gb :
+            self.group_node.dedicated_glist
+            ...
         o = self.assumptions
         if 'orderby' in node:
             o.extend(enlist(node['orderby']))
@@ -433,7 +436,7 @@ class orderby(ast_node):
                 o_str += ' ' + 'DESC'
             o_list.append(o_str)
         self.add(', '.join(o_list))
-            
+
 
 class scan(ast_node):
     class Position(Enum):
@@ -622,6 +625,7 @@ class groupby(ast_node):
         o_list = []
         self.refs = set()
         self.gb_cols = set()
+        # dedicated_glist -> cols populated for special group by
         self.dedicated_glist : List[Tuple[expr, Set[ColRef]]] = []
         self.use_sp_gb = False
         for g in node:

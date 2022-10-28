@@ -295,7 +295,7 @@ opadd = OperatorBase('add', 2, auto_extension, cname = '+', sqlname = '+', call 
 # monetdb wont extend int division to fp type
 # opdiv = OperatorBase('div', 2, fp(auto_extension), cname = '/', sqlname = '/', call = binary_op_behavior)
 opdiv = OperatorBase('div', 2, auto_extension, cname = '/', sqlname = '/', call = binary_op_behavior)
-opmul = OperatorBase('mul', 2, fp(auto_extension), cname = '*', sqlname = '*', call = binary_op_behavior)
+opmul = OperatorBase('mul', 2, auto_extension, cname = '*', sqlname = '*', call = binary_op_behavior)
 opsub = OperatorBase('sub', 2, auto_extension, cname = '-', sqlname = '-', call = binary_op_behavior)
 opmod = OperatorBase('mod', 2, auto_extension_int, cname = '%', sqlname = '%', call = binary_op_behavior)
 opneg = OperatorBase('neg', 1, as_is, cname = '-', sqlname = '-', call = unary_op_behavior)
@@ -368,3 +368,6 @@ builtin_operators : Dict[str, OperatorBase] = {**builtin_binary_arith, **builtin
     **user_module_func}
 
 type_table = {**builtin_types, **type_table}
+
+# Additional Aliases for type names
+type_table['boolean'] = BoolT

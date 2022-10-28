@@ -16,6 +16,7 @@ class checksums:
     server : Optional[Union[bytes, bool]] = None
     sources : Optional[Union[Dict[str, bytes], bool]] = None
     env : str = ''
+    
     def calc(self, compiler_name, libaquery_a = 'libaquery.a' , 
                 pch_hpp_gch = 'server/pch.hpp.gch', 
                 server = 'server.so'
@@ -24,7 +25,8 @@ class checksums:
         self.env = (aquery_config.os_platform +
                     machine() + 
                     aquery_config.build_driver + 
-                    compiler_name
+                    compiler_name + 
+                    aquery_config.version_string
                 )
         for key in self.__dict__.keys():
             try:

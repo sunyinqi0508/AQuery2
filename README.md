@@ -125,18 +125,113 @@ See files in ./tests/ for more examples.
 - See `test.aquery` as an example
 
 # User Manual
+AQuery++ has similar syntax to standard SQL with extensions for time-series analysis and user extensibility.
+## Basic Grammar
+```
+program : [query | create | insert | load | udf ]*
+
+/********* Queries *********/
+query : [WITH ID ['('columns')'] AS '(' single-query ')'] single-query
+
+single-query : SELECT projections FROM datasource assumption where-clause groupby-clause
+
+projections: [val as ID | val] (, [val as ID | val])*
+
+datasource : ID [ID | AS ID] |
+  ID, datasource |
+  ID [INNER] JOIN datasource [USING columns | ON conditions] |
+  ID NATURAL JOIN datasource
+
+order-clause: ASSUMING ([ASC|DESC] ID)+
+
+where-clause: WHERE conditions;
+
+groupby-clause: GROUP BY expr (, expr )* [HAVING conditions]
+
+conditions: <a boolean expression>
+
+/********* Creating data *********/
+create: CREATE TABLE ID [AS query | '(' schema ')']
+schema: ID type (, ID type)*
+
+insert: INSERT INTO ID [query | VALUES '(' literals ')']
+literals: literal (, literal)*;
+
+/********* Loading/Saving data *********/
+load: LOAD DATA INFILE string INTO TABLE ID FIELDS TERMINATED BY string
+
+save: query INTO OUTFILE string FIELDS TERMINATED BY string
+
+/********* User defined functions *********/
+udf: FUNCTION ID '(' arg-list ')' '{' fun-body '}'
+arg_list: ID (, ID)*
+fun_body: [stmts] expr
+/********* See more udf grammar later. **********/
+
+stmts: stmt+ 
+stmt: assignment; | if-stmt | for-stmt | ;
+assignment: l_value := expr
+l_value: ID | ID '[' ID ']'
+
+if-stmt: if '(' expr ')' if-body [else (stmt|block) ]
+if-body: stmt | block (elif '(' expr ')' if-body)*
+
+for-stmt: for '(' assignment (, assignment)* ';' expr ';' assignment ')' for-body
+for-body: stmt|block
+
+block:  '{' [stmts] '}'
+
+/********* Expressions *********/
+expr: expr binop expr | fun_call | unaryop expr | ID | literal
+fun: ID | sqrt | avg[s] | count | deltas | distinct 
+  | first | last | max[s] | min[s] | next
+  | prev | sum[s] | ratios | <... To be added> 
+fun_call: fun '(' expr (, expr)* ')'
+binop: +|-|=|*|+=|-=|*=|/=|!=|<|>|>=|<=| and | or
+unaryop: +|-| not
+literal:  numbers | strings | booleans
+
+```
 ## Data Types
 - String Types: `STRING` and `TEXT` are variable-length strings with unlimited length. `VARCHAR(n)` is for strings with upper-bound limits.
 - Integer Types: `INT` and `INTEGER` are 32-bit integers, `SMALLINT` is for 16-bit integers, `TINYINT` is for 8-bit integers and `BIGINT` is 64-bit integers. On Linux and macOS, `HGEINT` is 128-bit integers. 
 - Floating-Point Types: `REAL` denotes 32-bit floating point numbers while `DOUBLE` denotes 64-bit floating point numbers. 
 - Temporal Types: `DATE` only supports the format of `yyyy-mm-dd`, and `TIME` uses 24-hour format and has the form of `hh:mm:ss:ms` the milliseconds part can range from 0 to 999, `TIMESTAMP` has the format of `yyyy-mm-dd hh:mm:ss:ms`. When importing data from CSV files, please make sure the spreadsheet software (if they were used) doesn't change the format of the date and timestamp by double-checking the file with a plain-text editor.
-- Boolean Type: `BOOLEAN` is a boolean type with values `TRUE` and `FALSE`.
+- Boolean Type: `BOOLEAN` or `BOOL` is a boolean type with values `TRUE` and `FALSE`.
 
+## Create Table
+Tables can be created using `CREATE TABLE` statement. For example
+```
+CREATE TABLE my_table (c1 INT, c2 INT, c3 STRING)
+INSERT INTO my_table VALUES(10, 20, "example")
+INSERT INTO my_table SELECT * FROM my_table
+```
+You can also create tables using a query. For example:
+```
+CREATE TABLE my_table_derived
+AS
+  SELECT c1, c2 * 2 as twice_c2 FROM my_table
+```
+## Drop Table:
+Tables can be dropped using `DROP TABLE` statement. For example:
+```
+DROP TABLE my_table IF EXISTS
+```
 ## Load Data:
 - Use query like `LOAD DATA INFILE <filename> INTO <table_name> [OPTIONS <options>]`
 - File name is the relative path to the AQuery root directory (where prompy.py resides)
 - File name can also be absolute path.
 - See `data/q1.sql` for more information 
+
+## Built-in functions: 
+- `avg[s]`: average of a column. `avgs(col), avgs(w, col)` is rolling and moving average with window `w` of the column `col`.
+- `sum[s]`, `max[s]`, `min[s]`: similar to `avg[s]`
+- `ratios(w = 1, col)`: moving ratio of a column, e.g. `ratios(w, col)[i]=col[i-w]/col[i]`. Window `w` has default value of 1.  
+- `next(col), prev(col)`: moving column back and forth by 1, e.g. `next(col)[i] = col[i+1]`.
+- `first(col), last(col)`: first and last value of a column, i.e. `first(col)= col[0]`, `last(col) = col[n-1]`.
+- `sqrt(x), trunc(x), and other builtin math functions`: value-wise math operations. `sqrt(x)[i] = sqrt(x[i])`
+- `pack(cols, ...)`: pack multiple columns into a single column. 
+
 # Architecture 
 ![Architecture](./docs/arch-hybrid.svg)
 

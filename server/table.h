@@ -859,7 +859,6 @@ VT<bool> operator >(const T2& lhs, const VT<T1>& rhs) {
 }
 
 
-
 template <class ...Types>
 void print(const TableInfo<Types...>& v, const char* delimiter = " ", const char* endline = "\n") {
 	v.print(delimiter, endline);
