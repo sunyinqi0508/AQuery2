@@ -18,6 +18,7 @@
 #include <sys/mman.h>
 struct SharedMemory
 {
+    std::atomic<bool> a;
     int hFileMap;
     void* pData;
     SharedMemory(const char* fname) {
@@ -31,6 +32,79 @@ struct SharedMemory
 
     }
 };
+#ifndef __USE_STD_SEMAPHORE__
+#ifdef __APPLE__
+#include <dispatch/dispatch.h>
+class A_Semaphore {
+private:
+	dispatch_semaphore_t native_handle;
+public:
+	A_Semaphore(bool v = false) {
+		native_handle = dispatch_semaphore_create(v);
+	}
+	void acquire() {
+        puts("acquire");
+		dispatch_semaphore_wait(native_handle, DISPATCH_TIME_FOREVER);
+	}
+	void release() {
+        puts("release");
+		dispatch_semaphore_signal(native_handle);
+	}
+	~A_Semaphore() {
+	}
+};
+#else
+#include <semaphore.h>
+class A_Semaphore {
+private:
+	sem_t native_handle;
+public:
+	A_Semaphore(bool v = false) {
+		sem_init(&native_handle, v, 1);
+	}
+	void acquire() {
+		sem_wait(&native_handle);
+	}
+	void release() {
+		sem_post(&native_handle);
+	}
+	~A_Semaphore() {
+		sem_destroy(&native_handle);
+	}
+};
+#endif
+#endif
+
+#endif
+#ifdef __USE_STD_SEMAPHORE__
+#include <semaphore>
+class A_Semaphore {
+private:
+    std::binary_semaphore native_handle;
+public:
+    A_Semaphore(bool v = false) {
+        native_handle = std::binary_semaphore(v);
+    }
+    void acquire() {
+        native_handle.acquire();
+    }
+    void release() {
+        native_handle.release();
+    }
+    ~A_Semaphore() { }
+};
+#endif
+#ifdef __AQUERY_ITC_USE_SHMEM__
+A_Semaphore prompt{ true }, engine{ false };
+#define PROMPT_ACQUIRE() prompt.acquire()
+#define PROMPT_RELEASE() prompt.release()
+#define ENGINE_ACQUIRE() engine.acquire()
+#define ENGINE_RELEASE() engine.release()
+#else
+#define PROMPT_ACQUIRE() 
+#define PROMPT_RELEASE() std::this_thread::sleep_for(std::chrono::nanoseconds(0))
+#define ENGINE_ACQUIRE() 
+#define ENGINE_RELEASE() 
 #endif
 
 #include "aggregations.h"
@@ -41,6 +115,13 @@ int test_main();
 
 int n_recv = 0;
 char** n_recvd = nullptr;
+
+__AQEXPORT__(void) wait_engine(){
+    PROMPT_ACQUIRE();
+}
+__AQEXPORT__(void) wake_engine(){
+    ENGINE_RELEASE();
+}
 
 extern "C" void __DLLEXPORT__ receive_args(int argc, char**argv){
     n_recv = argc;
@@ -119,15 +200,16 @@ void initialize_module(const char* module_name, void* module_handle, Context* cx
 }
 
 int dll_main(int argc, char** argv, Context* cxt){
+    aq_timer timer;
     Config *cfg = reinterpret_cast<Config *>(argv[0]);
     std::unordered_map<std::string, void*> user_module_map;
-    if (cxt->module_function_maps == 0)
+    if (cxt->module_function_maps == nullptr)
         cxt->module_function_maps = new std::unordered_map<std::string, void*>();
     auto module_fn_map = 
         static_cast<std::unordered_map<std::string, void*>*>(cxt->module_function_maps);
     
     auto buf_szs = cfg->buffer_sizes;
-    void** buffers = (void**)malloc(sizeof(void*) * cfg->n_buffers);
+    void** buffers = (void**) malloc (sizeof(void*) * cfg->n_buffers);
     for (int i = 0; i < cfg->n_buffers; i++) 
         buffers[i] = static_cast<void *>(argv[i + 1]);
 
@@ -136,18 +218,22 @@ int dll_main(int argc, char** argv, Context* cxt){
     cxt->n_buffers = cfg->n_buffers;
     cxt->sz_bufs = buf_szs;
     cxt->alt_server = NULL;
-
+    
     while(cfg->running){
+        ENGINE_ACQUIRE();
         if (cfg->new_query) {
-            void *handle = 0;
-            void *user_module_handle = 0;
+            cfg->stats.postproc_time = 0;
+            cfg->stats.monet_time = 0;
+
+            void *handle = nullptr;
+            void *user_module_handle = nullptr;
             if (cfg->backend_type == BACKEND_MonetDB){
-                if (cxt->alt_server == 0)
+                if (cxt->alt_server == nullptr)
                     cxt->alt_server = new Server(cxt);
                 Server* server = reinterpret_cast<Server*>(cxt->alt_server);
                 if(n_recv > 0){
                     if (cfg->backend_type == BACKEND_AQuery || cfg->has_dll) {
-                        handle = dlopen("./dll.so", RTLD_LAZY);
+                        handle = dlopen("./dll.so", RTLD_NOW);
                     }
                     for (const auto& module : user_module_map){
                         initialize_module(module.first.c_str(), module.second, cxt);
@@ -159,14 +245,18 @@ int dll_main(int argc, char** argv, Context* cxt){
                         switch(n_recvd[i][0]){
                         case 'Q': // SQL query for monetdbe
                             {
+                                timer.reset();
                                 server->exec(n_recvd[i] + 1);
+                                cfg->stats.monet_time += timer.elapsed();
                                 printf("Exec Q%d: %s", i, n_recvd[i]);
                             }
                             break;
                         case 'P': // Postprocessing procedure 
                             if(handle && !server->haserror()) {
                                 code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, n_recvd[i]+1));
+                                timer.reset();
                                 c(cxt);
+                                cfg->stats.postproc_time += timer.elapsed();
                             }
                             break;
                         case 'M': // Load Module
@@ -198,7 +288,7 @@ int dll_main(int argc, char** argv, Context* cxt){
                                 auto mname = n_recvd[i] + 1;
                                 auto it = user_module_map.find(mname);
                                 if (user_module_handle == it->second)
-                                    user_module_handle = 0;
+                                    user_module_handle = nullptr;
                                 dlclose(it->second);
                                 user_module_map.erase(it);
                             }
@@ -207,8 +297,9 @@ int dll_main(int argc, char** argv, Context* cxt){
                     }
                     if(handle) {
                         dlclose(handle);
-                        handle = 0;
+                        handle = nullptr;
                     }
+                    printf("%ld, %ld", cfg->stats.monet_time, cfg->stats.postproc_time);
                     cxt->end_session();
                     n_recv = 0;
                 }
@@ -230,9 +321,11 @@ int dll_main(int argc, char** argv, Context* cxt){
             if (handle) dlclose(handle);
             cfg->new_query = 0;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        //puts(cfg->running? "true": "false");
+        asm("");
+        PROMPT_RELEASE();
     }
-
+    
     return 0;
 }
 

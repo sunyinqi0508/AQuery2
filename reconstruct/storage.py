@@ -45,6 +45,14 @@ class ColRef:
             alias = table_name
         return f'{alias}.{self.get_name()}'
     
+    def rename(self, name):
+        self.alias.discard(self.name)
+        self.table.columns_byname.pop(self.name, None)
+        self.name = name
+        self.table.columns_byname[name] = self
+        
+        return self
+    
     def __getitem__(self, key):
         if type(key) is str:
             return getattr(self, key)
@@ -97,6 +105,17 @@ class TableInfo:
             return
         self.cxt.tables_byname[alias] = self
         self.alias.add(alias)
+    
+    def rename(self, name):
+        if name in self.cxt.tables_byname.keys():
+            print(f"Error: table name {name} already exists")
+            return
+        
+        self.cxt.tables_byname.pop(self.table_name, None)
+        self.alias.discard(self.table_name)
+        self.table_name = name
+        self.cxt.tables_byname[name] = self
+        self.alias.add(name)
         
     def parse_col_names(self, colExpr) -> ColRef:
         parsedColExpr = colExpr.split('.')

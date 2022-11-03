@@ -225,6 +225,7 @@ DROP TABLE my_table IF EXISTS
 
 ## Built-in functions: 
 - `avg[s]`: average of a column. `avgs(col), avgs(w, col)` is rolling and moving average with window `w` of the column `col`.
+- `var[s]`, `stddev[s]`: [moving/rolling] **population** variance, standard deviation.
 - `sum[s]`, `max[s]`, `min[s]`: similar to `avg[s]`
 - `ratios(w = 1, col)`: moving ratio of a column, e.g. `ratios(w, col)[i]=col[i-w]/col[i]`. Window `w` has default value of 1.  
 - `next(col), prev(col)`: moving column back and forth by 1, e.g. `next(col)[i] = col[i+1]`.

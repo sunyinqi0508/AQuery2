@@ -160,9 +160,11 @@ class QueryStats:
 class Config:
     __all_attrs__ = ['running', 'new_query', 'server_mode', 
                      'backend_type', 'has_dll', 
-                     'postproc_time', 'sql_time', 
-                     'n_buffers'
+                     'n_buffers',
                      ]
+    __i64_attrs__ = [
+                     'monetdb_time', 'postproc_time'
+                    ]
     __init_attributes__ = False
     
     @staticmethod
@@ -171,26 +173,42 @@ class Config:
             from functools import partial
             for _i, attr in enumerate(Config.__all_attrs__):
                 if not hasattr(Config, attr):
-                    setattr(Config, attr, property(partial(Config.getter, i = _i), partial(Config.setter, i = _i)))
+                    setattr(Config, attr, property(
+                        partial(Config.getter, i = _i), partial(Config.setter, i = _i)
+                    ))
+            for _i, attr in enumerate(Config.__i64_attrs__):
+                if not hasattr(Config, attr):
+                    setattr(Config, attr, property(
+                        partial(Config.i64_getter, i = _i), partial(Config.i64_setter, i = _i)
+                    ))
             Config.__init_attributes__ = True
             
     def __init__(self, mode, nq = 0, n_bufs = 0, bf_szs = []) -> None:
         Config.__init_self__()
-        self.int_size = 4
         self.n_attrib = len(Config.__all_attrs__)
-        self.buf = bytearray((self.n_attrib + n_bufs) * self.int_size)
-        self.np_buf = np.ndarray(shape=(self.n_attrib), buffer=self.buf, dtype=np.int32)
+        self.buf = bytearray((self.n_attrib + n_bufs) * 4 +
+                              len(self.__i64_attrs__) * 8
+                             )
+        self.np_buf = np.ndarray(shape = (self.n_attrib), buffer = self.buf, dtype = np.int32)
+        self.np_i64buf = np.ndarray(shape = len(self.__i64_attrs__), buffer = self.buf, 
+                                    dtype = np.int64, offset = 4 * len(self.__all_attrs__))
         self.new_query = nq
         self.server_mode = mode.value 
         self.running = 1
         self.backend_type = Backend_Type.BACKEND_AQuery.value
         self.has_dll = 0
         self.n_buffers = n_bufs
+        self.monetdb_time = 0
+        self.postproc_time = 0
         
     def getter (self, *, i):
         return self.np_buf[i]
     def setter(self, v, *, i):
         self.np_buf[i] = v
+    def i64_getter (self, *, i):
+        return self.np_i64buf[i]
+    def i64_setter(self, v, *, i):
+        self.np_i64buf[i] = v
 
     def set_bufszs(self, buf_szs):
         for i in range(min(len(buf_szs), self.n_buffers)):
@@ -209,6 +227,8 @@ class PromptState():
     test_parser = True
     server_mode: RunType = RunType.Threaded
     server_bin = 'server.bin' if server_mode == RunType.IPC else 'server.so'
+    wait_engine = lambda: None
+    wake_engine = lambda: None
     set_ready = lambda: None
     get_ready = lambda: None
     server_status = lambda: False
@@ -299,12 +319,14 @@ def init_threaded(state : PromptState):
     if aquery_config.run_backend:    
         server_so = ctypes.CDLL('./'+state.server_bin)
         state.send = server_so['receive_args']
+        state.wait_engine = server_so['wait_engine']
+        state.wake_engine = server_so['wake_engine']
         aquery_config.have_hge = server_so['have_hge']()
         if aquery_config.have_hge != 0:
             from engine.types import get_int128_support
             get_int128_support()
         state.th = threading.Thread(target=server_so['main'], args=(-1, ctypes.POINTER(ctypes.c_char_p)(state.cfg.c)), daemon=True)
-        state.th.start()
+        state.th.start() 
 
 def init_prompt() -> PromptState:
     aquery_config.init_config()
@@ -337,6 +359,8 @@ def init_prompt() -> PromptState:
         rm = lambda: None
         def __set_ready():
             state.cfg.new_query = 1
+            state.wake_engine()
+            
         state.set_ready = __set_ready
         state.get_ready = lambda: aquery_config.run_backend and state.cfg.new_query
         if aquery_config.run_backend:
@@ -380,9 +404,16 @@ def prompt(running = lambda:True, next = lambda:input('> '), state = None):
     while running():
         try:
             if state.server_status():
-                state.init()
+                state.init(state)
+            # *** busy waiting ***
+            # while state.get_ready():
+            #     time.sleep(.00001)
             while state.get_ready():
-                time.sleep(.00001)
+                state.wait_engine()
+                if state.need_print:
+                    print(f'MonetDB Time: {state.cfg.monetdb_time/10**9}, '
+                          f'PostProc Time: {state.cfg.postproc_time/10**9}')
+                    state.cfg.monetdb_time = state.cfg.postproc_time = 0
             state.currstats.print(state.stats, need_print=state.need_print)
             try:
                 og_q : str = next()

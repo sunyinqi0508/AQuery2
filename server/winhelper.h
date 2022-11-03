@@ -14,5 +14,17 @@ struct SharedMemory
     SharedMemory(const char*);
     void FreeMemoryMap();
 };
+
+#ifndef __USE_STD_SEMAPHORE__
+class A_Semaphore {
+private:
+	void* native_handle;
+public:
+	A_Semaphore();
+	void acquire();
+	void release();
+	~A_Semaphore();
+};
 #endif
+
 #endif

@@ -168,7 +168,7 @@ class expr(ast_node):
                             
                         special_func = [*self.context.udf_map.keys(), *self.context.module_map.keys(), 
                                         "maxs", "mins", "avgs", "sums", "deltas", "last", "first", 
-                                        "ratios", "pack", "truncate"]
+                                        "stddevs", "vars", "ratios", "pack", "truncate"]
                         
                         if (
                                 self.context.special_gb 

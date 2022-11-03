@@ -29,27 +29,37 @@ inline constexpr size_t aq_szof<void> = 0;
 template <class T1, class T2>
 struct aqis_same_impl {
 	constexpr static bool value = 
+		
 		std::conditional_t<
-			std::is_signed_v<T1> == std::is_signed_v<T2>,
+			std::is_same_v<T1, bool> || std::is_same_v<T2, bool>, 
 			Cond(
-				std::is_floating_point_v<T1> == std::is_floating_point_v<T2>,
+				(std::is_same_v<T1, bool> && std::is_same_v<T2, bool>), 
+				std::true_type, 
+				std::false_type
+			),
+			Cond(
+				std::is_signed_v<T1> == std::is_signed_v<T2>,
 				Cond(
-					aq_szof<T1> == aq_szof<T2>, // deal with sizeof(void)
-					std::true_type,
+					std::is_floating_point_v<T1> == std::is_floating_point_v<T2>,
+					Cond(
+						aq_szof<T1> == aq_szof<T2>, // deal with sizeof(void)
+						std::true_type,
+						std::false_type
+					),
 					std::false_type
 				),
 				std::false_type
-			),
-			std::false_type
+			)
 		>::value;
 };
-
+// make sure size_t/ptr_t and the corresponding integer types are the same
 template <class T1, class T2, class ...Ts>
 constexpr bool aqis_same = aqis_same_impl<T1, T2>::value &&
 aqis_same<T2, Ts...>;
 
 template <class T1, class T2>
 constexpr bool aqis_same<T1, T2> = aqis_same_impl<T1, T2>::value;
+
 namespace types {
 	enum Type_t {
 		AINT32, AFLOAT, ASTR, ADOUBLE, ALDOUBLE, AINT64, AINT128, AINT16, ADATE, ATIME, AINT8,

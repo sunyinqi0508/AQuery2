@@ -30,10 +30,10 @@ INSERT INTO my_table VALUES(10, 20, "example")
 select * from my_table;
 INSERT INTO my_table SELECT * FROM my_table
 select * from my_table;
-SELECT c1, c2 + c2 as twice_c2 FROM my_table;
+SELECT c1, c2  as twice_c2 FROM my_table;
 
 CREATE TABLE my_table_derived
 AS
-  SELECT c1, c2 + c2 as twice_c2 FROM my_table;
+  SELECT c1, c2  as twice_c2 FROM my_table;
 SELECT * FROM my_table_derived;
 

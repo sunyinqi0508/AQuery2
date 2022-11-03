@@ -54,19 +54,28 @@ class ast_node:
             self.context.sql_end()
         
 from reconstruct.expr import expr, fastscan
-
-
+class SubqType(Enum):
+    WITH = auto()
+    FROM = auto()
+    PROJECTION = auto()
+    FILTER = auto()
+    GROUPBY = auto()
+    ORDERBY = auto()
+    NONE = auto()
 class projection(ast_node):
     name = 'projection'
     first_order = 'select'
-    
+
+        
     def __init__(self, 
                  parent : Optional["ast_node"],
                  node, 
                  context : Optional[Context] = None,
-                 force_use_spgb : bool = False
+                 force_use_spgb : bool = False,
+                 subq_type: SubqType = SubqType.NONE
                 ):
         self.force_use_spgb = force_use_spgb
+        self.subq_type = subq_type
         super().__init__(parent, node, context)
         
     def init(self, _):
@@ -83,9 +92,21 @@ class projection(ast_node):
             p = node['select_distinct']
             self.distinct = True
         if 'with' in node:
-            self.with_clause = projection(self, node['value'])
+            with_table = node['with']['name']
+            with_table_name = tuple(with_table.keys())[0]
+            with_table_cols = tuple(with_table.values())[0]
+            self.with_clause = projection(self, node['with']['value'], subq_type=SubqType.WITH)
+            self.with_clause.out_table.add_alias(with_table_name)
+            for new_name, col in zip(with_table_cols, self.with_clause.out_table.columns):
+                col.rename(new_name)
+            self.with_clause.out_table.contextname_cpp 
+            # in monetdb, in cxt 
         else:
             self.with_clause = None
+        
+        self.limit = None
+        if 'limit' in node:
+            self.limit = node['limit']
             
         self.projections = p if type(p) is list else [p]
         if self.parent is None:
@@ -115,8 +136,9 @@ class projection(ast_node):
         if type(self.datasource) is join:
             self.datasource.process_join_conditions()
         
+        self.context.special_gb = self.force_use_spgb
         if 'groupby' in node: # if groupby clause contains special stuff
-            self.context.special_gb = groupby.check_special(self, node['groupby'])
+            self.context.special_gb |= groupby.check_special(self, node['groupby'])
 
     def consume(self, node):
         # deal with projections
@@ -230,7 +252,7 @@ class projection(ast_node):
             self.group_node = groupby(self, node['groupby'])
             if self.group_node.terminate:
                 self.context.abandon_query()
-                projection(self.parent, node, self.context, True)
+                projection(self.parent, node, self.context, True, subq_type=self.subq_type)
                 return
             if self.group_node.use_sp_gb:
                 self.has_postproc = True
@@ -370,8 +392,12 @@ class projection(ast_node):
                     # for funcs evaluate f_i(x, ...)
                     self.context.emitc(f'{self.out_table.contextname_cpp}->get_col<{key}>().initfrom({val[1]}, "{cols[i].name}");')
         # print out col_is
-        if 'into' not in node:
-            self.context.emitc(f'print(*{self.out_table.contextname_cpp});')
+        
+        if 'into' not in node and self.subq_type == SubqType.NONE:
+            if self.limit is None:
+                self.context.emitc(f'print(*{self.out_table.contextname_cpp});')
+            else:
+                self.context.emitc(f'{self.out_table.contextname_cpp}->printall(" ","\\n", nullptr, nullptr, {self.limit});')
         
         if self.outfile:
             self.outfile.finalize()
@@ -627,7 +653,7 @@ class groupby(ast_node):
         self.gb_cols = set()
         # dedicated_glist -> cols populated for special group by
         self.dedicated_glist : List[Tuple[expr, Set[ColRef]]] = []
-        self.use_sp_gb = False
+        self.use_sp_gb = self.parent.force_use_spgb
         for g in node:
             self.datasource.rec = set()
             g_expr = expr(self, g['value'])
@@ -654,12 +680,13 @@ class groupby(ast_node):
             if (projs[2].is_compound and 
                 not ((projs[2].is_ColExpr and projs[2].raw_col in self.gb_cols) or
                 projs[2].sql in self.gb_cols)
-                ):
-                if self.parent.force_use_spgb:
+                ) and (not self.parent.force_use_spgb):
                     self.use_sp_gb = True
-                else:    
-                    self.terminate = True
-                    return
+                    break
+                
+        if self.use_sp_gb and not self.parent.force_use_spgb:
+            self.terminate = True
+            return
         if not self.use_sp_gb:
             self.dedicated_gb = None
             self.add(', '.join(o_list))
@@ -1144,7 +1171,7 @@ class load(ast_node):
             self.context.emitc(f'{c.cxt_name}.emplace_back({col_tmp_names[i]});')
             
         self.context.emitc('}')
-        self.context.emitc(f'print(*{self.out_table});')
+        # self.context.emitc(f'print(*{self.out_table});')
         self.context.emitc(f'{self.out_table}->monetdb_append_table(cxt->alt_server, "{table.table_name}");')
         
         self.context.postproc_end(self.postproc_fname)

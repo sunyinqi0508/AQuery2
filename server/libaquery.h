@@ -3,6 +3,7 @@
 
 #include "table.h"
 #include <unordered_map>
+#include <chrono>
 
 enum Log_level {
 	LOG_INFO,
@@ -15,9 +16,16 @@ enum Backend_Type {
 	BACKEND_MonetDB,
 	BACKEND_MariaDB
 };
+
+struct QueryStats{
+	long long monet_time;
+	long long postproc_time;
+};
 struct Config{
-    int running, new_query, server_mode,
-	 	backend_type, has_dll, exec_time, n_buffers;
+    int running, new_query, server_mode, 
+	 	backend_type, has_dll, 
+		n_buffers;
+	QueryStats stats;
     int buffer_sizes[];
 };
 
@@ -65,6 +73,27 @@ struct Context{
 	void* get_module_function(const char*);
 	std::unordered_map<const char*, void*> tables;
     std::unordered_map<const char*, uColRef *> cols;
+};
+
+class aq_timer {
+private:
+	std::chrono::high_resolution_clock::time_point now;
+public:
+	aq_timer(){
+		now = std::chrono::high_resolution_clock::now();
+	}
+	void reset(){
+		now = std::chrono::high_resolution_clock::now();
+	}
+	long long elapsed(){
+		long long ret = (std::chrono::high_resolution_clock::now() - now).count();
+		reset();
+		return ret;
+	}
+	long long lap() const{
+		long long ret = (std::chrono::high_resolution_clock::now() - now).count();
+		return ret;
+	}
 };
 
 #ifdef _WIN32

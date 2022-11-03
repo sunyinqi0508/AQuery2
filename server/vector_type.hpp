@@ -265,7 +265,7 @@ public:
 		}
 		size = this->size + dist;
 	}
-	inline void out(uint32_t n = 4, const char* sep = " ") const
+	inline void out(uint32_t n = 4000, const char* sep = " ") const
 	{
 		const char* more = "";
 		if (n < this->size)
