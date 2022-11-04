@@ -90,7 +90,9 @@ class expr(ast_node):
         self.udf_map = parent.context.udf_map
         self.func_maps = {**builtin_func, **self.udf_map, **user_module_func}
         self.operators = {**builtin_operators, **self.udf_map, **user_module_func}
-        self.ext_aggfuncs = ['sum', 'avg', 'count', 'min', 'max', 'last', 'first', 'prev', 'next']
+        self.ext_aggfuncs = ['sum', 'avg', 'count', 'min', 'max', 
+                             'last', 'first', 'prev', 'next', 'var', 
+                             'stddev']
         
     def produce(self, node):
         from engine.utils import enlist
