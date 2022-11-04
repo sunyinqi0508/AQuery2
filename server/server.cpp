@@ -308,7 +308,7 @@ int dll_main(int argc, char** argv, Context* cxt){
                 }   
                 else{
                     server->last_error = nullptr;
-                    continue;
+                    goto finalize;
                 } 
             }
             
@@ -322,8 +322,8 @@ int dll_main(int argc, char** argv, Context* cxt){
             cfg->new_query = 0;
         }
         //puts(cfg->running? "true": "false");
-        asm("");
-        PROMPT_RELEASE();
+        //__asm("");
+finalize:        PROMPT_RELEASE();
     }
     
     return 0;
