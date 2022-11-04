@@ -22,7 +22,7 @@ def init_config():
     from engine.utils import add_dll_dir
     # os.environ['CXX'] = 'C:/Program Files/LLVM/bin/clang.exe'
     os.environ['THREADING'] = '1'
-    os.environ['AQUERY_ITC_USE_SHMEM'] = '1'
+    os.environ['AQUERY_ITC_USE_SEMPH'] = '1'
 
     if  ('__config_initialized__' not in globals() or 
             not __config_initialized__):

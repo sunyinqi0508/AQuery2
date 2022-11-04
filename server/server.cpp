@@ -43,11 +43,11 @@ public:
 		native_handle = dispatch_semaphore_create(v);
 	}
 	void acquire() {
-        puts("acquire");
+        // puts("acquire");
 		dispatch_semaphore_wait(native_handle, DISPATCH_TIME_FOREVER);
 	}
 	void release() {
-        puts("release");
+        // puts("release");
 		dispatch_semaphore_signal(native_handle);
 	}
 	~A_Semaphore() {
@@ -94,7 +94,7 @@ public:
     ~A_Semaphore() { }
 };
 #endif
-#ifdef __AQUERY_ITC_USE_SHMEM__
+#ifdef __AQUERY_ITC_USE_SEMPH__
 A_Semaphore prompt{ true }, engine{ false };
 #define PROMPT_ACQUIRE() prompt.acquire()
 #define PROMPT_RELEASE() prompt.release()
@@ -281,6 +281,15 @@ int dll_main(int argc, char** argv, Context* cxt){
                                 //printf("F:: %s: %p, %p\n", fname, user_module_handle, dlsym(user_module_handle, fname));
                                 module_fn_map->insert_or_assign(fname, dlsym(user_module_handle, fname));
                                 //printf("F::: %p\n", module_fn_map->find("mydiv") != module_fn_map->end() ? module_fn_map->find("mydiv")->second : nullptr);
+                            }
+                            break;
+                        case 'O':
+                            {
+                                if(!server->haserror()){
+                                    timer.reset();
+                                    server->print_results();        
+                                    cfg->stats.postproc_time += timer.elapsed();
+                                }
                             }
                             break;
                         case 'U': // Unload Module

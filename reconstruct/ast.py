@@ -310,7 +310,6 @@ class projection(ast_node):
         
         
         # cpp module codegen
-        self.context.has_dll = True
         # extract typed-columns from result-set
         vid2cname = [0]*len(self.var_table)
         self.pyname2cname = dict()
@@ -404,15 +403,22 @@ class projection(ast_node):
 
         if 'into' in node:
             self.context.emitc(select_into(self, node['into']).ccode)
+            self.has_postproc = True
         if not self.distinct:
             self.finalize()
-            
+                    
     def finalize(self):      
         self.context.emitc(f'puts("done.");')
 
         if self.parent is None:
             self.context.sql_end()
-            self.context.postproc_end(self.postproc_fname)
+            if self.has_postproc:
+                self.context.has_dll = True
+                self.context.postproc_end(self.postproc_fname)
+            else:
+                self.context.ccode = ''
+                if self.limit != 0:
+                    self.context.direct_output()
         
 class select_distinct(projection):
     first_order = 'select_distinct'

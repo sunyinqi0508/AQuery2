@@ -83,8 +83,8 @@ ifeq ($(THREADING),1)
 	Defines +=  -DTHREADING
 endif
 
-ifeq ($(AQUERY_ITC_USE_SHMEM), 1)
-	Defines += -D__AQUERY_ITC_USE_SHMEM__
+ifeq ($(AQUERY_ITC_USE_SEMPH), 1)
+	Defines += -D__AQUERY_ITC_USE_SEMPH__
 endif
 SHAREDFLAGS += $(FPIC)
 

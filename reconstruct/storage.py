@@ -249,7 +249,10 @@ class Context:
         self.sql = ''
         self.ccode = ''
         self.finalize_query()
-        
+    
+    def direct_output(self):
+        self.queries.append('O')
+    
     def finalize_udf(self):
         if self.udf is not None:
             return (Context.udf_head 
