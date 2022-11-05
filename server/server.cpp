@@ -217,8 +217,13 @@ int dll_main(int argc, char** argv, Context* cxt){
     cxt->cfg = cfg;
     cxt->n_buffers = cfg->n_buffers;
     cxt->sz_bufs = buf_szs;
-    cxt->alt_server = NULL;
-    
+    if (cfg->backend_type == BACKEND_MonetDB && cxt->alt_server == nullptr)
+    {
+        auto alt_server = new Server(cxt);
+        alt_server->exec("SELECT '**** WELCOME TO AQUERY++! ****';");
+        puts(*(const char**)(alt_server->getCol(0)));
+        cxt->alt_server = alt_server;
+    }
     while(cfg->running){
         ENGINE_ACQUIRE();
         if (cfg->new_query) {

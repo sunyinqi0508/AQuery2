@@ -86,40 +86,56 @@ endif
 ifeq ($(AQUERY_ITC_USE_SEMPH), 1)
 	Defines += -D__AQUERY_ITC_USE_SEMPH__
 endif
-SHAREDFLAGS += $(FPIC)
+
+CXXFLAGS += $(OPTFLAGS) $(Defines) $(MonetDB_INC) 
+BINARYFLAGS = $(CXXFLAGS) $(LINKFLAGS) $(MonetDB_LIB)
+SHAREDFLAGS += $(FPIC) $(BINARYFLAGS)
 
 info:
-	$(info $(OPTFLAGS))
-	$(info $(OS_SUPPORT))
-	$(info $(OS)) 
-	$(info $(Defines))
-	$(info "test")
-	$(info $(LIBTOOL))
-	$(info $(MonetDB_INC))
-	$(info $(COMPILER))
-	$(info $(CXX))
-	$(info $(FPIC))
+	$(info This makefile script is used in AQuery to automatically build required libraries and executables.)
+	$(info Run it manually only for debugging purposes.)
+	$(info Targets (built by `make <target>`):)
+	$(info $"	pch: generate precompiled header)
+	$(info $"	libaquery.a: build static library)
+	$(info $"	server.so: build execution engine)
+	$(info $"	snippet: build generated query snippet)
+	$(info $"	server_uselib: build execution engine using shared library and pch)
+	$(info $"	snippet_uselib: build generated query snippet using shared library and pch)
+	$(info $"	docker: build docker image with name aquery)
+	$(info $"	launcher: build launcher for aquery ./aq)
+	$(info $"	clean: remove all generated binaraies and caches)
+	$(info )
+	$(info Variables:)
+	$(info $"	OPTFLAGS: $(OPTFLAGS))
+	$(info $"	OS_SUPPORT: $(OS_SUPPORT))
+	$(info $"	OS: $(OS)) 
+	$(info $"	Defines: $(Defines))
+	$(info $"	LIBTOOL: $(LIBTOOL))
+	$(info $"	MonetDB_INC: $(MonetDB_INC))
+	$(info $"	COMPILER: $(COMPILER))
+	$(info $"	CXX: $(CXX))
+	$(info $"	FPIC: $(FPIC))
 pch:
-	$(CXX) -x c++-header server/pch.hpp $(FPIC) $(MonetDB_INC) $(OPTFLAGS) $(CXXFLAGS) $(Defines)
+	$(CXX) -x c++-header server/pch.hpp $(FPIC) $(CXXFLAGS)
 libaquery.a:
-	$(CXX) -c $(FPIC) $(PCHFLAGS) $(LIBAQ_SRC) $(MonetDB_INC) $(MonetDB_LIB) $(OS_SUPPORT) $(Defines) $(OPTFLAGS) $(LINKFLAGS) $(CXXFLAGS) &&\
+	$(CXX) -c $(FPIC) $(PCHFLAGS) $(LIBAQ_SRC) $(MonetDB_LIB) $(OS_SUPPORT) $(CXXFLAGS) &&\
 	$(LIBTOOL) libaquery.a $(LIBAQ_OBJ) &&\
 	$(RANLIB) libaquery.a
 
 server.bin:
-	$(CXX) $(LIBAQ_SRC) $(LINKFLAGS) $(OS_SUPPORT) $(Defines)  $(MonetDB_INC) $(MonetDB_LIB) $(OPTFLAGS) $(CXXFLAGS) -o server.bin
+	$(CXX) $(LIBAQ_SRC) $(BINARYFLAGS) $(OS_SUPPORT) -o server.bin
 launcher:
-	$(CXX) -D__AQ_BUILD_LAUNCHER__ $(LIBAQ_SRC) $(LINKFLAGS) $(OS_SUPPORT) $(Defines)  $(MonetDB_INC) $(MonetDB_LIB) $(OPTFLAGS) $(CXXFLAGS) -o aq
+	$(CXX) -D__AQ_BUILD_LAUNCHER__ $(LIBAQ_SRC) $(OS_SUPPORT) $(BINARYFLAGS) -o aq
 server.so:
 #	$(CXX) -z muldefs server/server.cpp server/monetdb_conn.cpp -fPIC -shared $(OS_SUPPORT) monetdb/msvc/monetdbe.dll --std=c++1z -O3 -march=native -o server.so -I./monetdb/msvc 
-	$(CXX) $(SHAREDFLAGS) $(PCHFLAGS) $(LIBAQ_SRC) $(OS_SUPPORT) $(Defines) $(MonetDB_INC) $(MonetDB_LIB) $(OPTFLAGS) $(LINKFLAGS) $(CXXFLAGS) -o server.so 
+	$(CXX) $(SHAREDFLAGS) $(PCHFLAGS) $(LIBAQ_SRC) $(OS_SUPPORT) -o server.so 
 server_uselib:
-	$(CXX) $(SHAREDFLAGS) $(USELIB_FLAG),libaquery.a $(MonetDB_LIB) $(OPTFLAGS) $(LINKFLAGS) $(CXXFLAGS) -o server.so
+	$(CXX) $(SHAREDFLAGS) $(USELIB_FLAG),libaquery.a -o server.so
 
 snippet:
-	$(CXX) $(SHAREDFLAGS) $(PCHFLAGS) out.cpp $(LIBAQ_SRC) $(MonetDB_INC) $(MonetDB_LIB) $(Defines) $(OPTFLAGS) $(LINKFLAGS) $(CXXFLAGS) -o dll.so
+	$(CXX) $(SHAREDFLAGS) $(PCHFLAGS) out.cpp $(LIBAQ_SRC) -o dll.so
 snippet_uselib:
-	$(CXX) $(SHAREDFLAGS) $(PCHFLAGS) out.cpp libaquery.a $(MonetDB_INC) $(Defines) $(MonetDB_LIB) $(OPTFLAGS) $(LINKFLAGS) $(CXXFLAGS) -o dll.so
+	$(CXX) $(SHAREDFLAGS) $(PCHFLAGS) out.cpp libaquery.a -o dll.so
 
 docker:
 	docker build -t aquery .

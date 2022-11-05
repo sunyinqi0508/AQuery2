@@ -11,6 +11,7 @@ private:
 	using vector = vector_type<T>;
 	template<class ...T>
 	using tuple = std::tuple<T...>;
+
 	size_t current_size = 0, max_size, 
 		   interval, forced_clean, 
 		   forceclean_timer = 0;
@@ -19,9 +20,9 @@ private:
 	vector<tuple<void*, void (*)(void*)>> *q, *q_back;
 	std::thread handle;
 	std::atomic<std::thread::id> lock;
-
+	// maybe use volatile std::thread::id instead
 protected:
-	void acquire_lock(){
+	void acquire_lock() {
 		auto this_pid = std::this_thread::get_id();
 		while(lock != this_pid)
 		{
@@ -38,7 +39,7 @@ protected:
 
 	void gc()
 	{
-		if (q->size() == 0)
+		if (q->size == 0)
 			return;
 		auto t = q;
 		acquire_lock();

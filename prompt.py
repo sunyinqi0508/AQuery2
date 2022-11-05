@@ -195,7 +195,7 @@ class Config:
         self.new_query = nq
         self.server_mode = mode.value 
         self.running = 1
-        self.backend_type = Backend_Type.BACKEND_AQuery.value
+        self.backend_type = Backend_Type.BACKEND_MonetDB.value
         self.has_dll = 0
         self.n_buffers = n_bufs
         self.monetdb_time = 0
@@ -399,6 +399,8 @@ def prompt(running = lambda:True, next = lambda:input('> '), state = None):
     payload = None
     keep = True
     cxt = engine.initialize()
+    parser.parse('SELECT "**** WELCOME TO AQUERY++! ****";')
+    
     # state.currstats = QueryStats()
     # state.need_print = False
     while running():
