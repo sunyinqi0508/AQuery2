@@ -4,7 +4,7 @@
 
 AQuery++ Database is a cross-platform, In-Memory Column-Store Database that incorporates compiled query execution. (**Note**: If you encounter any problems, feel free to contact me via ys3540@nyu.edu)
 
-`## Docker (Recommended): 
+## Docker (Recommended): 
    - See installation instructions from [docker.com](https://www.docker.com). Run **docker desktop** to start docker engine.
    - In AQuery root directory, type `make docker` to build the docker image from scratch. 
    - For Arm-based Mac users, you would have to build and run the **x86_64** docker image because MonetDB doesn't offer official binaries for arm64 Linux. (Run `docker buildx build --platform=linux/amd64 -t aquery .` instead of `make docker`)

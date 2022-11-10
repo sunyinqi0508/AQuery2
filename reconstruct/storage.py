@@ -253,6 +253,10 @@ class Context:
     def direct_output(self):
         self.queries.append('O')
     
+    def abandon_postproc(self):
+        self.ccode = ''
+        self.finalize_query()
+    
     def finalize_udf(self):
         if self.udf is not None:
             return (Context.udf_head 
