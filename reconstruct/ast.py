@@ -244,7 +244,7 @@ class projection(ast_node):
         if 'outfile' in node:
             self.outfile = outfile(self, node['outfile'], sql = self.sql)
             if not self.has_postproc:
-                self.sql += self.outfile.sql
+                self.sql = self.outfile.sql
         else:
             self.outfile = None
         
@@ -343,10 +343,10 @@ class projection(ast_node):
         if 'into' not in node:
             self.context.emitc(f'print(*{self.out_table.contextname_cpp});')
         
-        if self.outfile:
-            self.outfile.finalize()
+        if self.outfile and self.has_postproc:
+                self.outfile.finalize()
 
-        if 'into' in node:
+        if 'into' in node: 
             self.context.emitc(select_into(self, node['into']).ccode)
         if not self.distinct:
             self.finalize()
@@ -356,7 +356,10 @@ class projection(ast_node):
 
         if self.parent is None:
             self.context.sql_end()
-            self.context.postproc_end(self.postproc_fname)
+            if self.outfile and not self.has_postproc:
+                self.context.abandon_postproc()
+            else:
+                self.context.postproc_end(self.postproc_fname)
         
 class select_distinct(projection):
     first_order = 'select_distinct'
@@ -1024,8 +1027,8 @@ class outfile(ast_node):
     name="_outfile"
     def __init__(self, parent, node, context = None, *, sql = None):
         self.node = node
-        super().__init__(parent, node, context)
         self.sql = sql if sql else ''
+        super().__init__(parent, node, context)
         
     def init(self, _):
         assert(isinstance(self.parent, projection))
@@ -1045,10 +1048,10 @@ class outfile(ast_node):
     def produce_monetdb(self, node):
         filename = node['loc']['literal'] if 'loc' in node else node['literal']
         import os
-        p = os.path.abspath('.').replace('\\', '/') + '/' + filename
-        self.sql = f'COPY {self.sql} INTO "{p}"'
-        d = '\t'
-        e = '\n'
+        p =  os.path.abspath('.').replace('\\', '/') + '/' + filename
+        self.sql = f'COPY {self.parent.sql} INTO \'{p}\''
+        d = ','
+        e = '\\n'
         if 'term' in node:
             d = node['term']['literal']
         self.sql += f' delimiters \'{d}\', \'{e}\''
