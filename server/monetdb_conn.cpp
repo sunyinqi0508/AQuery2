@@ -6,6 +6,7 @@
 #include "monetdb_conn.h"
 #include "monetdbe.h"
 #include "table.h"
+
 #undef static_assert
 
 const char* monetdbe_type_str[] = {
@@ -121,6 +122,8 @@ bool Server::haserror(){
         return false;
     }
 }
+
+
 void Server::print_results(const char* sep, const char* end){
 
     if (!haserror()){
@@ -138,6 +141,7 @@ void Server::print_results(const char* sep, const char* end){
                 std::string(types::printf_str[types::monetdbe_type_aqtypes[cols[i]->type]]) 
                 + (i < ncols - 1 ? sep : "");
             puts(printf_string[i].c_str());
+            puts(monetdbe_type_str[cols[i]->type]);
             col_data[i] = static_cast<char *>(cols[i]->data);
             szs [i] = monetdbe_type_szs[cols[i]->type];
             header_string = header_string + cols[i]->name + sep + '|' + sep;
@@ -179,7 +183,7 @@ void* Server::getCol(int col_idx){
             auto _ret_col = static_cast<monetdbe_column*>(this->ret_col);
             cnt = _ret_col->count;
              printf("Dbg: Getting col %s, type: %s\n", 
-                 _ret_col->name, monetdbe_type_str[_ret_col->type]);
+                _ret_col->name, monetdbe_type_str[_ret_col->type]);
             return _ret_col->data;
         }
         else{
@@ -198,10 +202,10 @@ Server::~Server(){
 
 bool Server::havehge() {
 #if defined(_MONETDBE_LIB_) and defined(HAVE_HGE)
-    puts("true");
+    // puts("true");
     return HAVE_HGE;
 #else
-    puts("false");
+    // puts("false");
     return false;
 #endif
 }

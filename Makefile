@@ -8,15 +8,15 @@ ifeq ($(AQ_DEBUG), 1)
 	LINKFLAGS = 
 else
 	OPTFLAGS = -O3 -DNDEBUG -fno-stack-protector 
-	LINKFLAGS = -flto
+	LINKFLAGS = -flto -s
 endif
 SHAREDFLAGS = -shared  
 FPIC = -fPIC
 COMPILER = $(shell $(CXX) --version | grep -q clang && echo clang|| echo gcc) 
 LIBTOOL = ar rcs
 USELIB_FLAG = -Wl,--whole-archive,libaquery.a -Wl,-no-whole-archive
-LIBAQ_SRC = server/server.cpp server/monetdb_conn.cpp server/io.cpp 
-LIBAQ_OBJ = server.o monetdb_conn.o io.o 
+LIBAQ_SRC = server/monetdb_conn.cpp server/libaquery.cpp 
+LIBAQ_OBJ = monetdb_conn.o libaquery.o 
 SEMANTIC_INTERPOSITION = -fno-semantic-interposition
 RANLIB = ranlib
 
@@ -118,19 +118,21 @@ info:
 pch:
 	$(CXX) -x c++-header server/pch.hpp $(FPIC) $(CXXFLAGS)
 libaquery.a:
-	$(CXX) -c $(FPIC) $(PCHFLAGS) $(LIBAQ_SRC) $(MonetDB_LIB) $(OS_SUPPORT) $(CXXFLAGS) &&\
+	$(CXX) -c $(FPIC) $(PCHFLAGS) $(LIBAQ_SRC) $(OS_SUPPORT) $(CXXFLAGS) &&\
 	$(LIBTOOL) libaquery.a $(LIBAQ_OBJ) &&\
 	$(RANLIB) libaquery.a
 
+warmup:
+	$(CXX) $(SHAREDFLAGS) msc-plugin/dummy.cpp libaquery.a -o dll.so
 server.bin:
 	$(CXX) $(LIBAQ_SRC) $(BINARYFLAGS) $(OS_SUPPORT) -o server.bin
 launcher:
 	$(CXX) -D__AQ_BUILD_LAUNCHER__ $(LIBAQ_SRC) $(OS_SUPPORT) $(BINARYFLAGS) -o aq
 server.so:
 #	$(CXX) -z muldefs server/server.cpp server/monetdb_conn.cpp -fPIC -shared $(OS_SUPPORT) monetdb/msvc/monetdbe.dll --std=c++1z -O3 -march=native -o server.so -I./monetdb/msvc 
-	$(CXX) $(SHAREDFLAGS) $(PCHFLAGS) $(LIBAQ_SRC) $(OS_SUPPORT) -o server.so 
+	$(CXX) $(SHAREDFLAGS) $(PCHFLAGS) $(LIBAQ_SRC) server/server.cpp server/dragonbox/dragonbox_to_chars.cpp $(OS_SUPPORT) -o server.so 
 server_uselib:
-	$(CXX) $(SHAREDFLAGS) $(USELIB_FLAG),libaquery.a -o server.so
+	$(CXX) $(SHAREDFLAGS) server/server.cpp libaquery.a server/dragonbox/dragonbox_to_chars.cpp -o server.so
 
 snippet:
 	$(CXX) $(SHAREDFLAGS) $(PCHFLAGS) out.cpp $(LIBAQ_SRC) -o dll.so

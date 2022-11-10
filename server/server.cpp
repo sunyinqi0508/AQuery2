@@ -1,6 +1,5 @@
 #include "pch_msc.hpp"
 
-#include "../csv.h"
 #include <iostream>
 #include <string>
 #include <chrono>
@@ -10,28 +9,35 @@
 #ifdef THREADING
 #include "threading.h"
 #endif
+
 #ifdef _WIN32
 #include "winhelper.h"
 #else 
 #include <dlfcn.h>
 #include <fcntl.h>
 #include <sys/mman.h>
+
+// fast numeric to string conversion
+#include "jeaiii_to_text.h"
+#include "dragonbox/dragonbox_to_chars.h"
+
 struct SharedMemory
 {
     std::atomic<bool> a;
     int hFileMap;
     void* pData;
-    SharedMemory(const char* fname) {
+    explicit SharedMemory(const char* fname) {
         hFileMap = open(fname, O_RDWR, 0);
         if (hFileMap != -1)
-            pData = mmap(NULL, 8, PROT_READ | PROT_WRITE, MAP_SHARED, hFileMap, 0);
+            pData = mmap(nullptr, 8, PROT_READ | PROT_WRITE, MAP_SHARED, hFileMap, 0);
         else 
-            pData = 0;
+            pData = nullptr;
     }
-    void FreeMemoryMap() {
-
+    void FreeMemoryMap() const {
+        // automatically unmapped in posix
     }
 };
+
 #ifndef __USE_STD_SEMAPHORE__
 #ifdef __APPLE__
 #include <dispatch/dispatch.h>
@@ -74,9 +80,10 @@ public:
 };
 #endif
 #endif
-
 #endif
+
 #ifdef __USE_STD_SEMAPHORE__
+#define __AQUERY_ITC_USE_SEMPH__
 #include <semaphore>
 class A_Semaphore {
 private:
@@ -94,6 +101,7 @@ public:
     ~A_Semaphore() { }
 };
 #endif
+
 #ifdef __AQUERY_ITC_USE_SEMPH__
 A_Semaphore prompt{ true }, engine{ false };
 #define PROMPT_ACQUIRE() prompt.acquire()
@@ -107,11 +115,9 @@ A_Semaphore prompt{ true }, engine{ false };
 #define ENGINE_RELEASE() 
 #endif
 
-#include "aggregations.h"
 typedef int (*code_snippet)(void*);
 typedef void (*module_init_fn)(Context*);
 
-int test_main();
 
 int n_recv = 0;
 char** n_recvd = nullptr;
@@ -119,6 +125,7 @@ char** n_recvd = nullptr;
 __AQEXPORT__(void) wait_engine(){
     PROMPT_ACQUIRE();
 }
+
 __AQEXPORT__(void) wake_engine(){
     ENGINE_RELEASE();
 }
@@ -152,42 +159,6 @@ __AQEXPORT__(bool) have_hge(){
 #endif
 }
 
-Context::Context() {
-    current.memory_map = new std::unordered_map<void*, deallocator_t>;
-    init_session();
-}
-
-Context::~Context() {
-    auto memmap = (std::unordered_map<void*, deallocator_t>*) this->current.memory_map;
-    delete memmap;
-}
-
-void Context::init_session(){
-    if (log_level == LOG_INFO){
-        memset(&(this->current.stats), 0, sizeof(Session::Statistic));
-    }
-    auto memmap = (std::unordered_map<void*, deallocator_t>*) this->current.memory_map;
-    memmap->clear();
-}
-
-void Context::end_session(){
-    auto memmap = (std::unordered_map<void*, deallocator_t>*) this->current.memory_map;
-    for (auto& mem : *memmap) {
-        mem.second(mem.first);
-    }
-    memmap->clear();
-}
-
-void* Context::get_module_function(const char* fname){
-    auto fmap = static_cast<std::unordered_map<std::string, void*>*>
-        (this->module_function_maps);
-    // printf("%p\n", fmap->find("mydiv")->second);
-    //  for (const auto& [key, value] : *fmap){
-    //      printf("%s %p\n", key.c_str(), value);
-    //  }
-    auto ret = fmap->find(fname);
-    return ret == fmap->end() ? nullptr : ret->second;
-}
 
 void initialize_module(const char* module_name, void* module_handle, Context* cxt){
     auto _init_module = reinterpret_cast<module_init_fn>(dlsym(module_handle, "init_session"));
@@ -253,7 +224,7 @@ int dll_main(int argc, char** argv, Context* cxt){
                                 timer.reset();
                                 server->exec(n_recvd[i] + 1);
                                 cfg->stats.monet_time += timer.elapsed();
-                                printf("Exec Q%d: %s", i, n_recvd[i]);
+                                // printf("Exec Q%d: %s", i, n_recvd[i]);
                             }
                             break;
                         case 'P': // Postprocessing procedure 
@@ -313,7 +284,7 @@ int dll_main(int argc, char** argv, Context* cxt){
                         dlclose(handle);
                         handle = nullptr;
                     }
-                    printf("%ld, %ld", cfg->stats.monet_time, cfg->stats.postproc_time);
+                    printf("%lld, %lld", cfg->stats.monet_time, cfg->stats.postproc_time);
                     cxt->end_session();
                     n_recv = 0;
                 }
@@ -370,20 +341,21 @@ extern "C" int __DLLEXPORT__ main(int argc, char** argv) {
 #ifdef __AQ_BUILD_LAUNCHER__
    return launcher(argc, argv);
 #endif
-   puts("running");
+   // puts("running");
    Context* cxt = new Context();
-   cxt->log("%d %s\n", argc, argv[1]);
+   // cxt->log("%d %s\n", argc, argv[1]);
 
 #ifdef THREADING
     auto tp = new ThreadPool();
     cxt->thread_pool = tp;
 #endif
     
+#ifdef __AQ_THREADED_GC__
+    cxt->gc_thread = new std::thread(gc_thread, cxt);
+#endif    
    const char* shmname;
    if (argc < 0)
         return dll_main(argc, argv, cxt);
-   else if (argc <= 1)
-        return test_main();
    else
        shmname = argv[1];
    SharedMemory shm = SharedMemory(shmname);
@@ -415,58 +387,5 @@ extern "C" int __DLLEXPORT__ main(int argc, char** argv) {
    }
    shm.FreeMemoryMap();
    return 0;
-}
-
-#include "utils.h"
-#include "table_ext_monetdb.hpp"
-int test_main()
-{
-    Context* cxt = new Context();
-    if (cxt->alt_server == 0)
-        cxt->alt_server = new Server(cxt);
-    Server* server = reinterpret_cast<Server*>(cxt->alt_server);
-
-    const char* qs[]= {
-        "QCREATE TABLE trade(stocksymbol INT, time INT, quantity INT, price INT);",
-        "QCOPY OFFSET 2 INTO trade FROM  'w:/gg/AQuery++/data/trade_numerical.csv'  ON SERVER    USING DELIMITERS  ',';",
-        "QSELECT stocksymbol, (SUM((quantity * price)) / SUM(quantity)) AS weighted_average  FROM trade GROUP BY stocksymbol  ;",
-        "Pdll_5lYrMY",
-        "QSELECT stocksymbol, price  FROM trade ORDER BY time  ;",
-        "Pdll_4Sg6Ri",
-        "QSELECT stocksymbol, quantity, price  FROM trade ORDER BY time  ;",
-        "Pdll_5h4kL2",
-        "QSELECT stocksymbol, price  FROM trade ORDER BY time  ;",
-        "Pdll_7tEWCO",
-        "QSELECT query_c.weighted_moving_averages, query_c.stocksymbol  FROM query_c;",
-        "Pdll_7FCPnF"
-    };
-    n_recv = sizeof(qs)/(sizeof (char*));
-	n_recvd = const_cast<char**>(qs);
-            void* handle = 0;
-                    handle = dlopen("./dll.so", RTLD_LAZY);
-                    cxt->init_session();
-                    for (int i = 0; i < n_recv; ++i)
-                    {
-                        //printf("%s, %d\n", n_recvd[i], n_recvd[i][0] == 'Q');
-                        switch (n_recvd[i][0]) {
-                        case 'Q': // SQL query for monetdbe
-                        {
-                            server->exec(n_recvd[i] + 1);
-                            printf("Exec Q%d: %s\n", i, n_recvd[i]);
-                        }
-                        break;
-                        case 'P': // Postprocessing procedure 
-                            if (handle && !server->haserror()) {
-                                code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, n_recvd[i] + 1));
-                                c(cxt);
-                            }
-                            break;
-                        }
-                    }
-                    n_recv = 0;
-
-    //static_assert(std::is_same_v<decltype(fill_integer_array<5, 1>()), std::integer_sequence<bool, 1,1,1,1,1>>, "");
-    
-    return 0;
 }
 

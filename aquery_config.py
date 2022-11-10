@@ -11,6 +11,7 @@ cygroot = 'c:/msys64/usr/bin'
 msbuildroot = ''
 os_platform = 'unknown'
 build_driver = 'Auto'
+compilation_output = True
 
 def init_config():
     global __config_initialized__, os_platform, msbuildroot, build_driver

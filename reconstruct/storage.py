@@ -156,6 +156,7 @@ class Context:
         self.queries = []
         self.module_init_loc = 0
         self.special_gb = False
+        self.has_dll = False
          
     def __init__(self):
         self.tables_byname = dict()
@@ -169,7 +170,6 @@ class Context:
         self.udf_agg_map = dict()
         self.use_columnstore = False
         self.print = print
-        self.has_dll = False
         self.dialect = 'MonetDB'
         self.is_msvc = False
         self.have_hge = False

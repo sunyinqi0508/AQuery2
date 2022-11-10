@@ -1,6 +1,12 @@
 #ifndef _AQUERY_H
 #define _AQUERY_H
 
+#ifdef __INTELLISENSE__
+	#define __AQUERY_ITC_USE_SEMPH__
+	#define THREADING
+	#define __AQ_THREADED_GC__
+#endif
+
 #include "table.h"
 #include <unordered_map>
 #include <chrono>
@@ -55,7 +61,10 @@ struct Context{
 #ifdef THREADING
 	void* thread_pool;
 #endif	
-	printf_type print = printf;
+#ifdef __AQ_THREADED_GC__
+	void* gc;
+#endif
+	printf_type print = &printf;
 	Context();
 	virtual ~Context();
 	template <class ...Types>

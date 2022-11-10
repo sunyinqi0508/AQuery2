@@ -231,7 +231,7 @@ DROP TABLE my_table IF EXISTS
 - `next(col), prev(col)`: moving column back and forth by 1, e.g. `next(col)[i] = col[i+1]`.
 - `first(col), last(col)`: first and last value of a column, i.e. `first(col)= col[0]`, `last(col) = col[n-1]`.
 - `sqrt(x), trunc(x), and other builtin math functions`: value-wise math operations. `sqrt(x)[i] = sqrt(x[i])`
-- `pack(cols, ...)`: pack multiple columns into a single column. 
+- `pack(cols, ...)`: pack multiple columns with exact same type into a single column. 
 
 # Architecture 
 ![Architecture](./docs/arch-hybrid.svg)
@@ -287,3 +287,24 @@ DROP TABLE my_table IF EXISTS
 - [ ] Bug: Order By after Group By
 - [ ] Functionality: Having clause, With clause
 - [ ] Decouple expr.py
+
+# Credit:
+- [mo-sql-parsing](https://github.com/klahnakoski/mo-sql-parsing) <br>
+  Author: Kyle Lahnakoski <br>
+  License (Mozilla Public License 2.0): https://github.com/klahnakoski/mo-sql-parsing/blob/dev/LICENSE 
+
+- [Fast C++ CSV pParser](https://github.com/ben-strasser/fast-cpp-csv-parser) <br>
+  Author: Ben Strasser <br>
+  License (BSD 3-Clause License): https://github.com/ben-strasser/fast-cpp-csv-parser/blob/master/LICENSE
+
+- [Dragonbox](https://github.com/jk-jeon/dragonbox)<br>
+  Author: Junekey Jeon
+  License (Boost, Apache2-LLVM): <br>https://github.com/jk-jeon/dragonbox/blob/master/LICENSE-Boost <br>
+  https://github.com/jk-jeon/dragonbox/blob/master/LICENSE-Apache2-LLVM
+
+- [itoa](https://github.com/jeaiii/itoa) <br>
+  Author: James Edward Anhalt III <br>
+  License (MIT): https://github.com/jeaiii/itoa/blob/main/LICENSE
+
+- [MobetDB] (https://www.monetdb.org) <br>
+  License (Mozilla Public License): https://github.com/MonetDB/MonetDB/blob/master/license.txt

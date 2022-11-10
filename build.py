@@ -73,7 +73,7 @@ class checksums:
 class build_manager:
     sourcefiles = [
                    'build.py', 'Makefile', 
-                   'server/server.cpp', 'server/io.cpp',  
+                   'server/server.cpp', 'server/libaquery.cpp',  
                    'server/monetdb_conn.cpp', 'server/threading.cpp', 
                    'server/winhelper.cpp' 
                    ]
@@ -94,6 +94,9 @@ class build_manager:
             return False
         def build(self, stdout = sys.stdout, stderr = sys.stderr):
             ret = True
+            if not aquery_config.compilation_output:
+                stdout = nullstream
+                stderr = nullstream
             for c in self.build_cmd:
                 if c:
                     try: # only last success matters
@@ -102,6 +105,8 @@ class build_manager:
                         ret = False
                         pass
             return ret
+        def warmup(self):
+            return True
                 
     class MakefileDriver(DriverBase):
         def __init__(self, mgr : 'build_manager') -> None:
@@ -113,7 +118,7 @@ class build_manager:
                 mgr.cxx = os.environ['CXX']
             if 'AQ_DEBUG' not in os.environ:
                 os.environ['AQ_DEBUG'] = '0' if mgr.OptimizationLv else '1'
-                
+
         def libaquery_a(self):
             self.build_cmd = [['rm', 'libaquery.a'],['make', 'libaquery.a']]
             return self.build()
@@ -168,6 +173,10 @@ class build_manager:
             self.build_cmd = [[aquery_config.msbuildroot, loc, self.opt, self.platform]]
             return self.build()
 
+        def warmup(self):
+            self.build_cmd = [['make', 'warmup']]
+            return self.build()
+            
     #class PythonDriver(DriverBase):
     #    def __init__(self, mgr : 'build_manager') -> None:
     #        super().__init__(mgr)           
@@ -223,6 +232,9 @@ class build_manager:
             current.calc(self.cxx, libaquery_a)
             with open('.cached', 'wb') as cache_sig:
                 cache_sig.write(pickle.dumps(current))
+            self.driver.warmup()
+            
+            
         else:
             if aquery_config.os_platform == 'mac':
                 os.system('./arch-check.sh')

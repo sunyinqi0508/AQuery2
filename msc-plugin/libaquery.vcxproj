@@ -238,7 +238,7 @@
   <ItemGroup>
     <ClCompile Include="..\server\server.cpp" />
     <ClCompile Include="..\server\winhelper.cpp" />
-    <ClCompile Include="..\server\io.cpp" />
+    <ClCompile Include="..\server\libaquery.cpp" />
     <ClCompile Include="..\server\monetdb_conn.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
