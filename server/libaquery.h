@@ -7,9 +7,31 @@
 	#define __AQ_THREADED_GC__
 #endif
 
-#include "table.h"
 #include <unordered_map>
 #include <chrono>
+class aq_timer {
+private:
+	std::chrono::high_resolution_clock::time_point now;
+public:
+	aq_timer(){
+		now = std::chrono::high_resolution_clock::now();
+	}
+	void reset(){
+		now = std::chrono::high_resolution_clock::now();
+	}
+	long long elapsed(){
+		long long ret = (std::chrono::high_resolution_clock::now() - now).count();
+		reset();
+		return ret;
+	}
+	long long lap() const{
+		long long ret = (std::chrono::high_resolution_clock::now() - now).count();
+		return ret;
+	}
+};
+
+#include "table.h"
+
 
 enum Log_level {
 	LOG_INFO,
@@ -84,26 +106,7 @@ struct Context{
     std::unordered_map<const char*, uColRef *> cols;
 };
 
-class aq_timer {
-private:
-	std::chrono::high_resolution_clock::time_point now;
-public:
-	aq_timer(){
-		now = std::chrono::high_resolution_clock::now();
-	}
-	void reset(){
-		now = std::chrono::high_resolution_clock::now();
-	}
-	long long elapsed(){
-		long long ret = (std::chrono::high_resolution_clock::now() - now).count();
-		reset();
-		return ret;
-	}
-	long long lap() const{
-		long long ret = (std::chrono::high_resolution_clock::now() - now).count();
-		return ret;
-	}
-};
+
 
 #ifdef _WIN32
 #define __DLLEXPORT__  __declspec(dllexport) __stdcall 
@@ -115,3 +118,5 @@ public:
 typedef void (*deallocator_t) (void*);
 
 #endif
+
+void test();

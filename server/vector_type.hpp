@@ -17,13 +17,15 @@
 #include "types.h"
 
 #pragma pack(push, 1)
+template<class T>
+struct vector_base {};
 struct vectortype_cstorage{
 	void* container;
 	unsigned int size, capacity;
 };
 
 template <typename _Ty>
-class vector_type {
+class vector_type : public vector_base<_Ty>{
 public:
 	typedef vector_type<_Ty> Decayed_t;
 	void inline _copy(const vector_type<_Ty>& vt) {

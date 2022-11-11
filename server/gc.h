@@ -3,11 +3,13 @@
 class GC {
 private:;
 
-	size_t max_size, max_slots, 
+	size_t max_slots, 
 		   interval, forced_clean, 
 		   forceclean_timer = 0;
+	uint64_t max_size;
 	bool running, alive;
 //  ptr, dealloc, ref, sz
+	uint32_t threshould;
 	void *q, *q_back;
 	void* handle;
 	std::atomic<uint32_t> slot_pos;
@@ -29,19 +31,21 @@ public:
 		);
 
 	GC(
-		uint32_t max_size = 0xfffffff, uint32_t max_slots = 4096, 
-		uint32_t interval = 10000, uint32_t forced_clean = 1000000 //one seconds
+		uint64_t max_size = 0xfffffff, uint32_t max_slots = 4096, 
+		uint32_t interval = 10000, uint32_t forced_clean = 1000000,
+		uint32_t threshould = 64 //one seconds
 	) : max_size(max_size), max_slots(max_slots), 
-		interval(interval), forced_clean(forced_clean){
+		interval(interval), forced_clean(forced_clean), 
+		threshould(threshould) {
 
 		start_deamon();
-		GC::gc = this;
+		GC::gc_handle = this;
 	} // 256 MB
 
 	~GC(){
 		terminate_daemon();
 	}
-	static GC* gc;
+	static GC* gc_handle;
     constexpr static void(*_free) (void*) = free;
 };
 

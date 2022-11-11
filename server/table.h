@@ -213,7 +213,7 @@ template<>
 class ColRef<void> : public ColRef<int> {};
 
 template<typename _Ty>
-class ColView {
+class ColView : public vector_base<_Ty> {
 public:
 	typedef ColRef<_Ty> Decayed_t;
 	const uint32_t size;

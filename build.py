@@ -80,7 +80,7 @@ class build_manager:
     headerfiles = ['server/aggregations.h', 'server/hasher.h', 'server/io.h', 
                    'server/libaquery.h', 'server/monetdb_conn.h', 'server/pch.hpp', 
                    'server/table.h', 'server/threading.h', 'server/types.h', 'server/utils.h', 
-                   'server/winhelper.h', 'server/gc.hpp', 'server/vector_type.hpp', 
+                   'server/winhelper.h', 'server/gc.h', 'server/vector_type.hpp', 
                    'server/table_ext_monetdb.hpp' 
                    ]
    
@@ -120,7 +120,7 @@ class build_manager:
                 os.environ['AQ_DEBUG'] = '0' if mgr.OptimizationLv else '1'
 
         def libaquery_a(self):
-            self.build_cmd = [['rm', 'libaquery.a'],['make', 'libaquery.a']]
+            self.build_cmd = [['rm', 'libaquery.a'],['make', 'libaquery']]
             return self.build()
         def pch(self):
             self.build_cmd = [['rm', 'server/pch.hpp.gch'], ['make', 'pch']]

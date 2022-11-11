@@ -313,6 +313,7 @@ void* Context::get_module_function(const char* fname){
     auto ret = fmap->find(fname);
     return ret == fmap->end() ? nullptr : ret->second;
 }
+
 // template<typename _Ty>
 // inline void vector_type<_Ty>::out(uint32_t n, const char* sep) const
 // {
@@ -328,10 +329,8 @@ void* Context::get_module_function(const char* fname){
 // }
 
 #include "gc.h"
-#include <vector_type>
 #include <utility>
 #include <thread>
-#include <chrono>
 #ifndef __AQ_USE_THREADEDGC__
 
 struct gcmemory_t{
@@ -341,41 +340,41 @@ struct gcmemory_t{
 
 using memoryqueue_t = gcmemory_t*;
 void GC::acquire_lock() {
-	auto this_tid = std::this_thread::get_id();
-	while(lock != this_tid)
-	{
-		while(lock != this_tid && lock != std::thread::id()) {
-			std::this_thread::sleep_for(std::chrono::milliseconds(0));
-		}
-		lock = this_tid;
-	}
+	// auto this_tid = std::this_thread::get_id();
+	// while(lock != this_tid)
+	// {
+	// 	while(lock != this_tid && lock != std::thread::id()) {
+	// 		std::this_thread::sleep_for(std::chrono::milliseconds(0));
+	// 	}
+	// 	lock = this_tid;
+	// }
 }
 
 void GC::release_lock(){
-	lock = std::thread::id();
+	// lock = std::thread::id();
 }
 
 void GC::gc()
 {
-	auto& _q = static_cast<memoryqueue_t*>(q);
-	auto& _q_back = static_cast<memoryqueue_t*>(q_back);
-	if (_q->size == 0)
+	auto _q = static_cast<memoryqueue_t>(q);
+	auto _q_back = static_cast<memoryqueue_t>(q_back);
+	if (slot_pos == 0)
 		return;
 	auto t = _q;
 	lock = true;
-	while(alive_cnt > 0);
-	_q = q_back;
+	while(alive_cnt != 0);
+	q = _q_back;
 	uint32_t _slot = slot_pos;
 	slot_pos = 0;
 	current_size = 0;
 	lock = false;
-	_q_back = t;
+	q_back = t;
 
 	for(uint32_t i = 0; i < _slot; ++i){
-		if (_q_back[i]->memory != nullptr && _q_back[i]->deallocator != nullptr)
-			_q_back[i]->deallocator(_q_back[i]->memory);
+		if (_q[i].memory != nullptr && _q[i].deallocator != nullptr)
+			_q[i].deallocator(_q[i].memory);
 	}
-	memset(_q_back, 0, sizeof(gcmemory_t) * _slot);
+	memset(_q, 0, sizeof(gcmemory_t) * _slot);
 	running = false;
 }
 
@@ -384,7 +383,7 @@ void GC::daemon() {
 
 	while (alive) {
 		if (running) {
-			if (current_size > max_size || 
+			if (current_size - max_size > 0 || 
 				forceclean_timer > forced_clean) 
 			{
 				gc();
@@ -433,16 +432,24 @@ void GC::reg(void* v, uint32_t sz, void(*f)(void*)) { //~ 40ns expected v. free 
 		f(v);
 		return;
 	}
-	auto _q = static_cast<memoryqueue_t>q;
+	auto _q = static_cast<memoryqueue_t>(q);
 	while(lock);
 	++alive_cnt;
 	current_size += sz;
 	auto _slot = (slot_pos += 1);
-	q[_slot] = {v, f};
+	_q[_slot] = {v, f};
 	--alive_cnt;
 	running = true;
 }
 
 #endif
 
-static GC* GC::gc = nullptr;
+GC* GC::gc_handle = nullptr;
+
+#include "dragonbox/dragonbox_to_chars.h"
+void test(){
+	char buf[32];
+	double d = 123456789.123456789;
+	auto ret = jkj::dragonbox::to_chars(d, buf);
+	printf("%s\n", buf);
+}

@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 #include <chrono>
+#include <thread>
 
 #include "libaquery.h"
 #include "monetdb_conn.h"
@@ -16,6 +17,7 @@
 #include <dlfcn.h>
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <atomic>
 
 // fast numeric to string conversion
 #include "jeaiii_to_text.h"
@@ -171,6 +173,7 @@ void initialize_module(const char* module_name, void* module_handle, Context* cx
 }
 
 int dll_main(int argc, char** argv, Context* cxt){
+    test();
     aq_timer timer;
     Config *cfg = reinterpret_cast<Config *>(argv[0]);
     std::unordered_map<std::string, void*> user_module_map;

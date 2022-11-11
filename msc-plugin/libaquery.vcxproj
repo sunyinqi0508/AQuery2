@@ -221,7 +221,7 @@
   <ItemGroup>
     <ClInclude Include="..\csv.h" />
     <ClInclude Include="..\server\aggregations.h" />
-    <ClInclude Include="..\server\gc.hpp" />
+    <ClInclude Include="..\server\gc.h" />
     <ClInclude Include="..\server\hasher.h" />
     <ClInclude Include="..\server\io.h" />
     <ClInclude Include="..\server\libaquery.h" />
