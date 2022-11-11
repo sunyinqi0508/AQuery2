@@ -47,8 +47,8 @@ namespace jkj::dragonbox {
                                                                          result.exponent, buffer);
                 }
                 else {
-                    std::memcpy(buffer, "0E0", 3);
-                    return buffer + 3;
+                    *buffer = '0';
+                    return buffer + 1;
                 }
             }
             else {

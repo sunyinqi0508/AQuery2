@@ -1,4 +1,4 @@
-
+#pragma once 
 // Copyright (c) 2022 James Edward Anhalt III - https://github.com/jeaiii/itoa
 using u32 = decltype(0xffffffff);
 using u64 = decltype(0xffffffffffffffff);
@@ -81,14 +81,18 @@ inline char* to_text(char text[], long long i) { return to_text_from_integer(tex
 inline char* to_text(char text[], unsigned long long i) { return to_text_from_integer(text, i); }
 
 // Copyright (c) 2022 Bill Sun
+
+//#if defined(SIZEOF___INT128) || (defined(SIZEOF___INT128_T) && defined(SIZEOF___UINT128_T))
 constexpr static __uint128_t _10_19 = 10000000000000000000ull, 
     _10_37 = _10_19*_10_19 / 10;
 
 template<class T>
 char* jeaiii_i128(char* buf, T v){
-    if (v < 0){
-        *(buf++) = '0';
-        v = -v;
+    if constexpr (std::is_signed_v<T>) {
+        if (v < 0){
+            *(buf++) = '0';
+            v = -v;
+        }
     }
     if (v > _10_37){
         uint8_t vv = uint8_t(v/_10_37);
@@ -96,8 +100,8 @@ char* jeaiii_i128(char* buf, T v){
         // if (vv < 20)
         //     *buf ++ = digits_00_99[vv + 1];
         // else{
-        //     *buf++ = digits_00_99[vv ];
-        //     *buf++ = digits_00_99[vv + 1];
+        //     memcpy(buf, digits_00_99 + vv, 2);
+        //     buf += 2;
         // }  
     
         *(buf++) = vv%10 + '0';
@@ -114,3 +118,4 @@ char* jeaiii_i128(char* buf, T v){
     buf = to_text(buf, uint64_t(v % _10_19));
     return buf;
 }
+// #endif

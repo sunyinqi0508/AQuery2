@@ -15,8 +15,8 @@ FPIC = -fPIC
 COMPILER = $(shell $(CXX) --version | grep -q clang && echo clang|| echo gcc) 
 LIBTOOL = ar rcs
 USELIB_FLAG = -Wl,--whole-archive,libaquery.a -Wl,-no-whole-archive
-LIBAQ_SRC = server/monetdb_conn.cpp server/libaquery.cpp server/dragonbox/dragonbox_to_chars.cpp
-LIBAQ_OBJ = monetdb_conn.o libaquery.o dragonbox_to_chars.o
+LIBAQ_SRC = server/monetdb_conn.cpp server/libaquery.cpp 
+LIBAQ_OBJ = monetdb_conn.o libaquery.o
 SEMANTIC_INTERPOSITION = -fno-semantic-interposition
 RANLIB = ranlib
 

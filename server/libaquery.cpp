@@ -446,10 +446,76 @@ void GC::reg(void* v, uint32_t sz, void(*f)(void*)) { //~ 40ns expected v. free 
 
 GC* GC::gc_handle = nullptr;
 
-#include "dragonbox/dragonbox_to_chars.h"
-void test(){
-	char buf[32];
-	double d = 123456789.123456789;
-	auto ret = jkj::dragonbox::to_chars(d, buf);
-	printf("%s\n", buf);
+#include "dragonbox/dragonbox_to_chars.hpp" 
+
+
+template<>
+char*
+aq_to_chars<float>(void* value, char* buffer) { 
+    return jkj::dragonbox::to_chars_n(*static_cast<float*>(value), buffer);
 }
+template<>
+char*
+aq_to_chars<double>(void* value, char* buffer) { 
+    return jkj::dragonbox::to_chars_n(*static_cast<double*>(value), buffer);
+}
+
+template<>
+inline char*
+aq_to_chars<bool>(void* value, char* buffer) {
+	if (*static_cast<bool*>(value)){
+		memcpy(buffer, "true", 4);
+		return buffer + 4;
+	}
+	else{
+		memcpy(buffer, "false", 5);
+		return buffer + 5;
+	}
+}
+
+template<>
+inline char*
+aq_to_chars<char*>(void* value, char* buffer) {
+	const auto src = *static_cast<char**>(value);
+	const auto len = strlen(src);
+	memcpy(buffer, src, len);
+	return buffer + len;
+}
+
+template<>
+inline char*
+aq_to_chars<types::date_t>(void* value, char* buffer) {
+	const auto& src = *static_cast<types::date_t*>(value);
+	buffer = to_text(buffer, src.year);
+	*buffer++ = '-';
+	buffer = to_text(buffer, src.month);
+	*buffer++ = '-';
+	buffer = to_text(buffer, src.day);
+	return buffer;
+}
+
+template<>
+inline char*
+aq_to_chars<types::time_t>(void* value, char* buffer) {
+	const auto& src = *static_cast<types::time_t*>(value);
+	buffer = to_text(buffer, src.hours);
+	*buffer++ = ':';
+	buffer = to_text(buffer, src.minutes);
+	*buffer++ = ':';
+	buffer = to_text(buffer, src.seconds);
+	*buffer++ = ':';
+	buffer = to_text(buffer, src.ms);
+	return buffer;
+}
+
+template<>
+inline char*
+aq_to_chars<types::timestamp_t>(void* value, char* buffer) {
+	auto& src = *static_cast<types::timestamp_t*>(value);
+	buffer = aq_to_chars<types::date_t>(static_cast<void*>(&src.date), buffer);
+	*buffer++ = ' ';
+	buffer = aq_to_chars<types::date_t>(static_cast<void*>(&src.time), buffer);
+	return buffer;
+}
+
+

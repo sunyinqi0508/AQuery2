@@ -306,5 +306,5 @@ DROP TABLE my_table IF EXISTS
   Author: James Edward Anhalt III <br>
   License (MIT): https://github.com/jeaiii/itoa/blob/main/LICENSE
 
-- [MobetDB] (https://www.monetdb.org) <br>
+- [MonetDB](https://www.monetdb.org) <br>
   License (Mozilla Public License): https://github.com/MonetDB/MonetDB/blob/master/license.txt

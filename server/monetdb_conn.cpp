@@ -9,7 +9,7 @@
 
 #undef static_assert
 
-const char* monetdbe_type_str[] = {
+constexpr const char* monetdbe_type_str[] = {
 	"monetdbe_bool", "monetdbe_int8_t", "monetdbe_int16_t", "monetdbe_int32_t", "monetdbe_int64_t",
 #ifdef HAVE_HGE
 	"monetdbe_int128_t",
@@ -22,7 +22,7 @@ const char* monetdbe_type_str[] = {
 	"monetdbe_type_unknown"
 } ;
 
-const unsigned char monetdbe_type_szs[] = {
+inline constexpr static unsigned char monetdbe_type_szs[] = {
     sizeof(monetdbe_column_bool::null_value), sizeof(monetdbe_column_int8_t::null_value), 
     sizeof(monetdbe_column_int16_t::null_value), sizeof(monetdbe_column_int32_t::null_value), 
     sizeof(monetdbe_column_int64_t::null_value),
@@ -37,8 +37,9 @@ const unsigned char monetdbe_type_szs[] = {
     // should be last:
     1
 };
+
 namespace types{
-    const Type_t monetdbe_type_aqtypes[] = {
+    constexpr const Type_t monetdbe_type_aqtypes[] = {
         ABOOL, AINT8, AINT16, AINT32, AINT64, 
 #ifdef HAVE_HGE
         AINT128,
@@ -50,6 +51,7 @@ namespace types{
 
     };
 }
+
 Server::Server(Context* cxt){
     if (cxt){
         connect(cxt);

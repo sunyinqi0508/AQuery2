@@ -161,6 +161,89 @@ __AQEXPORT__(bool) have_hge(){
 #endif
 }
 
+using prt_fn_t = char* (*)(void*, char*);
+
+
+constexpr prt_fn_t monetdbe_prtfns[] = {
+	aq_to_chars<bool>, aq_to_chars<int8_t>, aq_to_chars<int16_t>, aq_to_chars<int32_t>, 
+	aq_to_chars<int64_t>,
+#if __SIZEOF_INT128__
+	aq_to_chars<__int128_t>, 
+#endif
+	aq_to_chars<size_t>, aq_to_chars<float>, aq_to_chars<double>,
+	aq_to_chars<char*>, aq_to_chars<nullptr_t>,
+	aq_to_chars<types::date_t>, aq_to_chars<types::time_t>, aq_to_chars<types::timestamp_t>,
+
+	// should be last:
+	aq_to_chars<nullptr_t>
+};
+
+#include "monetdbe.h"
+inline constexpr static unsigned char monetdbe_type_szs[] = {
+    sizeof(monetdbe_column_bool::null_value), sizeof(monetdbe_column_int8_t::null_value), 
+    sizeof(monetdbe_column_int16_t::null_value), sizeof(monetdbe_column_int32_t::null_value), 
+    sizeof(monetdbe_column_int64_t::null_value),
+#ifdef __SIZEOF_INT128__
+    sizeof(monetdbe_column_int128_t::null_value),
+#endif
+    sizeof(monetdbe_column_size_t::null_value), sizeof(monetdbe_column_float::null_value),
+    sizeof(monetdbe_column_double::null_value),
+    sizeof(monetdbe_column_str::null_value), sizeof(monetdbe_column_blob::null_value),
+    sizeof(monetdbe_data_date), sizeof(monetdbe_data_time), sizeof(monetdbe_data_timestamp),
+
+    // should be last:
+    1
+};
+constexpr uint32_t output_buffer_size = 65536;
+void print_monetdb_results(Server* srv, const char* sep = " ", const char* end = "\n", 
+    uint32_t limit = std::numeric_limits<uint32_t>::max()) {
+    if (!srv->haserror() && limit){
+        char buffer[output_buffer_size];
+        auto _res = static_cast<monetdbe_result*> (srv->res);
+        const auto& ncols = _res->ncols;
+        monetdbe_column** cols = static_cast<monetdbe_column**>(malloc(sizeof(monetdbe_column*) * ncols));
+        prt_fn_t *prtfns = (prt_fn_t*) alloca(sizeof(prt_fn_t) * ncols);
+        char** col_data = static_cast<char**> (alloca(sizeof(char*) * ncols));
+        uint8_t* szs = static_cast<uint8_t*>(alloca(ncols));
+        std::string header_string = "";
+        const char* err_msg = nullptr;
+        for(uint32_t i = 0; i < ncols; ++i){
+            err_msg = monetdbe_result_fetch(_res, &cols[i], i);
+            col_data[i] = static_cast<char *>(cols[i]->data);
+            prtfns[i] = monetdbe_prtfns[cols[i]->type];
+            szs [i] = monetdbe_type_szs[cols[i]->type];
+            header_string = header_string + cols[i]->name + sep + '|' + sep;
+        }
+        const size_t l_sep = strlen(sep);
+        const size_t l_end = strlen(end);
+		if (header_string.size() - l_sep - 1>= 0)
+			header_string.resize(header_string.size() - l_sep - 1);
+        header_string += end + std::string(header_string.size(), '=') + end;
+        fputs(header_string.c_str(), stdout);
+        char* _buffer = buffer;
+        for(uint64_t i = 0; i < srv->cnt; ++i){
+            for(uint32_t j = 0; j < ncols; ++j){
+                //copy the field to buf
+                _buffer = prtfns[j](col_data[j], _buffer);
+                if (j != ncols - 1){
+                    memcpy(_buffer, sep, l_sep);
+                    _buffer += l_sep;
+                }
+                col_data[j] += szs[j];
+            }
+            memcpy(_buffer, end, l_end);
+            _buffer += l_end;
+            if(output_buffer_size - (_buffer - buffer) <= 1024){
+                fwrite(buffer, 1, _buffer - buffer, stdout);
+                _buffer = buffer;
+            }
+        }
+        if (_buffer != buffer)
+            fwrite(buffer, 1, _buffer - buffer, stdout);
+        free(cols);
+    }
+}
+
 
 void initialize_module(const char* module_name, void* module_handle, Context* cxt){
     auto _init_module = reinterpret_cast<module_init_fn>(dlsym(module_handle, "init_session"));
@@ -173,7 +256,6 @@ void initialize_module(const char* module_name, void* module_handle, Context* cx
 }
 
 int dll_main(int argc, char** argv, Context* cxt){
-    test();
     aq_timer timer;
     Config *cfg = reinterpret_cast<Config *>(argv[0]);
     std::unordered_map<std::string, void*> user_module_map;
@@ -266,7 +348,7 @@ int dll_main(int argc, char** argv, Context* cxt){
                             {
                                 if(!server->haserror()){
                                     timer.reset();
-                                    server->print_results();        
+                                    print_monetdb_results(server);        
                                     cfg->stats.postproc_time += timer.elapsed();
                                 }
                             }
