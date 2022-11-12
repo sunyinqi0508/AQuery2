@@ -474,7 +474,7 @@ aq_to_chars<bool>(void* value, char* buffer) {
 }
 
 template<>
-inline char*
+char*
 aq_to_chars<char*>(void* value, char* buffer) {
 	const auto src = *static_cast<char**>(value);
 	const auto len = strlen(src);
@@ -483,7 +483,7 @@ aq_to_chars<char*>(void* value, char* buffer) {
 }
 
 template<>
-inline char*
+char*
 aq_to_chars<types::date_t>(void* value, char* buffer) {
 	const auto& src = *static_cast<types::date_t*>(value);
 	buffer = to_text(buffer, src.year);
@@ -495,7 +495,7 @@ aq_to_chars<types::date_t>(void* value, char* buffer) {
 }
 
 template<>
-inline char*
+char*
 aq_to_chars<types::time_t>(void* value, char* buffer) {
 	const auto& src = *static_cast<types::time_t*>(value);
 	buffer = to_text(buffer, src.hours);
@@ -509,12 +509,12 @@ aq_to_chars<types::time_t>(void* value, char* buffer) {
 }
 
 template<>
-inline char*
+char*
 aq_to_chars<types::timestamp_t>(void* value, char* buffer) {
 	auto& src = *static_cast<types::timestamp_t*>(value);
 	buffer = aq_to_chars<types::date_t>(static_cast<void*>(&src.date), buffer);
 	*buffer++ = ' ';
-	buffer = aq_to_chars<types::date_t>(static_cast<void*>(&src.time), buffer);
+	buffer = aq_to_chars<types::time_t>(static_cast<void*>(&src.time), buffer);
 	return buffer;
 }
 

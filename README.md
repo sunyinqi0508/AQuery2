@@ -293,7 +293,7 @@ DROP TABLE my_table IF EXISTS
   Author: Kyle Lahnakoski <br>
   License (Mozilla Public License 2.0): https://github.com/klahnakoski/mo-sql-parsing/blob/dev/LICENSE 
 
-- [Fast C++ CSV pParser](https://github.com/ben-strasser/fast-cpp-csv-parser) <br>
+- [Fast C++ CSV Parser](https://github.com/ben-strasser/fast-cpp-csv-parser) <br>
   Author: Ben Strasser <br>
   License (BSD 3-Clause License): https://github.com/ben-strasser/fast-cpp-csv-parser/blob/master/LICENSE
 
