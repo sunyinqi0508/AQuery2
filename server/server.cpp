@@ -171,11 +171,11 @@ constexpr prt_fn_t monetdbe_prtfns[] = {
 	aq_to_chars<__int128_t>, 
 #endif
 	aq_to_chars<size_t>, aq_to_chars<float>, aq_to_chars<double>,
-	aq_to_chars<char*>, aq_to_chars<nullptr_t>,
+	aq_to_chars<char*>, aq_to_chars<std::nullptr_t>,
 	aq_to_chars<types::date_t>, aq_to_chars<types::time_t>, aq_to_chars<types::timestamp_t>,
 
 	// should be last:
-	aq_to_chars<nullptr_t>
+	aq_to_chars<std::nullptr_t>
 };
 
 #include "monetdbe.h"
