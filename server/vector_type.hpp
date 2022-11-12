@@ -19,6 +19,7 @@
 #pragma pack(push, 1)
 template<class T>
 struct vector_base {};
+
 struct vectortype_cstorage{
 	void* container;
 	unsigned int size, capacity;

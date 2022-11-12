@@ -720,51 +720,56 @@ inline void TableInfo<Types...>::print(const char* __restrict sep, const char* _
 		std::cout << end;
 	}
 }
+
+// use std::is_base_of here and all vt classes should derive from vector_base
 template <class T1,
 			template<typename> class VT,
 			class TRet>
-using test_vt_support = typename std::enable_if_t<std::is_same_v<VT<T1>, ColRef<T1>> || 
-				std::is_same_v<VT<T1>, ColView<T1>> || 
-				std::is_same_v<VT<T1>, vector_type<T1>>, TRet>;
+using test_vt_support = typename std::enable_if_t<
+					std::is_base_of_v<vector_base<T1>, VT<T1>>, 
+					TRet>;
 
-template <class T1, class T2,
-			template<typename> class VT>
-using get_autoext_type = test_vt_support<T1, VT, 
-		decayed_t<VT, typename types::Coercion<T1, T2>::type>>;
 
-template <class T1, class T2,
-			template<typename> class VT>
-using get_long_type = test_vt_support<T1, VT, 
-		decayed_t<VT, types::GetLongType<typename types::Coercion<T1, T2>::type>>>;
+template <class T1, class T2, template<typename> class VT, 
+			test_vt_support<T1, VT, void>* = nullptr>
+using get_autoext_type = 
+		decayed_t<VT, typename types::Coercion<T1, T2>::type>;
 
-template <class T1, class T2,
-			template<typename> class VT>
-using get_fp_type = test_vt_support<T1, VT, 
-		decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>>>;
+template <class T1, class T2, template<typename> class VT, 
+		test_vt_support<T1, VT, void>* = nullptr>
+using get_long_type = 
+		decayed_t<VT, types::GetLongType<typename types::Coercion<T1, T2>::type>>;
+
+template <class T1, class T2, template<typename> class VT,
+		test_vt_support<T1, VT, void>* = nullptr>
+using get_fp_type = 
+		decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>>;
 
 template <class T1, 
 			template<typename> class VT, template<typename> class VT2,
 			class TRet>
-using test_vt_support2 = typename std::enable_if_t<(std::is_same_v<VT<T1>, ColRef<T1>> || 
-				std::is_same_v<VT<T1>, ColView<T1>> || 
-				std::is_same_v<VT<T1>, vector_type<T1>>) &&
-				(std::is_same_v<VT2<T1>, ColRef<T1>> || 
-				std::is_same_v<VT2<T1>, ColView<T1>> || 
-				std::is_same_v<VT2<T1>, vector_type<T1>>), TRet >;
-template <class T1, class T2,
-			template<typename> class VT, template<typename> class VT2>
-using get_autoext_type2 = test_vt_support2<T1, VT, VT2,
-		decayed_t<VT, typename types::Coercion<T1, T2>::type>>;
+using test_vt_support2 = typename std::enable_if_t<
+				std::is_base_of_v<vector_base<T1>, VT<T1>> &&
+				std::is_base_of_v<vector_base<T1>, VT2<T1>>, 
+				TRet >;
 
 template <class T1, class T2,
-			template<typename> class VT, template<typename> class VT2>
-using get_long_type2 = test_vt_support2<T1, VT, VT2,
-		decayed_t<VT, types::GetLongType<typename types::Coercion<T1, T2>::type>>>;
+			template<typename> class VT, template<typename> class VT2, 
+			test_vt_support2<T1, VT, VT2, void>* = nullptr >
+using get_autoext_type2 = 
+		decayed_t<VT, typename types::Coercion<T1, T2>::type>;
 
 template <class T1, class T2,
-			template<typename> class VT, template<typename> class VT2>
-using get_fp_type2 = test_vt_support2<T1, VT, VT2,
-		decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>>>;
+			template<typename> class VT, template<typename> class VT2, 
+			test_vt_support2<T1, VT, VT2, void>* = nullptr >
+using get_long_type2 = 
+		decayed_t<VT, types::GetLongType<typename types::Coercion<T1, T2>::type>>;
+
+template <class T1, class T2,
+			template<typename> class VT, template<typename> class VT2, 
+			test_vt_support2<T1, VT, VT2, void>* = nullptr >
+using get_fp_type2 = 
+		decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>>;
 
 template <class T1, class T2, template<typename> class VT, template<typename> class VT2>
 get_autoext_type2<T1, T2, VT, VT2>
