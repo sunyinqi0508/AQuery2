@@ -223,6 +223,9 @@ DROP TABLE my_table IF EXISTS
 - File name can also be absolute path.
 - See `data/q1.sql` for more information 
 
+## Delete Data:
+- Use a query like `DELETE FROM <table_name> [WHERE <conditions>]` to delete rows from a table that matches the conditions.
+  
 ## Built-in functions: 
 - `avg[s]`: average of a column. `avgs(col), avgs(w, col)` is rolling and moving average with window `w` of the column `col`.
 - `var[s]`, `stddev[s]`: [moving/rolling] **population** variance, standard deviation.
