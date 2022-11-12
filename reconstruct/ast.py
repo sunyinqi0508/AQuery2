@@ -855,7 +855,8 @@ class filter(ast_node):
     def produce(self, node):
         filter_expr = expr(self, node)
         self.add(filter_expr.sql)
-        self.datasource.join_conditions += filter_expr.join_conditions
+        if self.datasource is not None:
+            self.datasource.join_conditions += filter_expr.join_conditions
         
 class create_table(ast_node):
     name = 'create_table'
@@ -945,7 +946,19 @@ class insert(ast_node):
                 pass
         self.sql += ', '.join(list_values) + ')'
         
-  
+
+class delete_table(ast_node):
+    name = 'delete'
+    first_order = name
+    def init(self, node):
+        super().init(node)
+            
+    def produce(self, node):
+        tbl = node['delete']
+        self.sql = f'DELETE FROM {tbl} '
+        if 'where' in node:
+            self.sql += filter(self, node['where']).sql
+
 class load(ast_node):
     name="load"
     first_order = name
