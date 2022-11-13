@@ -1054,7 +1054,7 @@ class insert(ast_node):
         self.sql += ', '.join(list_values) 
         
 
-class delete_table(ast_node):
+class delete_from(ast_node):
     name = 'delete'
     first_order = name
     def init(self, node):
@@ -1066,6 +1066,31 @@ class delete_table(ast_node):
         if 'where' in node:
             self.sql += filter(self, node['where']).sql
 
+class union_all(ast_node):
+    name = 'union_all'
+    first_order = name
+    sql_name = 'UNION ALL'
+    def produce(self, node):
+        queries = node[self.name]
+        generated_queries : List[Optional[projection]] = [None] * len(queries)
+        is_standard = True
+        for i, q in enumerate(queries):
+            if 'select' in q:
+                generated_queries[i] = projection(self, q)
+                is_standard &= not generated_queries[i].has_postproc
+        if is_standard:
+            self.sql = f' {self.sql_name} '.join([q.sql for q in generated_queries])
+        else:
+            raise NotImplementedError(f"{self.sql_name} only support standard sql for now")
+    def consume(self, node):
+        super().consume(node)
+        self.context.direct_output()
+
+class except_clause(union_all):
+    name = 'except'
+    first_order = name
+    sql_name = 'EXCEPT'
+    
 class load(ast_node):
     name="load"
     first_order = name
