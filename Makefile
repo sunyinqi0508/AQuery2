@@ -12,21 +12,23 @@ else
 endif
 SHAREDFLAGS = -shared  
 FPIC = -fPIC
-COMPILER = $(shell $(CXX) --version | grep -q clang && echo clang|| echo gcc) 
+_COMPILER = $(shell $(CXX) --version | grep -q clang && echo clang|| echo gcc) 
+COMPILER = $(strip $(_COMPILER))
 LIBTOOL = ar rcs
 USELIB_FLAG = -Wl,--whole-archive,libaquery.a -Wl,-no-whole-archive
 LIBAQ_SRC = server/monetdb_conn.cpp server/libaquery.cpp 
 LIBAQ_OBJ = monetdb_conn.o libaquery.o
 SEMANTIC_INTERPOSITION = -fno-semantic-interposition
 RANLIB = ranlib
-LINKER_BINARY = $(shell $(CXX) -print-prog-name=ld | grep -q llvm && echo lld || echo ld)
-ifeq (LINKER_BINARY, ld )
+_LINKER_BINARY = $(shell $(CXX) -print-prog-name=ld 2>&1 | grep -q LLVM && echo lld || echo ld)
+LINKER_BINARY = $(strip $(_LINKER_BINARY))q
+ifeq ($(LINKER_BINARY), ld)
 	LINKER_FLAGS = -Wl,--allow-multiple-definition
 else
 	LINKER_FLAGS =
 endif
 
-ifeq ($(COMPILER), clang )
+ifeq ($(COMPILER), clang)
 	CLANG_GE_10 = $(shell expr `$(CXX) -dumpversion | cut -f1 -d.` \>= 10)
 	ifneq ($(CLANG_GE_10), 1)
 		SEMANTIC_INTERPOSITION = 
@@ -56,7 +58,7 @@ ifeq ($(OS),Windows_NT)
 	MonetDB_LIB += msc-plugin/monetdbe.dll 
 	MonetDB_INC +=  -Imonetdb/msvc
 	LIBTOOL = gcc-ar rcs
-	ifeq ($(COMPILER), clang )
+	ifeq ($(COMPILER), clang)
 		FPIC =
 	endif
 else
@@ -68,7 +70,7 @@ else
 		USELIB_FLAG = -Wl,-force_load
 		MonetDB_LIB += -L$(shell brew --prefix monetdb)/lib 
 		MonetDB_INC += -I$(shell brew --prefix monetdb)/include/monetdb
-		ifeq ($(COMPILER), clang )
+		ifeq ($(COMPILER), clang)
 			LIBTOOL = libtool -static -o
 		endif
 		ifneq ($(UNAME_M),arm64)
@@ -120,7 +122,8 @@ info:
 	$(info $"	MonetDB_INC: $(MonetDB_INC))
 	$(info $"	COMPILER: $(COMPILER))
 	$(info $"	CXX: $(CXX))
-	$(info $"	FPIC: $(FPIC))
+	$(info $"	LINKER_BINARY: $(LINKER_BINARY))
+	$(info $"	LINKER_FLAGS: $(LINKER_FLAGS))
 pch:
 	$(CXX) -x c++-header server/pch.hpp $(FPIC) $(CXXFLAGS)
 libaquery:
