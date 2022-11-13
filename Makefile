@@ -21,7 +21,7 @@ LIBAQ_OBJ = monetdb_conn.o libaquery.o
 SEMANTIC_INTERPOSITION = -fno-semantic-interposition
 RANLIB = ranlib
 _LINKER_BINARY = $(shell $(CXX) -print-prog-name=ld 2>&1 | grep -q LLVM && echo lld || echo ld)
-LINKER_BINARY = $(strip $(_LINKER_BINARY))q
+LINKER_BINARY = $(strip $(_LINKER_BINARY))
 ifeq ($(LINKER_BINARY), ld)
 	LINKER_FLAGS = -Wl,--allow-multiple-definition
 else
@@ -136,7 +136,7 @@ warmup:
 server.bin:
 	$(CXX) $(LIBAQ_SRC) $(OS_SUPPORT) $(BINARYFLAGS) -o server.bin
 launcher:
-	$(CXX) -D__AQ_BUILD_LAUNCHER__ $(LIBAQ_SRC) $(OS_SUPPORT) $(BINARYFLAGS) -o aq
+	$(CXX) -D__AQ_BUILD_LAUNCHER__ server/server.cpp $(LIBAQ_SRC) $(OS_SUPPORT) $(BINARYFLAGS) -o aq
 server.so:
 #	$(CXX) -z muldefs server/server.cpp server/monetdb_conn.cpp -fPIC -shared $(OS_SUPPORT) monetdb/msvc/monetdbe.dll --std=c++1z -O3 -march=native -o server.so -I./monetdb/msvc 
 	$(CXX) $(PCHFLAGS) $(LIBAQ_SRC) server/server.cpp $(OS_SUPPORT) $(SHAREDFLAGS) -o server.so 
