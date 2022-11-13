@@ -19,6 +19,12 @@ LIBAQ_SRC = server/monetdb_conn.cpp server/libaquery.cpp
 LIBAQ_OBJ = monetdb_conn.o libaquery.o
 SEMANTIC_INTERPOSITION = -fno-semantic-interposition
 RANLIB = ranlib
+LINKER_BINARY = $(shell $(CXX) -print-prog-name=ld | grep -q llvm && echo lld || echo ld)
+ifeq (LINKER_BINARY, ld )
+	LINKER_FLAGS = -Wl,--allow-multiple-definition
+else
+	LINKER_FLAGS =
+endif
 
 ifeq ($(COMPILER), clang )
 	CLANG_GE_10 = $(shell expr `$(CXX) -dumpversion | cut -f1 -d.` \>= 10)
@@ -123,21 +129,21 @@ libaquery:
 	$(RANLIB) libaquery.a
 
 warmup:
-	$(CXX) $(SHAREDFLAGS) msc-plugin/dummy.cpp libaquery.a -o dll.so
+	$(CXX)  msc-plugin/dummy.cpp libaquery.a $(SHAREDFLAGS) -o dll.so
 server.bin:
-	$(CXX) $(LIBAQ_SRC) $(BINARYFLAGS) $(OS_SUPPORT) -o server.bin
+	$(CXX) $(LIBAQ_SRC) $(OS_SUPPORT) $(BINARYFLAGS) -o server.bin
 launcher:
 	$(CXX) -D__AQ_BUILD_LAUNCHER__ $(LIBAQ_SRC) $(OS_SUPPORT) $(BINARYFLAGS) -o aq
 server.so:
 #	$(CXX) -z muldefs server/server.cpp server/monetdb_conn.cpp -fPIC -shared $(OS_SUPPORT) monetdb/msvc/monetdbe.dll --std=c++1z -O3 -march=native -o server.so -I./monetdb/msvc 
-	$(CXX) $(SHAREDFLAGS) $(PCHFLAGS) $(LIBAQ_SRC) server/server.cpp $(OS_SUPPORT) -o server.so 
+	$(CXX) $(PCHFLAGS) $(LIBAQ_SRC) server/server.cpp $(OS_SUPPORT) $(SHAREDFLAGS) -o server.so 
 server_uselib:
-	$(CXX) $(SHAREDFLAGS) server/server.cpp libaquery.a -o server.so
+	$(CXX) $(LINKER_FLAGS) server/server.cpp libaquery.a $(SHAREDFLAGS) -o server.so
 
 snippet:
-	$(CXX) $(SHAREDFLAGS) $(PCHFLAGS) out.cpp $(LIBAQ_SRC) -o dll.so
+	$(CXX) $(PCHFLAGS) out.cpp $(LIBAQ_SRC) $(SHAREDFLAGS) -o dll.so
 snippet_uselib:
-	$(CXX) $(SHAREDFLAGS) $(PCHFLAGS) out.cpp libaquery.a -o dll.so
+	$(CXX) $(PCHFLAGS) out.cpp libaquery.a $(SHAREDFLAGS) -o dll.so
 
 docker:
 	docker build -t aquery .
