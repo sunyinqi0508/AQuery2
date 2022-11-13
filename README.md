@@ -223,6 +223,13 @@ DROP TABLE my_table IF EXISTS
 - File name can also be absolute path.
 - See `data/q1.sql` for more information 
 
+## Combine Queries
+- `UNION ALL` is a bag union of two query results with same schema. e.g. 
+```
+SELECT * FROM table 1 UNION ALL SELECT * FROM table 2
+```
+- `EXCEPT` clause will return the difference of two query results. e.g.
+  
 ## Delete Data:
 - Use a query like `DELETE FROM <table_name> [WHERE <conditions>]` to delete rows from a table that matches the conditions.
   
