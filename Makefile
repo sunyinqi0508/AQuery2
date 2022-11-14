@@ -20,7 +20,7 @@ LIBAQ_SRC = server/monetdb_conn.cpp server/libaquery.cpp
 LIBAQ_OBJ = monetdb_conn.o libaquery.o
 SEMANTIC_INTERPOSITION = -fno-semantic-interposition
 RANLIB = ranlib
-_LINKER_BINARY = $(shell $(CXX) -print-prog-name=ld 2>&1 | grep -q LLVM && echo lld || echo ld)
+_LINKER_BINARY = $(shell `$(CXX) -print-prog-name=ld` -v 2>&1 | grep -q LLVM && echo lld || echo ld)
 LINKER_BINARY = $(strip $(_LINKER_BINARY))
 ifeq ($(LINKER_BINARY), ld)
 	LINKER_FLAGS = -Wl,--allow-multiple-definition
