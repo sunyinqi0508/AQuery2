@@ -426,7 +426,7 @@ class select_distinct(projection):
         super().consume(node)
         if self.has_postproc:
             self.context.emitc(
-                f'{self.out_table.table_name}->distinct();'
+                f'{self.out_table.contextname_cpp}->distinct();'
             )
         self.finalize()
         
