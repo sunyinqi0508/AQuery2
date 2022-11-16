@@ -346,7 +346,8 @@ class expr(ast_node):
                     self.type = ByteT
             elif type(node) is float:
                 self.type = DoubleT
-    
+                self.sql = f'{{"CAST({node} AS DOUBLE)" if not c_code else "{node}f"}}'
+                
     def finalize(self, override = False):
         from reconstruct.ast import udf
         if self.codebuf is None or override:
