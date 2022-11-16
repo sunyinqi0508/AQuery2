@@ -207,21 +207,27 @@ void print_monetdb_results(Server* srv, const char* sep = " ", const char* end =
         uint8_t* szs = static_cast<uint8_t*>(alloca(ncols));
         std::string header_string = "";
         const char* err_msg = nullptr;
+        const size_t l_sep = strlen(sep);
+        const size_t l_end = strlen(end);
+        char* _buffer = buffer;
+
         for(uint32_t i = 0; i < ncols; ++i){
             err_msg = monetdbe_result_fetch(_res, &cols[i], i);
-            if(err_msg) { free(cols); return; }
+            if(err_msg) { goto cleanup; }
             col_data[i] = static_cast<char *>(cols[i]->data);
             prtfns[i] = monetdbe_prtfns[cols[i]->type];
             szs [i] = monetdbe_type_szs[cols[i]->type];
             header_string = header_string + cols[i]->name + sep + '|' + sep;
         }
-        const size_t l_sep = strlen(sep);
-        const size_t l_end = strlen(end);
+
+        if(l_sep > 512 || l_end > 512) {
+            puts("Error: separator or end string too long");
+            goto cleanup;
+        }
 		if (header_string.size() - l_sep - 1>= 0)
 			header_string.resize(header_string.size() - l_sep - 1);
         header_string += end + std::string(header_string.size(), '=') + end;
         fputs(header_string.c_str(), stdout);
-        char* _buffer = buffer;
         for(uint64_t i = 0; i < srv->cnt; ++i){
             for(uint32_t j = 0; j < ncols; ++j){
                 //copy the field to buf
@@ -239,8 +245,11 @@ void print_monetdb_results(Server* srv, const char* sep = " ", const char* end =
                 _buffer = buffer;
             }
         }
+        memcpy(_buffer, end, l_end);
+        _buffer += l_end;
         if (_buffer != buffer)
             fwrite(buffer, 1, _buffer - buffer, stdout);
+cleanup:        
         free(cols);
     }
 }

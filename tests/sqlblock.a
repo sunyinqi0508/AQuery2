@@ -1,0 +1,9 @@
+CREATE TABLE my_table (c1 INT, c2 INT, c3 STRING)
+INSERT INTO my_table VALUES(10, 20, "example"), (20, 30, "example2")
+<sql>
+INSERT INTO my_table VALUES(14, 24, 'example3');
+CREATE INDEX idx1 ON my_table(c1);
+SELECT * FROM my_table WHERE c1 < 15;
+
+</sql>
+SELECT * FROM my_table WHERE c1 > 15

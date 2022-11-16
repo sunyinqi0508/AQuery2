@@ -1037,6 +1037,7 @@ class insert(ast_node):
                 if isinstance(v, dict):
                     keys = v.keys()
                     v = list(v.values())
+                v = [f"'{vv}'" if type(vv) is str else vv for vv in v]
                 _vals.append(v)
             values = _vals
             
@@ -1547,7 +1548,7 @@ class passthru_sql(ast_node):
         for sql in sqls:
             sq = sql.strip(' \t\n\r;')
             if sq:
-                context.queries.append('Q' + sql + ';')
+                context.queries.append('Q' + sql.strip('\r\n\t ;') + ';')
                 lq = sq.lower()
                 if lq.startswith('select'):
                     context.queries.append('O')
