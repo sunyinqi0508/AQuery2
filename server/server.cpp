@@ -197,7 +197,7 @@ inline constexpr static unsigned char monetdbe_type_szs[] = {
 constexpr uint32_t output_buffer_size = 65536;
 void print_monetdb_results(Server* srv, const char* sep = " ", const char* end = "\n", 
     uint32_t limit = std::numeric_limits<uint32_t>::max()) {
-    if (!srv->haserror() && limit){
+    if (!srv->haserror() && srv->cnt && limit){
         char buffer[output_buffer_size];
         auto _res = static_cast<monetdbe_result*> (srv->res);
         const auto& ncols = _res->ncols;
@@ -209,6 +209,7 @@ void print_monetdb_results(Server* srv, const char* sep = " ", const char* end =
         const char* err_msg = nullptr;
         for(uint32_t i = 0; i < ncols; ++i){
             err_msg = monetdbe_result_fetch(_res, &cols[i], i);
+            if(err_msg) { free(cols); return; }
             col_data[i] = static_cast<char *>(cols[i]->data);
             prtfns[i] = monetdbe_prtfns[cols[i]->type];
             szs [i] = monetdbe_type_szs[cols[i]->type];

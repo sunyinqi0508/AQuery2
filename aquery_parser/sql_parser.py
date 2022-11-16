@@ -66,7 +66,7 @@ def parser(literal_string, ident, sqlserver=False):
 
         var_name = ~RESERVED + ident
         
-        inline_kblock = (L_INLINE + SkipTo(R_INLINE, include=True))("c")
+        inline_sqlblock = (L_INLINE + SkipTo(R_INLINE, include=True))("sql")
         # EXPRESSIONS
         expr = Forward()
         column_type, column_definition, column_def_references = get_column_type(
@@ -569,8 +569,9 @@ def parser(literal_string, ident, sqlserver=False):
                 | assign("comment", EQ + literal_string)
                 | assign("default character set", EQ + var_name)
                 | assign("default charset", EQ + var_name)
-            )
-            + Optional(AS.suppress() + infix_notation(query, [])("query"))
+            ) 
+            + Optional(AS.suppress() + query("query")) 
+            # investigate why infix_notation(query, []) eats up the rest of queries
         )("create_table")
 
         create_view = (
@@ -724,7 +725,7 @@ def parser(literal_string, ident, sqlserver=False):
         )("stmts"), ";")
 
         other_stmt = (
-            inline_kblock
+            inline_sqlblock
             | udf
         ) ("stmts")
         
