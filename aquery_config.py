@@ -2,7 +2,7 @@
 
 ## GLOBAL CONFIGURATION FLAGS
 
-version_string = '0.5.2a'
+version_string = '0.5.3a'
 add_path_to_ldpath = True
 rebuild_backend = False
 run_backend = True
@@ -12,6 +12,8 @@ msbuildroot = ''
 os_platform = 'unknown'
 build_driver = 'Auto'
 compilation_output = True
+
+## END GLOBAL CONFIGURATION FLAGS
 
 def init_config():
     global __config_initialized__, os_platform, msbuildroot, build_driver
