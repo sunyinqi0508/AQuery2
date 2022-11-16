@@ -243,8 +243,8 @@ RESERVED = MatchFirst([
     WITHIN,
     INTO,
 ])
-L_INLINE = Literal("<k>").suppress()
-R_INLINE = Literal("</k>").suppress()
+L_INLINE = Literal("<sql>").suppress()
+R_INLINE = Literal("</sql>").suppress()
 LBRACE = Literal("{").suppress()
 RBRACE = Literal("}").suppress()
 LSB = Literal("[").suppress()

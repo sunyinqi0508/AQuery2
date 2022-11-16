@@ -9,7 +9,6 @@ from engine.utils import (base62alp, base62uuid, enlist, get_innermost,
                           get_legal_name)
 from reconstruct.storage import ColRef, Context, TableInfo
 
-
 class ast_node:
     header = []
     types = dict()
@@ -1523,7 +1522,25 @@ class udf(ast_node):
             return udf.ReturnPattern.elemental_return
         else:
             return udf.ReturnPattern.bulk_return
-            
+
+class passthru_sql(ast_node):
+    name = 'sql'
+    first_order = name
+    import re
+    # escapestr = r'''(?:((?:[^;"']|"[^"]*"|'[^']*')+)|(?:--[^\r\n]*[\r|\n])+)'''
+    # escape_comment = fr'''(?:{escapestr}|{escapestr}*-{escapestr}*)'''
+    seprator = re.compile(r'''((?:[^;"']|"[^"]*"|'[^']*')+)''')
+    def __init__(self, _, node, context:Context):
+        sqls = passthru_sql.seprator.split(node['sql'])
+        for sql in sqls:
+            sq = sql.strip(' \t\n\r;')
+            if sq:
+                context.queries.append('Q' + sql + ';')
+                lq = sq.lower()
+                if lq.startswith('select'):
+                    context.queries.append('O')
+
+
 class user_module_function(OperatorBase):
     def __init__(self, name, nargs, ret_type, context : Context):
         super().__init__(name, nargs, lambda *_: ret_type, call=fn_behavior)
