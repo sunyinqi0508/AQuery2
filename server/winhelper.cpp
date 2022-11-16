@@ -41,4 +41,20 @@ void SharedMemory::FreeMemoryMap()
         if (this->hFileMap)
             CloseHandle(this->hFileMap);
 }
+
+#ifndef __USE_STD_SEMAPHORE__
+A_Semaphore::A_Semaphore(bool v = false) {
+    native_handle = CreateSemaphore(NULL, v, 1, NULL);
+}
+void A_Semaphore::acquire() {
+    WaitForSingleObject(native_handle, INFINITE);
+}
+void A_Semaphore::release() {
+    ReleaseSemaphore(native_handle, 1, NULL);
+}
+A_Semaphore::~A_Semaphore() {
+    CloseHandle(native_handle);
+}
+#endif
+
 #endif

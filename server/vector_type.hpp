@@ -17,13 +17,16 @@
 #include "types.h"
 
 #pragma pack(push, 1)
+template<class T>
+struct vector_base {};
+
 struct vectortype_cstorage{
 	void* container;
 	unsigned int size, capacity;
 };
 
 template <typename _Ty>
-class vector_type {
+class vector_type : public vector_base<_Ty>{
 public:
 	typedef vector_type<_Ty> Decayed_t;
 	void inline _copy(const vector_type<_Ty>& vt) {
@@ -71,9 +74,15 @@ public:
 	constexpr explicit vector_type(const vector_type<_Ty>& vt) noexcept : capacity(0) {
 		_copy(vt);
 	}
+	constexpr vector_type(vector_type<_Ty>& vt) noexcept : capacity(0) {
+		_move(std::move(vt));
+	}
 	constexpr vector_type(vector_type<_Ty>&& vt) noexcept : capacity(0) {
 		_move(std::move(vt));
 	}
+	vector_type(vectortype_cstorage vt) noexcept : capacity(vt.capacity), size(vt.size), container((_Ty*)vt.container) {
+		out(10);
+	};
 	// size >= capacity ==> readonly vector
 	constexpr vector_type(const uint32_t size, void* data) : 
 		size(size), capacity(0), container(static_cast<_Ty*>(data)) {}
@@ -158,6 +167,10 @@ public:
 	void emplace_back(const _Ty& _val) {
 		grow();
 		container[size++] = _val;
+	}
+	void emplace_back(_Ty& _val) {
+		grow();
+		container[size++] = std::move(_val);
 	}
 	void emplace_back(_Ty&& _val) {
 		grow();
@@ -255,7 +268,7 @@ public:
 		}
 		size = this->size + dist;
 	}
-	inline void out(uint32_t n = 4, const char* sep = " ") const
+	inline void out(uint32_t n = 4000, const char* sep = " ") const
 	{
 		const char* more = "";
 		if (n < this->size)

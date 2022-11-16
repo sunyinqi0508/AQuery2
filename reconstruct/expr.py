@@ -1,7 +1,8 @@
 from typing import Optional, Set
+
+from engine.types import *
 from reconstruct.ast import ast_node
 from reconstruct.storage import ColRef, Context
-from engine.types import *
 
 # TODO: Decouple expr and upgrade architecture
 # C_CODE : get ccode/sql code?
@@ -31,6 +32,7 @@ class expr(ast_node):
     
     def __init__(self, parent, node, *, c_code = None, supress_undefined = False):
         from reconstruct.ast import projection, udf
+
         # gen2 expr have multi-passes
         # first pass parse json into expr tree
         # generate target code in later passes upon need
@@ -78,7 +80,7 @@ class expr(ast_node):
         ast_node.__init__(self, parent, node, None)
 
     def init(self, _):
-        from reconstruct.ast import projection, _tmp_join_union
+        from reconstruct.ast import _tmp_join_union, projection
         parent = self.parent
         self.is_compound = parent.is_compound if type(parent) is expr else False
         if type(parent) in [projection, expr, _tmp_join_union]:
@@ -88,11 +90,13 @@ class expr(ast_node):
         self.udf_map = parent.context.udf_map
         self.func_maps = {**builtin_func, **self.udf_map, **user_module_func}
         self.operators = {**builtin_operators, **self.udf_map, **user_module_func}
-        self.ext_aggfuncs = ['sum', 'avg', 'count', 'min', 'max', 'last', 'first', 'prev', 'next']
+        self.ext_aggfuncs = ['sum', 'avg', 'count', 'min', 'max', 
+                             'last', 'first', 'prev', 'next', 'var', 
+                             'stddev']
         
     def produce(self, node):
         from engine.utils import enlist
-        from reconstruct.ast import udf
+        from reconstruct.ast import udf, projection
         
         if type(node) is dict:
             if 'literal' in node:
@@ -166,8 +170,17 @@ class expr(ast_node):
                             
                         special_func = [*self.context.udf_map.keys(), *self.context.module_map.keys(), 
                                         "maxs", "mins", "avgs", "sums", "deltas", "last", "first", 
-                                        "ratios", "pack", "truncate"]
-                        if self.context.special_gb:
+                                        "stddevs", "vars", "ratios", "pack", "truncate"]
+                        
+                        if (
+                                self.context.special_gb 
+                                    or 
+                                (
+                                    type(self.root.parent) is projection 
+                                        and
+                                    self.root.parent.force_use_spgb
+                                )
+                           ):
                             special_func = [*special_func, *self.ext_aggfuncs]
                             
                         if key in special_func and not self.is_special:
@@ -333,7 +346,8 @@ class expr(ast_node):
                     self.type = ByteT
             elif type(node) is float:
                 self.type = DoubleT
-    
+                self.sql = f'{{"CAST({node} AS DOUBLE)" if not c_code else "{node}f"}}'
+                
     def finalize(self, override = False):
         from reconstruct.ast import udf
         if self.codebuf is None or override:

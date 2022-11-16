@@ -1,7 +1,8 @@
 from copy import deepcopy
-from engine.utils import base62uuid, defval
-from aquery_config import have_hge
 from typing import Dict, List
+
+from aquery_config import have_hge
+from engine.utils import base62uuid, defval
 
 type_table: Dict[str, "Types"] = {}
 
@@ -65,10 +66,10 @@ class Types:
         return self.sqlname
     
     @staticmethod
-    def decode(aquery_type : str, vector_type:str = 'ColRef') -> "Types":
-        if (aquery_type.startswith('vec')):
+    def decode(aquery_type : str, vector_type:str = 'vector_type') -> "Types":
+        if (aquery_type.lower().startswith('vec')):
             return VectorT(Types.decode(aquery_type[3:]), vector_type)
-        return type_table[aquery_type]
+        return type_table[aquery_type.lower()]
     
 class TypeCollection:
     def __init__(self, sz, deftype, fptype = None, utype = None, *, collection = None) -> None:
@@ -121,7 +122,7 @@ class VectorT(Types):
         return f'{self.vector_type}<{self.inner_type.name}>'
     @property
     def sqlname(self) -> str:
-        return 'BIGINT'
+        return 'HUGEINT' # Store vector_type into 16 bit integers
     @property
     def cname(self) -> str:
         return f'{self.vector_type}<{self.inner_type.cname}>'
@@ -142,7 +143,7 @@ fp_types : Dict[str, Types] = _ty_make_dict('t.sqlname.lower()', FloatT, DoubleT
 temporal_types : Dict[str, Types] = _ty_make_dict('t.sqlname.lower()', DateT, TimeT, TimeStampT)
 builtin_types : Dict[str, Types] = {
     'string' : StrT,
-    **_ty_make_dict('t.sqlname.lower()', AnyT, TextT, VarcharT),
+    **_ty_make_dict('t.sqlname.lower()', AnyT, TextT, VarcharT, HgeT),
     **int_types, **fp_types, **temporal_types}
 
 def get_int128_support():
@@ -294,7 +295,7 @@ opadd = OperatorBase('add', 2, auto_extension, cname = '+', sqlname = '+', call 
 # monetdb wont extend int division to fp type
 # opdiv = OperatorBase('div', 2, fp(auto_extension), cname = '/', sqlname = '/', call = binary_op_behavior)
 opdiv = OperatorBase('div', 2, auto_extension, cname = '/', sqlname = '/', call = binary_op_behavior)
-opmul = OperatorBase('mul', 2, fp(auto_extension), cname = '*', sqlname = '*', call = binary_op_behavior)
+opmul = OperatorBase('mul', 2, auto_extension, cname = '*', sqlname = '*', call = binary_op_behavior)
 opsub = OperatorBase('sub', 2, auto_extension, cname = '-', sqlname = '-', call = binary_op_behavior)
 opmod = OperatorBase('mod', 2, auto_extension_int, cname = '%', sqlname = '%', call = binary_op_behavior)
 opneg = OperatorBase('neg', 1, as_is, cname = '-', sqlname = '-', call = unary_op_behavior)
@@ -323,10 +324,14 @@ fnfirst = OperatorBase('first', 1, as_is, cname = 'frist', sqlname = 'FRIST', ca
 #fnavg = OperatorBase('avg', 1, fp(ext(auto_extension)), cname = 'avg', sqlname = 'AVG', call = fn_behavior)
 fnsum = OperatorBase('sum', 1, long_return, cname = 'sum', sqlname = 'SUM', call = fn_behavior)
 fnavg = OperatorBase('avg', 1, lfp_return, cname = 'avg', sqlname = 'AVG', call = fn_behavior)
+fnvar = OperatorBase('var', 1, lfp_return, cname = 'var', sqlname = 'VAR_POP', call = fn_behavior)
+fnstd = OperatorBase('stddev', 1, lfp_return, cname = 'stddev', sqlname = 'STDDEV_POP', call = fn_behavior)
 fnmaxs = OperatorBase('maxs', [1, 2], ty_clamp(as_is, -1), cname = 'maxs', sqlname = 'MAXS', call = windowed_fn_behavor)
 fnmins = OperatorBase('mins', [1, 2], ty_clamp(as_is, -1), cname = 'mins', sqlname = 'MINS', call = windowed_fn_behavor)
 fnsums = OperatorBase('sums', [1, 2], ext(ty_clamp(auto_extension, -1)), cname = 'sums', sqlname = 'SUMS', call = windowed_fn_behavor)
 fnavgs = OperatorBase('avgs', [1, 2], fp(ext(ty_clamp(auto_extension, -1))), cname = 'avgs', sqlname = 'AVGS', call = windowed_fn_behavor)
+fnvars = OperatorBase('vars', [1, 2], fp(ext(ty_clamp(auto_extension, -1))), cname = 'vars', sqlname = 'VARS', call = windowed_fn_behavor)
+fnstds = OperatorBase('stddevs', [1, 2], fp(ext(ty_clamp(auto_extension, -1))), cname = 'stddevs', sqlname = 'STDDEVS', call = windowed_fn_behavor)
 fncnt = OperatorBase('count', 1, int_return, cname = 'count', sqlname = 'COUNT', call = count_behavior)
 fnpack = OperatorBase('pack', -1, pack_return, cname = 'pack', sqlname = 'PACK', call = pack_behavior)
 # special
@@ -360,8 +365,14 @@ builtin_cstdlib = _op_make_dict(fnsqrt, fnlog, fnsin, fncos, fntan, fnpow)
 builtin_func = _op_make_dict(fnmax, fnmin, fnsum, fnavg, fnmaxs, 
                              fnmins, fndeltas, fnratios, fnlast,
                              fnfirst, fnsums, fnavgs, fncnt, 
-                             fnpack, fntrunc, fnprev, fnnext)
+                             fnpack, fntrunc, fnprev, fnnext, 
+                             fnvar, fnvars, fnstd, fnstds)
 user_module_func = {}
 builtin_operators : Dict[str, OperatorBase] = {**builtin_binary_arith, **builtin_binary_logical, 
     **builtin_unary_arith, **builtin_unary_logical, **builtin_unary_special, **builtin_func, **builtin_cstdlib, 
     **user_module_func}
+
+type_table = {**builtin_types, **type_table}
+
+# Additional Aliases for type names
+type_table['boolean'] = BoolT

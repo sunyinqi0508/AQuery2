@@ -2,7 +2,7 @@
 
 ## GLOBAL CONFIGURATION FLAGS
 
-version_string = '0.4.9a'
+version_string = '0.5.3a'
 add_path_to_ldpath = True
 rebuild_backend = False
 run_backend = True
@@ -11,6 +11,9 @@ cygroot = 'c:/msys64/usr/bin'
 msbuildroot = ''
 os_platform = 'unknown'
 build_driver = 'Auto'
+compilation_output = True
+
+## END GLOBAL CONFIGURATION FLAGS
 
 def init_config():
     global __config_initialized__, os_platform, msbuildroot, build_driver
@@ -21,7 +24,8 @@ def init_config():
     import os
     from engine.utils import add_dll_dir
     # os.environ['CXX'] = 'C:/Program Files/LLVM/bin/clang.exe'
-    # os.environ['THREADING'] = '1'
+    os.environ['THREADING'] = '1'
+    os.environ['AQUERY_ITC_USE_SEMPH'] = '1'
 
     if  ('__config_initialized__' not in globals() or 
             not __config_initialized__):

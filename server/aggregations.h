@@ -202,6 +202,102 @@ decayed_t<VT, types::GetFPType<types::GetLongType<T>>> avgw(uint32_t w, const VT
 	return ret;
 }
 
+template<class T, template<typename ...> class VT, bool sd = false>
+decayed_t<VT, types::GetFPType<types::GetLongType<T>>> varw(uint32_t w, const VT<T>& arr) {
+	using FPType = types::GetFPType<types::GetLongType<T>>;
+	const uint32_t& len = arr.size;
+	decayed_t<VT, FPType> ret(len);
+	uint32_t i = 0;
+	types::GetLongType<T> s{};
+	w = w > len ? len : w;
+	FPType EnX {},  MnX{};
+	if (len) {
+		s = arr[0];
+		MnX = 0;
+		EnX = arr[0];
+		ret[i++] = 0;
+	}
+	for (; i < len; ++i){
+		s += arr[i];
+		FPType _EnX = s / (FPType)(i + 1);
+		MnX += (arr[i] - EnX) * (arr[i] - _EnX);
+		EnX = _EnX;
+		ret[i] = MnX / (FPType)(i + 1);
+		if constexpr(sd) ret[i-1] = sqrt(ret[i-1]);
+	}
+	const float rw = 1.f / (float)w;
+	s *= rw;	
+	for (; i < len; ++i){
+		const auto dw = arr[i] - arr[i - w - 1];
+		const auto sw = arr[i] + arr[i - w - 1];
+		const auto dex = dw * rw;
+		ret[i] = ret[i-1] - dex*(s + s + dex - sw);
+		if constexpr(sd) ret[i-1] = sqrt(ret[i-1]);
+		s += dex;
+	}
+	if constexpr(sd) 
+		if(i)
+			ret[i-1] = sqrt(ret[i-1]);
+	
+	return ret;
+}
+
+template<class T, template<typename ...> class VT>
+types::GetFPType<types::GetLongType<decays<T>>> var(const VT<T>& arr) {
+	typedef types::GetFPType<types::GetLongType<decays<T>>> FPType;
+	const uint32_t& len = arr.size;
+	uint32_t i = 0;
+	types::GetLongType<T> s{0};
+	types::GetLongType<T> ssq{0};
+	if (len) {
+		s = arr[0];
+		ssq = arr[0] * arr[0];
+	}
+	for (; i < len; ++i){
+		s += arr[i];
+		ssq += arr[i] * arr[i];
+	}
+	return (ssq - s * s / (FPType)(len + 1)) / (FPType)(len + 1);
+}
+
+template<class T, template<typename ...> class VT, bool sd = false>
+decayed_t<VT, types::GetFPType<types::GetLongType<T>>> vars(const VT<T>& arr) {
+	typedef types::GetFPType<types::GetLongType<T>> FPType;
+	const uint32_t& len = arr.size;
+	decayed_t<VT, FPType> ret(len);
+	uint32_t i = 0;
+	types::GetLongType<T> s{};
+	FPType MnX{};
+	FPType EnX {};
+	if (len) {
+		s = arr[0];
+		MnX = 0;
+		EnX = arr[0];
+		ret[i++] = 0;
+	}
+	for (; i < len; ++i){
+		s += arr[i];
+		FPType _EnX = s / (FPType)(i + 1);
+		MnX += (arr[i] - EnX) * (arr[i] - _EnX);
+		printf("%d %ld ", arr[i], MnX);
+		EnX = _EnX;
+		ret[i] = MnX / (FPType)(i + 1);
+		if constexpr(sd) ret[i] = sqrt(ret[i]);
+	}
+	return ret;
+}
+template<class T, template<typename ...> class VT>
+types::GetFPType<types::GetLongType<decays<T>>> stddev(const VT<T>& arr) {
+	return sqrt(var(arr));
+}
+template<class T, template<typename ...> class VT>
+decayed_t<VT, types::GetFPType<types::GetLongType<T>>> stddevs(const VT<T>& arr) {
+	return vars<T, VT, true>(arr);
+}
+template<class T, template<typename ...> class VT>
+decayed_t<VT, types::GetFPType<types::GetLongType<T>>> stddevw(uint32_t w, const VT<T>& arr) {
+	return varw<T, VT, true>(w, arr);
+}
 // use getSignedType
 template<class T, template<typename ...> class VT>
 decayed_t<VT, T> deltas(const VT<T>& arr) {
@@ -251,26 +347,33 @@ T first(const VT<T>& arr) {
 }
 
 
+
 #define __DEFAULT_AGGREGATE_FUNCTION__(NAME, RET) \
-template <class T> constexpr inline T NAME(const T& v) { return RET; }
+template <class T> constexpr T NAME(const T& v) { return RET; }
 
 // non-aggreation count. E.g. SELECT COUNT(col) from table; 
-template <class T> constexpr inline T count(const T& v) { return 1; }
-template <class T> constexpr inline T max(const T& v) { return v; }
-template <class T> constexpr inline T min(const T& v) { return v; }
-template <class T> constexpr inline T avg(const T& v) { return v; }
-template <class T> constexpr inline T sum(const T& v) { return v; }
-template <class T> constexpr inline T maxw(uint32_t, const T& v) { return v; }
-template <class T> constexpr inline T minw(uint32_t, const T& v) { return v; }
-template <class T> constexpr inline T avgw(uint32_t, const T& v) { return v; }
-template <class T> constexpr inline T sumw(uint32_t, const T& v) { return v; }
-template <class T> constexpr inline T ratiow(uint32_t, const T& v) { return 1; }
-template <class T> constexpr inline T maxs(const T& v) { return v; }
-template <class T> constexpr inline T mins(const T& v) { return v; }
-template <class T> constexpr inline T avgs(const T& v) { return v; }
-template <class T> constexpr inline T sums(const T& v) { return v; }
-template <class T> constexpr inline T last(const T& v) { return v; }
-template <class T> constexpr inline T prev(const T& v) { return v; }
-template <class T> constexpr inline T aggnext(const T& v) { return v; }
-template <class T> constexpr inline T daltas(const T& v) { return 0; }
-template <class T> constexpr inline T ratios(const T& v) { return 1; }
+template <class T> constexpr T count(const T&) { return 1; }
+template <class T> constexpr T var(const T&) { return 0; }
+template <class T> constexpr T vars(const T&) { return 0; }
+template <class T> constexpr T varw(uint32_t, const T&) { return 0; }
+template <class T> constexpr T stddev(const T&) { return 0; }
+template <class T> constexpr T stddevs(const T&) { return 0; }
+template <class T> constexpr T stddevw(uint32_t, const T&) { return 0; }
+template <class T> constexpr T max(const T& v) { return v; }
+template <class T> constexpr T min(const T& v) { return v; }
+template <class T> constexpr T avg(const T& v) { return v; }
+template <class T> constexpr T sum(const T& v) { return v; }
+template <class T> constexpr T maxw(uint32_t, const T& v) { return v; }
+template <class T> constexpr T minw(uint32_t, const T& v) { return v; }
+template <class T> constexpr T avgw(uint32_t, const T& v) { return v; }
+template <class T> constexpr T sumw(uint32_t, const T& v) { return v; }
+template <class T> constexpr T ratiow(uint32_t, const T&) { return 1; }
+template <class T> constexpr T maxs(const T& v) { return v; }
+template <class T> constexpr T mins(const T& v) { return v; }
+template <class T> constexpr T avgs(const T& v) { return v; }
+template <class T> constexpr T sums(const T& v) { return v; }
+template <class T> constexpr T last(const T& v) { return v; }
+template <class T> constexpr T prev(const T& v) { return v; }
+template <class T> constexpr T aggnext(const T& v) { return v; }
+template <class T> constexpr T daltas(const T&) { return 0; }
+template <class T> constexpr T ratios(const T&) { return 1; }

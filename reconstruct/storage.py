@@ -1,12 +1,14 @@
+from typing import Dict, List, Set
+
 from engine.types import *
 from engine.utils import CaseInsensitiveDict, base62uuid, enlist
-from typing import List, Dict, Set
+
 
 class ColRef:
     def __init__(self, _ty, cobj, table:'TableInfo', name, id, compound = False, _ty_args = None):
         self.type : Types = AnyT
         if type(_ty) is str:
-            self.type = builtin_types[_ty.lower()]
+            self.type = Types.decode(_ty)
             if _ty_args:
                 self.type = self.type(enlist(_ty_args))
         elif type(_ty) is Types:
@@ -17,6 +19,7 @@ class ColRef:
         self.alias = set()
         self.id = id # position in table
         self.compound = compound # compound field (list as a field) 
+        self.cxt_name = ''
         # e.g. order by, group by, filter by expressions
         
         self.__arr__ = (_ty, cobj, table, name, id)
@@ -41,6 +44,14 @@ class ColRef:
         except StopIteration:
             alias = table_name
         return f'{alias}.{self.get_name()}'
+    
+    def rename(self, name):
+        self.alias.discard(self.name)
+        self.table.columns_byname.pop(self.name, None)
+        self.name = name
+        self.table.columns_byname[name] = self
+        
+        return self
     
     def __getitem__(self, key):
         if type(key) is str:
@@ -94,6 +105,17 @@ class TableInfo:
             return
         self.cxt.tables_byname[alias] = self
         self.alias.add(alias)
+    
+    def rename(self, name):
+        if name in self.cxt.tables_byname.keys():
+            print(f"Error: table name {name} already exists")
+            return
+        
+        self.cxt.tables_byname.pop(self.table_name, None)
+        self.alias.discard(self.table_name)
+        self.table_name = name
+        self.cxt.tables_byname[name] = self
+        self.alias.add(name)
         
     def parse_col_names(self, colExpr) -> ColRef:
         parsedColExpr = colExpr.split('.')
@@ -134,6 +156,7 @@ class Context:
         self.queries = []
         self.module_init_loc = 0
         self.special_gb = False
+        self.has_dll = False
          
     def __init__(self):
         self.tables_byname = dict()
@@ -147,7 +170,6 @@ class Context:
         self.udf_agg_map = dict()
         self.use_columnstore = False
         self.print = print
-        self.has_dll = False
         self.dialect = 'MonetDB'
         self.is_msvc = False
         self.have_hge = False
@@ -223,6 +245,14 @@ class Context:
         self.queries.append('P' + proc_name)    
         self.finalize_query()
         
+    def abandon_query(self):
+        self.sql = ''
+        self.ccode = ''
+        self.finalize_query()
+    
+    def direct_output(self):
+        self.queries.append('O')
+    
     def abandon_postproc(self):
         self.ccode = ''
         self.finalize_query()

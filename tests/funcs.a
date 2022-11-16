@@ -19,7 +19,7 @@ LOAD DATA INFILE "data/test.csv"
 INTO TABLE test1
 FIELDS TERMINATED BY ","
 
-SELECT pairCorr(c, b) * d, sum(a), b
+SELECT pairCorr(c, b) * d, a, sum(b)
 FROM test1
-group by c,b,d
+group by a
 order by b ASC

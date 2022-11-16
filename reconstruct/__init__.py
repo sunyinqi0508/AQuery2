@@ -1,4 +1,5 @@
 from reconstruct.ast import Context, ast_node
+
 saved_cxt = None
 
 def initialize(cxt = None, keep = False):

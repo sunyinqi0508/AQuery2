@@ -1,6 +1,6 @@
-from collections import OrderedDict
-from collections.abc import MutableMapping, Mapping
 import uuid
+from collections import OrderedDict
+from collections.abc import Mapping, MutableMapping
 
 lower_alp = 'abcdefghijklmnopqrstuvwxyz'
 upper_alp = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -107,6 +107,8 @@ def defval(val, default):
 
 # escape must be readonly
 from typing import Mapping, Set
+
+
 def remove_last(pattern : str, string : str, escape : Set[str] = set()) -> str:
     idx = string.rfind(pattern)
     if idx == -1:
@@ -126,8 +128,10 @@ class _Counter:
         return cnt
 
 import re
+
 ws = re.compile(r'\s+')
 import os
+
 
 def add_dll_dir(dll: str):
     import sys
@@ -144,3 +148,13 @@ def clamp(val, minval, maxval):
 
 def escape_qoutes(string : str):
     return re.sub(r'^\'', r'\'',re.sub(r'([^\\])\'', r'\1\'', string))
+
+def get_innermost(sl):
+    if sl and type(sl) is dict:
+        if 'literal' in sl and type(sl['literal']) is str:
+            return f"'{get_innermost(sl['literal'])}'"
+        return get_innermost(next(iter(sl.values()), None))
+    elif sl and type(sl) is list:
+        return get_innermost(sl[0])
+    else:
+        return sl

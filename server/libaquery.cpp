@@ -1,20 +1,20 @@
 #include "pch_msc.hpp"
 
 #include "io.h"
-#include "table.h"
 #include <limits>
 
 #include <chrono>
 #include <ctime>
 
 #include "utils.h"
+#include "libaquery.h"
 #include <random>
 
 char* gbuf = nullptr;
 
 void setgbuf(char* buf) {
-	static char* b = 0;
-	if (buf == 0)
+	static char* b = nullptr;
+	if (buf == nullptr)
 		gbuf = b;
 	else {
 		gbuf = buf;
@@ -63,6 +63,7 @@ T getInt(const char*& buf){
 	}
 	return ret;
 }
+
 template<class T> 
 char* intToString(T val, char* buf){
 
@@ -275,6 +276,44 @@ inline const char* str(const bool& v) {
 	return v ? "true" : "false";
 }
 
+
+Context::Context() {
+    current.memory_map = new std::unordered_map<void*, deallocator_t>;
+    init_session();
+}
+
+Context::~Context() {
+    auto memmap = (std::unordered_map<void*, deallocator_t>*) this->current.memory_map;
+    delete memmap;
+}
+
+void Context::init_session(){
+    if (log_level == LOG_INFO){
+        memset(&(this->current.stats), 0, sizeof(Session::Statistic));
+    }
+    auto memmap = (std::unordered_map<void*, deallocator_t>*) this->current.memory_map;
+    memmap->clear();
+}
+
+void Context::end_session(){
+    auto memmap = (std::unordered_map<void*, deallocator_t>*) this->current.memory_map;
+    for (auto& mem : *memmap) {
+        mem.second(mem.first);
+    }
+    memmap->clear();
+}
+
+void* Context::get_module_function(const char* fname){
+    auto fmap = static_cast<std::unordered_map<std::string, void*>*>
+        (this->module_function_maps);
+    // printf("%p\n", fmap->find("mydiv")->second);
+    //  for (const auto& [key, value] : *fmap){
+    //      printf("%s %p\n", key.c_str(), value);
+    //  }
+    auto ret = fmap->find(fname);
+    return ret == fmap->end() ? nullptr : ret->second;
+}
+
 // template<typename _Ty>
 // inline void vector_type<_Ty>::out(uint32_t n, const char* sep) const
 // {
@@ -288,3 +327,195 @@ inline const char* str(const bool& v) {
 // 	}
 // 	std::cout << ')';
 // }
+
+#include "gc.h"
+#include <utility>
+#include <thread>
+#ifndef __AQ_USE_THREADEDGC__
+
+struct gcmemory_t{
+	void* memory;
+	void (*deallocator)(void*);
+};
+
+using memoryqueue_t = gcmemory_t*;
+void GC::acquire_lock() {
+	// auto this_tid = std::this_thread::get_id();
+	// while(lock != this_tid)
+	// {
+	// 	while(lock != this_tid && lock != std::thread::id()) {
+	// 		std::this_thread::sleep_for(std::chrono::milliseconds(0));
+	// 	}
+	// 	lock = this_tid;
+	// }
+}
+
+void GC::release_lock(){
+	// lock = std::thread::id();
+}
+
+void GC::gc()
+{
+	auto _q = static_cast<memoryqueue_t>(q);
+	auto _q_back = static_cast<memoryqueue_t>(q_back);
+	if (slot_pos == 0)
+		return;
+	auto t = _q;
+	lock = true;
+	while(alive_cnt != 0);
+	q = _q_back;
+	uint32_t _slot = slot_pos;
+	slot_pos = 0;
+	current_size = 0;
+	lock = false;
+	q_back = t;
+
+	for(uint32_t i = 0; i < _slot; ++i){
+		if (_q[i].memory != nullptr && _q[i].deallocator != nullptr)
+			_q[i].deallocator(_q[i].memory);
+	}
+	memset(_q, 0, sizeof(gcmemory_t) * _slot);
+	running = false;
+}
+
+void GC::daemon() {
+	using namespace std::chrono;
+
+	while (alive) {
+		if (running) {
+			if (current_size - max_size > 0 || 
+				forceclean_timer > forced_clean) 
+			{
+				gc();
+				forceclean_timer = 0;
+			}
+			std::this_thread::sleep_for(microseconds(interval));
+			forceclean_timer += interval;
+		}
+		else {
+			std::this_thread::sleep_for(10ms);
+			forceclean_timer += 10000;
+		}
+	}
+}
+
+void GC::start_deamon() {
+	q = new gcmemory_t[max_slots << 1];
+	q_back = new memoryqueue_t[max_slots << 1];
+	lock = false;
+	slot_pos = 0;
+	current_size = 0;
+	alive_cnt = 0;
+	alive = true;
+	handle = new std::thread(&GC::daemon, this);
+}
+
+void GC::terminate_daemon() {
+	running = false;
+	alive = false;
+	decltype(auto) _handle = static_cast<std::thread*>(handle);
+	delete[] static_cast<memoryqueue_t>(q);
+	delete[] static_cast<memoryqueue_t>(q_back);
+	using namespace std::chrono;
+	std::this_thread::sleep_for(microseconds(1000 + std::max(static_cast<size_t>(10000), interval)));
+
+	if (_handle->joinable()) {
+		_handle->join();
+	}
+	delete _handle;
+}
+
+void GC::reg(void* v, uint32_t sz, void(*f)(void*)) { //~ 40ns expected v. free ~ 75ns
+	if (v == nullptr || f == nullptr)
+		return;
+	if (sz < threshould){
+		f(v);
+		return;
+	}
+	auto _q = static_cast<memoryqueue_t>(q);
+	while(lock);
+	++alive_cnt;
+	current_size += sz;
+	auto _slot = (slot_pos += 1);
+	_q[_slot] = {v, f};
+	--alive_cnt;
+	running = true;
+}
+
+#endif
+
+GC* GC::gc_handle = nullptr;
+
+#include "dragonbox/dragonbox_to_chars.hpp" 
+
+
+template<>
+char*
+aq_to_chars<float>(void* value, char* buffer) { 
+    return jkj::dragonbox::to_chars_n(*static_cast<float*>(value), buffer);
+}
+template<>
+char*
+aq_to_chars<double>(void* value, char* buffer) { 
+    return jkj::dragonbox::to_chars_n(*static_cast<double*>(value), buffer);
+}
+
+template<>
+inline char*
+aq_to_chars<bool>(void* value, char* buffer) {
+	if (*static_cast<bool*>(value)){
+		memcpy(buffer, "true", 4);
+		return buffer + 4;
+	}
+	else{
+		memcpy(buffer, "false", 5);
+		return buffer + 5;
+	}
+}
+
+template<>
+char*
+aq_to_chars<char*>(void* value, char* buffer) {
+	const auto src = *static_cast<char**>(value);
+	const auto len = strlen(src);
+	memcpy(buffer, src, len);
+	return buffer + len;
+}
+
+template<>
+char*
+aq_to_chars<types::date_t>(void* value, char* buffer) {
+	const auto& src = *static_cast<types::date_t*>(value);
+	buffer = to_text(buffer, src.year);
+	*buffer++ = '-';
+	buffer = to_text(buffer, src.month);
+	*buffer++ = '-';
+	buffer = to_text(buffer, src.day);
+	return buffer;
+}
+
+template<>
+char*
+aq_to_chars<types::time_t>(void* value, char* buffer) {
+	const auto& src = *static_cast<types::time_t*>(value);
+	buffer = to_text(buffer, src.hours);
+	*buffer++ = ':';
+	buffer = to_text(buffer, src.minutes);
+	*buffer++ = ':';
+	buffer = to_text(buffer, src.seconds);
+	*buffer++ = ':';
+	buffer = to_text(buffer, src.ms);
+	return buffer;
+}
+
+template<>
+char*
+aq_to_chars<types::timestamp_t>(void* value, char* buffer) {
+	auto& src = *static_cast<types::timestamp_t*>(value);
+	buffer = aq_to_chars<types::date_t>(static_cast<void*>(&src.date), buffer);
+	*buffer++ = ' ';
+	buffer = aq_to_chars<types::time_t>(static_cast<void*>(&src.time), buffer);
+	return buffer;
+}
+
+

@@ -51,12 +51,14 @@ k
 **/Debug
 **/Release
 test*.c*
+data/benchmark
 *.csv
 !test.csv
 !test2.csv
 !moving_avg.csv
 !nyctx100.csv
 !network.csv
+!test_complex.csv
 *.out
 *.asm
 !mmw.so

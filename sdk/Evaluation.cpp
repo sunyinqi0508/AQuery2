@@ -5,14 +5,13 @@
 
 struct minEval{
         double value;
-        double values;
+        int* values;
 
 	double eval;
         long left; // how many on its left
         double* record;
         long max;
         long** count;
-        long* sorted; // sorted d
 };
 
 minEval giniSparse(double** data, long* result, long* d, long size, long col, long classes, long* totalT){

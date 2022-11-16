@@ -151,5 +151,5 @@ int gen_stock_data(int argc, char* argv[]){
 }
 
 int main(int argc, char* argv[]){
-    gen_stock_data(argc, argv);
+    return gen_stock_data(argc, argv);
 }

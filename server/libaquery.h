@@ -1,8 +1,37 @@
 #ifndef _AQUERY_H
 #define _AQUERY_H
 
-#include "table.h"
+#ifdef __INTELLISENSE__
+	#define __AQUERY_ITC_USE_SEMPH__
+	#define THREADING
+	#define __AQ_THREADED_GC__
+#endif
+
 #include <unordered_map>
+#include <chrono>
+class aq_timer {
+private:
+	std::chrono::high_resolution_clock::time_point now;
+public:
+	aq_timer(){
+		now = std::chrono::high_resolution_clock::now();
+	}
+	void reset(){
+		now = std::chrono::high_resolution_clock::now();
+	}
+	long long elapsed(){
+		long long ret = (std::chrono::high_resolution_clock::now() - now).count();
+		reset();
+		return ret;
+	}
+	long long lap() const{
+		long long ret = (std::chrono::high_resolution_clock::now() - now).count();
+		return ret;
+	}
+};
+
+#include "table.h"
+
 
 enum Log_level {
 	LOG_INFO,
@@ -15,9 +44,16 @@ enum Backend_Type {
 	BACKEND_MonetDB,
 	BACKEND_MariaDB
 };
+
+struct QueryStats{
+	long long monet_time;
+	long long postproc_time;
+};
 struct Config{
-    int running, new_query, server_mode,
-	 	backend_type, has_dll, exec_time, n_buffers;
+    int running, new_query, server_mode, 
+	 	backend_type, has_dll, 
+		n_buffers;
+	QueryStats stats;
     int buffer_sizes[];
 };
 
@@ -47,7 +83,10 @@ struct Context{
 #ifdef THREADING
 	void* thread_pool;
 #endif	
-	printf_type print = printf;
+#ifdef __AQ_THREADED_GC__
+	void* gc;
+#endif
+	printf_type print = &printf;
 	Context();
 	virtual ~Context();
 	template <class ...Types>
@@ -67,6 +106,8 @@ struct Context{
     std::unordered_map<const char*, uColRef *> cols;
 };
 
+
+
 #ifdef _WIN32
 #define __DLLEXPORT__  __declspec(dllexport) __stdcall 
 #else 
@@ -76,4 +117,40 @@ struct Context{
 #define __AQEXPORT__(_Ty) extern "C" _Ty __DLLEXPORT__ 
 typedef void (*deallocator_t) (void*);
 
+
+#include <type_traits>
+#include "jeaiii_to_text.h"
+
+template<class T>
+inline std::enable_if_t<std::is_integral_v<T>, char *> 
+aq_to_chars(void* value, char* buffer) { 
+	return to_text(buffer, *static_cast<T*>(value));
+}
+
+template<class T>
+inline std::enable_if_t<!std::is_integral_v<T>, char *> 
+aq_to_chars(void* value, char* buffer) {
+	return buffer;
+}
+
+#ifdef __SIZEOF_INT128__
+template<>
+inline char*
+aq_to_chars<__int128_t>(void* value, char* buffer) {
+    return jeaiii_i128<__int128_t>(buffer, *static_cast<__int128_t*>(value));
+}
+
+template<>
+inline char*
+aq_to_chars<__uint128_t>(void* value, char* buffer) {
+    return jeaiii_i128<__uint128_t>(buffer, *static_cast<__uint128_t*>(value));
+}
+#endif
+
+template<> char* aq_to_chars<float>(void* , char*);
+template<> char* aq_to_chars<double>(void* , char*);
+template<> char* aq_to_chars<char*>(void* , char*);
+template<> char* aq_to_chars<types::date_t>(void* , char*);
+template<> char* aq_to_chars<types::time_t>(void* , char*);
+template<> char* aq_to_chars<types::timestamp_t>(void* , char*);
 #endif

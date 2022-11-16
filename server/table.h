@@ -9,6 +9,7 @@
 #include <string>
 #include <algorithm>
 #include <cstdarg>
+#include <vector>
 #include "io.h"
 #include "hasher.h"
 
@@ -74,12 +75,36 @@ public:
 		this->container = (_Ty*)container;
 		this->name = name;
 	}
-	template<template <typename ...> class VT, typename T>
+	template<template <typename> class VT, typename T>
+	void initfrom(VT<T>&& v, const char* name = "") {
+		ty = types::Types<_Ty>::getType();
+		this->size = v.size;
+		this->capacity = v.capacity;
+		this->container = (_Ty*)(v.container);
+		this->name = name;
+		v.capacity = 0;
+	}
+	template<template <typename> class VT, typename T>
 	void initfrom(const VT<T>& v, const char* name = "") {
 		ty = types::Types<_Ty>::getType();
 		this->size = v.size;
 		this->capacity = 0;
 		this->container = (_Ty*)(v.container);
+		this->name = name;
+	}
+	void initfrom(vectortype_cstorage v, const char* name = "") {
+		ty = types::Types<_Ty>::getType();
+		this->size = v.size;
+		this->capacity = v.capacity;
+		this->container = (_Ty*)v.container;
+		this->name = name;
+	}
+	template<typename T>
+	void initfrom(const T& v, const char* name = "") {
+		ty = types::Types<_Ty>::getType();
+		this->size = 0;
+		this->capacity = 0;
+		this->emplace_back(v);
 		this->name = name;
 	}
 	template <class T>
@@ -115,8 +140,16 @@ public:
 	ColView<_Ty> operator [](const vector_type<uint32_t>& idxs) const {
 		return ColView<_Ty>(*this, idxs);
 	}
-
-	void out(uint32_t n = 4, const char* sep = " ") const {
+	vector_type<_Ty> operator [](const std::vector<bool>& idxs) const {
+		vector_type<_Ty> ret (this->size);
+		uint32_t i = 0;
+		for(const auto& f : idxs){
+			if(f) ret.emplace_back(this->operator[](i));
+			++i;
+		}
+		return ret;
+	}
+	void out(uint32_t n = 1000, const char* sep = " ") const {
 		const char* more = "";
 		if (n < this->size)
 			more = " ... ";
@@ -180,7 +213,7 @@ template<>
 class ColRef<void> : public ColRef<int> {};
 
 template<typename _Ty>
-class ColView {
+class ColView : public vector_base<_Ty> {
 public:
 	typedef ColRef<_Ty> Decayed_t;
 	const uint32_t size;
@@ -219,7 +252,7 @@ public:
 	Iterator_t end() const {
 		return Iterator_t(idxs.end(), orig);
 	}
-	void out(uint32_t n = 4, const char* sep = " ") const {
+	void out(uint32_t n = 1000, const char* sep = " ") const {
 		n = n > size ? size : n;
 		std::cout << '(';
 		for (uint32_t i = 0; i < n; ++i)
@@ -414,19 +447,27 @@ struct TableInfo {
 	}
 	template <int ...cols>
 	void print2(const char* __restrict sep = ",", const char* __restrict end = "\n",
-		const vector_type<uint32_t>* __restrict view = nullptr, FILE* __restrict fp = nullptr) const {
+		const vector_type<uint32_t>* __restrict view = nullptr, 
+		FILE* __restrict fp = nullptr, uint32_t limit = std::numeric_limits<uint32_t>::max()
+		) const {
 
 		std::string printf_string =
 			generate_printf_string<typename std::tuple_element<cols, tuple_type>::type ...>(sep, end);
+		// puts(printf_string.c_str());
 		std::string header_string = std::string();
 		constexpr static int a_cols[] = { cols... };
-		for (int i = 0; i < sizeof...(cols); ++i)
-			header_string += std::string(this->colrefs[a_cols[i]].name) + sep;
-		const size_t l_sep = strlen(sep);
-		if (header_string.size() - l_sep >= 0)
-			header_string.resize(header_string.size() - l_sep);
-
-		const auto& prt_loop = [&fp, &view, &printf_string, *this](const auto& f) {
+		if (fp == nullptr){
+			header_string = get_header_string(sep, end);
+			header_string.resize(header_string.size() - strlen(end));
+		}
+		else {
+			for (int i = 0; i < sizeof...(cols); ++i)
+				header_string += std::string(this->colrefs[a_cols[i]].name) + sep;
+			const size_t l_sep = strlen(sep);
+			if (header_string.size() - l_sep >= 0)
+				header_string.resize(header_string.size() - l_sep);
+		}
+		const auto& prt_loop = [&fp, &view, &printf_string, *this, &limit](const auto& f) {
 #ifdef __AQ__HAS__INT128__			
 			constexpr auto num_hge = count_type<__int128_t, __uint128_t>((tuple_type*)(0));
 #else
@@ -442,16 +483,21 @@ struct TableInfo {
 				+ 1 // padding for msvc not allowing empty arrays
 			];
 			setgbuf(cbuf);
-			if (view)
-				for (uint32_t i = 0; i < view->size; ++i) {
+			
+			if (view){
+				uint32_t outsz = limit > view->size ? view->size : limit;
+				for (uint32_t i = 0; i < outsz; ++i) {
 					print2_impl<cols...>(f, (*view)[i], printf_string.c_str());
 					setgbuf();
 				}
-			else
-				for (uint32_t i = 0; i < colrefs[0].size; ++i) {
+			}
+			else{
+				uint32_t outsz = limit > colrefs[0].size ? colrefs[0].size : limit;
+				for (uint32_t i = 0; i < outsz; ++i) {
 					print2_impl<cols...>(f, i, printf_string.c_str());
 					setgbuf();
 				}
+			}
 		};
 
 		if (fp)
@@ -466,15 +512,17 @@ struct TableInfo {
 	}
 	template <int ...vals> struct applier {
 		inline constexpr static void apply(const TableInfo<Types...>& t, const char* __restrict sep = ",", const char* __restrict end = "\n",
-			const vector_type<uint32_t>* __restrict view = nullptr, FILE* __restrict fp = nullptr)
+			const vector_type<uint32_t>* __restrict view = nullptr, FILE* __restrict fp = nullptr, uint32_t limit = std::numeric_limits<uint32_t>::max()
+			) 
 		{
-			t.template print2<vals ...>(sep, end, view, fp);
+			t.template print2<vals ...>(sep, end, view, fp, limit);
 		}
 	};
 
 	inline void printall(const char* __restrict sep = ",", const char* __restrict end = "\n",
-		const vector_type<uint32_t>* __restrict view = nullptr, FILE* __restrict fp = nullptr) {
-		applyIntegerSequence<sizeof...(Types), applier>::apply(*this, sep, end, view, fp);
+		const vector_type<uint32_t>* __restrict view = nullptr, FILE* __restrict fp = nullptr, 
+		uint32_t limit = std::numeric_limits<uint32_t>::max() ) const {
+		applyIntegerSequence<sizeof...(Types), applier>::apply(*this, sep, end, view, fp, limit);
 	}
 
 	TableInfo<Types...>* rename(const char* name) {
@@ -643,7 +691,9 @@ template <class ...Types>
 template <size_t j>
 inline typename std::enable_if<j == sizeof...(Types) - 1, void>::type
 TableInfo<Types ...>::print_impl(const uint32_t& i, const char* __restrict sep) const {
-	std::cout << (get<j>(*this))[i];
+	decltype(auto) t = (get<j>(*this))[i];
+//	print(t);
+	std::cout << t;
 }
 
 template<class ...Types>
@@ -658,6 +708,7 @@ inline typename std::enable_if < j < sizeof...(Types) - 1, void>::type
 template<class ...Types>
 inline void TableInfo<Types...>::print(const char* __restrict sep, const char* __restrict end) const {
 
+	//printall(sep, end);
 	std::string header_string = get_header_string(sep, end);
 	std::cout << header_string.c_str();
 
@@ -669,51 +720,56 @@ inline void TableInfo<Types...>::print(const char* __restrict sep, const char* _
 		std::cout << end;
 	}
 }
+
+// use std::is_base_of here and all vt classes should derive from vector_base
 template <class T1,
 			template<typename> class VT,
 			class TRet>
-using test_vt_support = typename std::enable_if_t<std::is_same_v<VT<T1>, ColRef<T1>> || 
-				std::is_same_v<VT<T1>, ColView<T1>> || 
-				std::is_same_v<VT<T1>, vector_type<T1>>, TRet>;
+using test_vt_support = typename std::enable_if_t<
+					std::is_base_of_v<vector_base<T1>, VT<T1>>, 
+					TRet>;
 
-template <class T1, class T2,
-			template<typename> class VT>
-using get_autoext_type = test_vt_support<T1, VT, 
-		decayed_t<VT, typename types::Coercion<T1, T2>::type>>;
 
-template <class T1, class T2,
-			template<typename> class VT>
-using get_long_type = test_vt_support<T1, VT, 
-		decayed_t<VT, types::GetLongType<typename types::Coercion<T1, T2>::type>>>;
+template <class T1, class T2, template<typename> class VT, 
+			test_vt_support<T1, VT, void>* = nullptr>
+using get_autoext_type = 
+		decayed_t<VT, typename types::Coercion<T1, T2>::type>;
 
-template <class T1, class T2,
-			template<typename> class VT>
-using get_fp_type = test_vt_support<T1, VT, 
-		decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>>>;
+template <class T1, class T2, template<typename> class VT, 
+		test_vt_support<T1, VT, void>* = nullptr>
+using get_long_type = 
+		decayed_t<VT, types::GetLongType<typename types::Coercion<T1, T2>::type>>;
+
+template <class T1, class T2, template<typename> class VT,
+		test_vt_support<T1, VT, void>* = nullptr>
+using get_fp_type = 
+		decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>>;
 
 template <class T1, 
 			template<typename> class VT, template<typename> class VT2,
 			class TRet>
-using test_vt_support2 = typename std::enable_if_t<(std::is_same_v<VT<T1>, ColRef<T1>> || 
-				std::is_same_v<VT<T1>, ColView<T1>> || 
-				std::is_same_v<VT<T1>, vector_type<T1>>) &&
-				(std::is_same_v<VT2<T1>, ColRef<T1>> || 
-				std::is_same_v<VT2<T1>, ColView<T1>> || 
-				std::is_same_v<VT2<T1>, vector_type<T1>>), TRet >;
-template <class T1, class T2,
-			template<typename> class VT, template<typename> class VT2>
-using get_autoext_type2 = test_vt_support2<T1, VT, VT2,
-		decayed_t<VT, typename types::Coercion<T1, T2>::type>>;
+using test_vt_support2 = typename std::enable_if_t<
+				std::is_base_of_v<vector_base<T1>, VT<T1>> &&
+				std::is_base_of_v<vector_base<T1>, VT2<T1>>, 
+				TRet >;
 
 template <class T1, class T2,
-			template<typename> class VT, template<typename> class VT2>
-using get_long_type2 = test_vt_support2<T1, VT, VT2,
-		decayed_t<VT, types::GetLongType<typename types::Coercion<T1, T2>::type>>>;
+			template<typename> class VT, template<typename> class VT2, 
+			test_vt_support2<T1, VT, VT2, void>* = nullptr >
+using get_autoext_type2 = 
+		decayed_t<VT, typename types::Coercion<T1, T2>::type>;
 
 template <class T1, class T2,
-			template<typename> class VT, template<typename> class VT2>
-using get_fp_type2 = test_vt_support2<T1, VT, VT2,
-		decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>>>;
+			template<typename> class VT, template<typename> class VT2, 
+			test_vt_support2<T1, VT, VT2, void>* = nullptr >
+using get_long_type2 = 
+		decayed_t<VT, types::GetLongType<typename types::Coercion<T1, T2>::type>>;
+
+template <class T1, class T2,
+			template<typename> class VT, template<typename> class VT2, 
+			test_vt_support2<T1, VT, VT2, void>* = nullptr >
+using get_fp_type2 = 
+		decayed_t<VT, types::GetFPType<typename types::Coercion<T1, T2>::type>>;
 
 template <class T1, class T2, template<typename> class VT, template<typename> class VT2>
 get_autoext_type2<T1, T2, VT, VT2>
@@ -833,7 +889,6 @@ VT<bool> operator >(const T2& lhs, const VT<T1>& rhs) {
 		ret[i] = lhs > rhs[i];
 	return ret;
 }
-
 
 
 template <class ...Types>
