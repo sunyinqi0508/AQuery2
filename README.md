@@ -1,7 +1,7 @@
 
 # AQuery++ Database
 
-# Please try the latest code in dev branch if you encounter any problem. Use `git checkout dev` to switch branches.
+### Please try the latest code in dev branch if you encounter any problem. Use `git checkout dev` to switch branches.
 
 ## Introduction
 
