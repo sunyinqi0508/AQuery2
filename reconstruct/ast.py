@@ -31,8 +31,8 @@ class ast_node:
     
     def emit(self, code):
         self.context.emit(code)
-    def add(self, code):
-        self.sql += code + ' '
+    def add(self, code, sp = ' '):
+        self.sql += code + sp
     def addc(self, code):
         self.ccode += code + '\n'
 
@@ -84,7 +84,7 @@ class projection(ast_node):
     
     def produce(self, node):
         self.add('SELECT')
-        self.has_postproc = False
+        self.has_postproc = 'into' in node
         if 'select' in node:
             p = node['select']
             self.distinct = False
@@ -272,7 +272,11 @@ class projection(ast_node):
                 self.var_table[col.name] = offset
                 for n in (col.table.alias):
                     self.var_table[f'{n}.'+col.name] = offset
-    
+        # monetdb doesn't support select into table
+        # if 'into' in node:
+        #     self.into_stub = f'{{INTOSTUB{base62uuid(20)}}}'
+        #     self.add(self.into_stub, '')
+            
         def finialize(astnode:ast_node):
             if(astnode is not None):
                 self.add(astnode.sql)
@@ -431,13 +435,13 @@ class select_distinct(projection):
         self.finalize()
         
 class select_into(ast_node):
-    def init(self, node):
+    def init(self, _):
         if isinstance(self.parent, projection):
-            if self.context.has_dll:
-                # has postproc put back to monetdb
-                self.produce = self.produce_cpp
-            else:
-                self.produce = self.produce_sql
+            # if self.parent.has_postproc:
+            #     # has postproc put back to monetdb
+            self.produce = self.produce_cpp
+            # else:
+            #     self.produce = self.produce_sql
         else:
             raise ValueError('parent must be projection')
         
@@ -449,7 +453,8 @@ class select_into(ast_node):
             self.ccode = f'{self.parent.out_table.contextname_cpp}->monetdb_append_table(cxt->alt_server, \"{node.lower()}\");'
             
     def produce_sql(self, node):
-        self.sql = f' INTO {node}'
+        self.context.sql = self.context.sql.replace(
+            self.parent.into_stub, f'INTO {node}', 1)
     
 
 class orderby(ast_node):
@@ -1246,6 +1251,13 @@ class outfile(ast_node):
         filename = node['loc']['literal'] if 'loc' in node else node['literal']
         import os
         p =  os.path.abspath('.').replace('\\', '/') + '/' + filename
+        print('Warning: file {p} exists and will be overwritten')
+        if os.path.exists(p):
+            try:
+                os.remove(p)
+            except OSError:
+                print(f'Error: file {p} exists and cannot be removed')
+                
         self.sql = f'COPY {self.parent.sql} INTO \'{p}\''
         d = ','
         e = '\\n'
