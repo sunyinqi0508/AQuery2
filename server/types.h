@@ -428,7 +428,7 @@ using get_first = typename get_first_impl<T...>::first;
 template <class T>
 struct value_type_rec_impl { typedef T type; };
 template <template <class...> class VT, class ...V>
-struct value_type_rec_impl<VT<V...>> { typedef typename value_type_rec_impl<get_first<int>>::type type; };
+struct value_type_rec_impl<VT<V...>> { typedef typename value_type_rec_impl<get_first<V...>>::type type; };
 template <class T>
 using value_type_r = typename value_type_rec_impl<T>::type;
 

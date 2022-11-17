@@ -207,7 +207,10 @@ class projection(ast_node):
                         this_type = enlist(this_type)
                         proj_expr = enlist(proj_expr)
                     for t, n, pexpr, cp in zip(this_type, name, proj_expr, compound):
-                        t = VectorT(t) if cp else t
+                        if cp:
+                            # Force postporcessing for compound columns
+                            t = VectorT(t)
+                            self.has_postproc = True
                         offset = len(col_exprs)
                         if n not in self.var_table:
                             self.var_table[n] = offset
