@@ -550,7 +550,8 @@ def prompt(running = lambda:True, next = lambda:input('> '), state = None):
                 continue
             elif q == 'r': # build and run
                 if state.server_mode == RunType.Threaded:
-                    qs = [ctypes.c_char_p(bytes(q, 'utf-8')) for q in cxt.queries if len(q)]
+                    enc = lambda q: 'latin-1' if q.startswith('O') else 'utf-8'
+                    qs = [ctypes.c_char_p(bytes(q, enc(q))) for q in cxt.queries if len(q)]
                     sz = len(qs)
                     payload = (ctypes.c_char_p*sz)(*qs)
                     state.payload = payload

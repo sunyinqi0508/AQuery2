@@ -250,8 +250,12 @@ class Context:
         self.ccode = ''
         self.finalize_query()
     
-    def direct_output(self):
-        self.queries.append('O')
+    def direct_output(self, limit = -1, sep = ' ', end = '\n'):
+        if type(limit) is not int or limit > 2**32 - 1 or limit < 0:
+            limit = 2**32 - 1
+        limit = limit.to_bytes(4, 'little').decode('latin-1')
+        self.queries.append(
+            'O' + limit + sep + end)
     
     def abandon_postproc(self):
         self.ccode = ''

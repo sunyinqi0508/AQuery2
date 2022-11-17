@@ -200,7 +200,7 @@ void print_monetdb_results(Server* srv, const char* sep = " ", const char* end =
     if (!srv->haserror() && srv->cnt && limit){
         char buffer[output_buffer_size];
         auto _res = static_cast<monetdbe_result*> (srv->res);
-        const auto& ncols = _res->ncols;
+        const auto ncols = _res->ncols;
         monetdbe_column** cols = static_cast<monetdbe_column**>(malloc(sizeof(monetdbe_column*) * ncols));
         prt_fn_t *prtfns = (prt_fn_t*) alloca(sizeof(prt_fn_t) * ncols);
         char** col_data = static_cast<char**> (alloca(sizeof(char*) * ncols));
@@ -210,6 +210,7 @@ void print_monetdb_results(Server* srv, const char* sep = " ", const char* end =
         const size_t l_sep = strlen(sep);
         const size_t l_end = strlen(end);
         char* _buffer = buffer;
+        const auto cnt = srv->cnt < limit? srv->cnt : limit;
 
         for(uint32_t i = 0; i < ncols; ++i){
             err_msg = monetdbe_result_fetch(_res, &cols[i], i);
@@ -228,7 +229,7 @@ void print_monetdb_results(Server* srv, const char* sep = " ", const char* end =
 			header_string.resize(header_string.size() - l_sep - 1);
         header_string += end + std::string(header_string.size(), '=') + end;
         fputs(header_string.c_str(), stdout);
-        for(uint64_t i = 0; i < srv->cnt; ++i){
+        for(uint64_t i = 0; i < cnt; ++i){
             for(uint32_t j = 0; j < ncols; ++j){
                 //copy the field to buf
                 _buffer = prtfns[j](col_data[j], _buffer);
@@ -357,8 +358,13 @@ int dll_main(int argc, char** argv, Context* cxt){
                         case 'O':
                             {
                                 if(!server->haserror()){
+                                    uint32_t limit;
+                                    memcpy(&limit, n_recvd[i] + 1, sizeof(uint32_t));
+                                    printf("Limit: %x\n", limit);
+                                    if (limit == 0)
+                                        continue;
                                     timer.reset();
-                                    print_monetdb_results(server);        
+                                    print_monetdb_results(server, " ", "\n", limit);        
                                     cfg->stats.postproc_time += timer.elapsed();
                                 }
                             }

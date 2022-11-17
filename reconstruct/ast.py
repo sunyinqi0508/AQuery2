@@ -424,7 +424,7 @@ class projection(ast_node):
             else:
                 self.context.ccode = ''
                 if self.limit != 0 and not self.outfile:
-                    self.context.direct_output()
+                    self.context.direct_output(self.limit)
         
 class select_distinct(projection):
     first_order = 'select_distinct'
@@ -1554,8 +1554,7 @@ class passthru_sql(ast_node):
                 context.queries.append('Q' + sql.strip('\r\n\t ;') + ';')
                 lq = sq.lower()
                 if lq.startswith('select'):
-                    context.queries.append('O')
-
+                    context.direct_output()
 
 class user_module_function(OperatorBase):
     def __init__(self, name, nargs, ret_type, context : Context):

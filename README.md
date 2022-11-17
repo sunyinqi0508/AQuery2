@@ -333,7 +333,7 @@ SELECT * FROM my_table WHERE c1 > 10
   License (BSD 3-Clause License): https://github.com/ben-strasser/fast-cpp-csv-parser/blob/master/LICENSE
 
 - [Dragonbox](https://github.com/jk-jeon/dragonbox)<br>
-  Author: Junekey Jeon
+  Author: Junekey Jeon<br>
   License (Boost, Apache2-LLVM): <br>https://github.com/jk-jeon/dragonbox/blob/master/LICENSE-Boost <br>
   https://github.com/jk-jeon/dragonbox/blob/master/LICENSE-Apache2-LLVM
 
