@@ -1,5 +1,8 @@
 
 # AQuery++ Database
+
+### Please try the latest code in dev branch if you encounter any problem. Use `git checkout dev` to switch branches.
+
 ## Introduction
 
 AQuery++ Database is a cross-platform, In-Memory Column-Store Database that incorporates compiled query execution. (**Note**: If you encounter any problems, feel free to contact me via ys3540@nyu.edu)
