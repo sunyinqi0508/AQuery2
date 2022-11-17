@@ -360,7 +360,7 @@ int dll_main(int argc, char** argv, Context* cxt){
                                 if(!server->haserror()){
                                     uint32_t limit;
                                     memcpy(&limit, n_recvd[i] + 1, sizeof(uint32_t));
-                                    printf("Limit: %x\n", limit);
+                                    // printf("Limit: %x\n", limit);
                                     if (limit == 0)
                                         continue;
                                     timer.reset();
