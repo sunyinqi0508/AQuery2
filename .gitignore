@@ -81,5 +81,5 @@ saves
 out*.cpp
 udf*.hpp
 *.ipynb
-
-
+saved_procedures/**
+procedures/**

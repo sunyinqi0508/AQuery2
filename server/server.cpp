@@ -7,6 +7,7 @@
 
 #include "libaquery.h"
 #include "monetdb_conn.h"
+#pragma region misc
 #ifdef THREADING
 #include "threading.h"
 #endif
@@ -119,7 +120,6 @@ A_Semaphore prompt{ true }, engine{ false };
 
 typedef int (*code_snippet)(void*);
 typedef void (*module_init_fn)(Context*);
-
 
 int n_recv = 0;
 char** n_recvd = nullptr;
@@ -265,11 +265,12 @@ void initialize_module(const char* module_name, void* module_handle, Context* cx
         printf("Warning: module %s have no session support.\n", module_name);
     }
 }
-
+#pragma endregion
 int dll_main(int argc, char** argv, Context* cxt){
     aq_timer timer;
     Config *cfg = reinterpret_cast<Config *>(argv[0]);
     std::unordered_map<std::string, void*> user_module_map;
+    std::string procedure_name = "";
     if (cxt->module_function_maps == nullptr)
         cxt->module_function_maps = new std::unordered_map<std::string, void*>();
     auto module_fn_map = 
@@ -279,7 +280,6 @@ int dll_main(int argc, char** argv, Context* cxt){
     void** buffers = (void**) malloc (sizeof(void*) * cfg->n_buffers);
     for (int i = 0; i < cfg->n_buffers; i++) 
         buffers[i] = static_cast<void *>(argv[i + 1]);
-
     cxt->buffers = buffers;
     cxt->cfg = cfg;
     cxt->n_buffers = cfg->n_buffers;
@@ -291,6 +291,7 @@ int dll_main(int argc, char** argv, Context* cxt){
         puts(*(const char**)(alt_server->getCol(0)));
         cxt->alt_server = alt_server;
     }
+    bool rec = false;
     while(cfg->running){
         ENGINE_ACQUIRE();
         if (cfg->new_query) {
@@ -334,7 +335,7 @@ int dll_main(int argc, char** argv, Context* cxt){
                         case 'M': // Load Module
                             {
                                 auto mname = n_recvd[i] + 1;
-                                user_module_handle = dlopen(mname, RTLD_LAZY);
+                                user_module_handle = dlopen(mname, RTLD_NOW);
                                 //getlasterror
                                 
                                 if (!user_module_handle)
@@ -360,7 +361,6 @@ int dll_main(int argc, char** argv, Context* cxt){
                                 if(!server->haserror()){
                                     uint32_t limit;
                                     memcpy(&limit, n_recvd[i] + 1, sizeof(uint32_t));
-                                    // printf("Limit: %x\n", limit);
                                     if (limit == 0)
                                         continue;
                                     timer.reset();
@@ -377,6 +377,48 @@ int dll_main(int argc, char** argv, Context* cxt){
                                     user_module_handle = nullptr;
                                 dlclose(it->second);
                                 user_module_map.erase(it);
+                            }
+                            break;
+                        case 'R': //recorded procedure
+                            {
+                                auto proc_name = n_recvd[i] + 1;
+                                proc_name = *proc_name?proc_name : proc_name + 1;
+                                const auto& load_modules = [](StoredProcedure &p){
+                                    if (!p.__rt_loaded_modules){
+                                        p.__rt_loaded_modules = static_cast<void**>(
+                                            malloc(sizeof(void*) * p.postproc_modules));
+                                        for(uint32_t j = 0; j < p.postproc_modules; ++j){
+                                            p.__rt_loaded_modules[j] = dlopen(p.name, RTLD_NOW);
+                                        }
+                                    }
+                                };
+                                switch(n_recvd[i][1]){
+                                    case '\0':
+                                        procedure_name = proc_name;
+                                    break;
+                                    case 'T':
+                                        procedure_name = "";
+                                    break;
+                                    case 'E': // execute procedure
+                                    {
+                                        auto _proc = cxt->stored_proc.find(procedure_name.c_str());
+                                        if (_proc == cxt->stored_proc.end())
+                                            printf("Procedure %s not found.\n", procedure_name.c_str());
+                                        else{
+                                            StoredProcedure &p = _proc->second;
+                                            n_recv = p.cnt;
+                                            n_recvd = p.queries;
+                                            load_modules(p);
+                                        }
+                                    }
+                                    break;
+                                    case 'D': // delete procedure
+                                    break;
+                                    case 'S': //save procedure
+                                    break;
+                                    case 'L': //load procedure
+                                    break;
+                                }
                             }
                             break;
                         }
@@ -400,7 +442,7 @@ int dll_main(int argc, char** argv, Context* cxt){
             
             // puts(cfg->has_dll ? "true" : "false");
             if (cfg->backend_type == BACKEND_AQuery) {
-                handle = dlopen("./dll.so", RTLD_LAZY);
+                handle = dlopen("./dll.so", RTLD_NOW);
                 code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, "dllmain"));
                 c(cxt);
             }
@@ -444,6 +486,7 @@ extern "C" int __DLLEXPORT__ main(int argc, char** argv) {
 #endif
    // puts("running");
    Context* cxt = new Context();
+   cxt->aquery_root_path = std::filesystem::current_path().c_str();
    // cxt->log("%d %s\n", argc, argv[1]);
 
 #ifdef THREADING
@@ -472,7 +515,7 @@ extern "C" int __DLLEXPORT__ main(int argc, char** argv) {
        if(ready){
            cxt->log("running: %s\n", running? "true":"false");
            cxt->log("ready: %s\n", ready? "true":"false");
-           void* handle = dlopen("./dll.so", RTLD_LAZY);
+           void* handle = dlopen("./dll.so", RTLD_NOW);
            cxt->log("handle: %p\n", handle);
            if (handle) {
                cxt->log("inner\n");

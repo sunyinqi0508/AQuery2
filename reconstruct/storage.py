@@ -91,7 +91,7 @@ class TableInfo:
             _ty_val = list(_ty.keys())[0]
             _ty_args = _ty[_ty_val]
             _ty = _ty_val
-        if new:
+        if new or type(c) is not ColRef:
             col_object = ColRef(_ty, c, self, c['name'], len(self.columns), _ty_args = _ty_args)
         else:
             col_object = c
