@@ -29,7 +29,8 @@ def exec(stmts, cxt = None, keep = False):
     else:
         generate(stmts_stmts, cxt)
     for q in cxt.queries:
-        cxt.print(q.strip())
+        if not q.startswith('O'):
+            cxt.print(q.strip())
     return cxt
     
 __all__ = ["initialize", "generate", "exec", "saved_cxt"]

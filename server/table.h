@@ -77,7 +77,7 @@ public:
 	}
 	template<template <typename> class VT, typename T>
 	void initfrom(VT<T>&& v, const char* name = "") {
-		puts("rref");
+		// puts("rref");
 		ty = types::Types<_Ty>::getType();
 		this->size = v.size;
 		this->capacity = v.capacity;
@@ -87,7 +87,7 @@ public:
 	}
 	template<template <typename> class VT, typename T>
 	void initfrom(VT<T>& v, const char* name = "") {
-		puts("lref");
+		// puts("lref");
 		ty = types::Types<_Ty>::getType();
 		this->size = v.size;
 		this->capacity = 0;
@@ -97,7 +97,7 @@ public:
 	}
 	template<template <typename> class VT, typename T>
 	void initfrom(const VT<T>& v, const char* name = "") {
-		puts("constlref");
+		// puts("constlref");
 		ty = types::Types<_Ty>::getType();
 		this->size = v.size;
 		this->capacity = 0;
