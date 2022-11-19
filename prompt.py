@@ -246,6 +246,7 @@ class PromptState():
     stats : Optional[QueryStats] = None
     currstats : Optional[QueryStats] = None
     buildmgr : Optional[build_manager]= None
+    current_procedure : Optional[str] = None
 ## CLASSES END
 
 ## FUNCTIONS BEGIN
@@ -392,7 +393,7 @@ def save(q:str, cxt: xengine.Context):
         savefile('udf', 'udf', '.hpp')
         savefile('sql', 'sql')
 
-def prompt(running = lambda:True, next = lambda:input('> '), state = None):
+def prompt(running = lambda:True, next = lambda:input('> '), state : Optional[PromptState] = None):
     if state is None:
         state = init_prompt()
     q = ''
@@ -608,6 +609,34 @@ def prompt(running = lambda:True, next = lambda:input('> '), state = None):
                     continue
                 state.stats.need_print = True
                 state.stats.print(clear = False)
+                continue
+            elif q.startswith('procedure'):
+                qs = re.split(r'[ \t\r\n]', q)
+                procedure_help = '''Usage: procedure <procedure_name> [record|stop|run|remove|save|load]'''
+                send_to_server = lambda str: state.send(1, ctypes.c_char_p(bytes(str, 'utf-8')))
+                if len(qs) > 2:
+                    if qs[2].lower() =='record':
+                        if state.current_procedure != qs[1]:             
+                            print(f'Cannot record 2 procedures at the same time. Stop recording {state.current_procedure} first.')
+                        elif not state.current_procedure:
+                            state.current_procedure = qs[1]
+                            send_to_server(f'R\0{qs[1]}', 'utf-8')
+                    elif qs[2].lower() == 'stop':
+                        send_to_server(f'RT\0{qs[1]}')
+                    else:
+                        if state.current_procedure:
+                            print(f'Procedure manipulation commands are disallowed during procedure recording.')
+                            continue
+                        if qs[2].lower() == 'run':
+                            send_to_server(f'RE\0{qs[1]}')
+                        elif qs[2].lower() == 'remove':
+                            send_to_server(f'RD\0{qs[1]}')
+                        elif qs[2].lower() == 'save':
+                            send_to_server(f'RS\0{qs[1]}')
+                        elif qs[2].lower() == 'load':
+                            send_to_server(f'RL\0{qs[1]}')
+                else:
+                    print(procedure_help)
                 continue
             trimed = ws.sub(' ', og_q).split(' ') 
             if len(trimed) > 1 and trimed[0].lower().startswith('fi') or trimed[0].lower() == 'f':

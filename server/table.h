@@ -77,7 +77,6 @@ public:
 	}
 	template<template <typename> class VT, typename T>
 	void initfrom(VT<T>&& v, const char* name = "") {
-		puts("rref");
 		ty = types::Types<_Ty>::getType();
 		this->size = v.size;
 		this->capacity = v.capacity;
@@ -87,7 +86,6 @@ public:
 	}
 	template<template <typename> class VT, typename T>
 	void initfrom(VT<T>& v, const char* name = "") {
-		puts("lref");
 		ty = types::Types<_Ty>::getType();
 		this->size = v.size;
 		this->capacity = 0;
@@ -97,7 +95,6 @@ public:
 	}
 	template<template <typename> class VT, typename T>
 	void initfrom(const VT<T>& v, const char* name = "") {
-		puts("constlref");
 		ty = types::Types<_Ty>::getType();
 		this->size = v.size;
 		this->capacity = 0;
@@ -567,7 +564,7 @@ struct TableInfo {
 	TableInfo<Types ...>* distinct() {
 		std::unordered_set<tuple_type> d_records;
 		std::make_index_sequence<sizeof...(Types)> seq;
-
+		d_records.reserve(colrefs[0].size);
 		for (uint32_t j = 0; j < colrefs[0].size; ++j) {
 			d_records.insert(get_record(seq, j));
 		}

@@ -9,6 +9,7 @@
 
 #include <unordered_map>
 #include <chrono>
+#include <filesystem>
 class aq_timer {
 private:
 	std::chrono::high_resolution_clock::time_point now;
@@ -66,6 +67,12 @@ struct Session{
     void* memory_map;
 };
 
+struct StoredProcedure{
+	uint32_t cnt, postproc_modules;
+	char **queries;
+	const char* name;
+	void **__rt_loaded_modules;
+};
 struct Context{
     typedef int (*printf_type) (const char *format, ...);
 
@@ -79,7 +86,7 @@ struct Context{
 	Log_level log_level = LOG_INFO;
 
 	Session current;
-
+	const char* aquery_root_path;
 #ifdef THREADING
 	void* thread_pool;
 #endif	
@@ -104,6 +111,8 @@ struct Context{
 	void* get_module_function(const char*);
 	std::unordered_map<const char*, void*> tables;
     std::unordered_map<const char*, uColRef *> cols;
+    std::unordered_map<const char*, void*> loaded_modules;
+    std::unordered_map<const char*, StoredProcedure> stored_proc;
 };
 
 

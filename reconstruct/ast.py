@@ -246,7 +246,7 @@ class projection(ast_node):
             self.datasource.rec = None
             # TODO: Type deduction in Python
             for t, n, c in zip(this_type, disp_name, compound):
-                cols.append(ColRef(t, self.out_table, None, n, len(cols), compound=c))
+                cols.append(ColRef(t, None, self.out_table, n, len(cols), compound=c))
         
         self.out_table.add_cols(cols, new = False)
         
@@ -409,13 +409,14 @@ class projection(ast_node):
         if self.outfile and self.has_postproc:
                 self.outfile.finalize()
 
-        if 'into' in node: 
-            self.context.emitc(select_into(self, node['into']).ccode)
-            self.has_postproc = True
         if not self.distinct:
-            self.finalize()
-                    
-    def finalize(self):      
+            self.finalize(node)
+        
+    def deal_with_into(self, node):
+        if 'into' in node: 
+            self.context.emitc(select_into(self, node['into']).ccode)            
+    def finalize(self, node):
+        self.deal_with_into(node)
         self.context.emitc(f'puts("done.");')
 
         if self.parent is None:
@@ -436,7 +437,7 @@ class select_distinct(projection):
             self.context.emitc(
                 f'{self.out_table.contextname_cpp}->distinct();'
             )
-        self.finalize()
+        self.finalize(node)
         
 class select_into(ast_node):
     def init(self, _):
@@ -955,19 +956,31 @@ class union_all(ast_node):
     sql_name = 'UNION ALL'
     def produce(self, node):
         queries = node[self.name]
-        generated_queries : List[Optional[projection]] = [None] * len(queries)
+        self.generated_queries : List[Optional[projection]] = [None] * len(queries)
         is_standard = True
         for i, q in enumerate(queries):
             if 'select' in q:
-                generated_queries[i] = projection(self, q)
-                is_standard &= not generated_queries[i].has_postproc
+                self.generated_queries[i] = projection(self, q)
+                is_standard &= not self.generated_queries[i].has_postproc
         if is_standard:
-            self.sql = f' {self.sql_name} '.join([q.sql for q in generated_queries])
+            self.sql = f' {self.sql_name} '.join([q.sql for q in self.generated_queries])
         else:
             raise NotImplementedError(f"{self.sql_name} only support standard sql for now")
     def consume(self, node):
+        if 'into' in node:
+            outtable = TableInfo(node['into'], [], self.context)
+            lst_cols = [None] * len(self.generated_queries[0].out_table.columns)
+            for i, c in enumerate(self.generated_queries[0].out_table.columns):
+                lst_cols[i] = ColRef(c.type, None, outtable, c.name, i, c.compound)
+            outtable.add_cols(lst_cols, new = False)
+            
+            col_names = [c.name for c in outtable.columns]
+            col_names = '(' + ', '.join(col_names) + ')'
+            self.sql = f'CREATE TABLE {node["into"]} {col_names} AS {self.sql}'
         super().consume(node)
-        self.context.direct_output()
+        if 'into' not in node:
+            self.context.direct_output()
+        
 
 class except_clause(union_all):
     name = 'except'
