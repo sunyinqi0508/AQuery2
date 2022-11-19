@@ -82,7 +82,7 @@ inline char* to_text(char text[], unsigned long long i) { return to_text_from_in
 
 // Copyright (c) 2022 Bill Sun
 
-//#if defined(SIZEOF___INT128) || (defined(SIZEOF___INT128_T) && defined(SIZEOF___UINT128_T))
+#if defined(__SIZEOF_INT128__) 
 constexpr static __uint128_t _10_19 = 10000000000000000000ull, 
     _10_37 = _10_19*_10_19 / 10;
 
@@ -118,4 +118,4 @@ char* jeaiii_i128(char* buf, T v){
     buf = to_text(buf, uint64_t(v % _10_19));
     return buf;
 }
-// #endif
+#endif // INT128

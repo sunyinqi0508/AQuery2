@@ -153,4 +153,5 @@ template<> char* aq_to_chars<char*>(void* , char*);
 template<> char* aq_to_chars<types::date_t>(void* , char*);
 template<> char* aq_to_chars<types::time_t>(void* , char*);
 template<> char* aq_to_chars<types::timestamp_t>(void* , char*);
+typedef int (*code_snippet)(void*);
 #endif

@@ -6,7 +6,7 @@
 #include "monetdb_conn.h"
 #include "monetdbe.h"
 #include "table.h"
-
+#undef ERROR
 #undef static_assert
 
 constexpr const char* monetdbe_type_str[] = {

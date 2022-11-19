@@ -5,14 +5,16 @@
 #include <functional>
 #include "types.h"
 // only works for 64 bit systems
-constexpr size_t _FNV_offset_basis = 14695981039346656037ULL;
-constexpr size_t _FNV_prime = 1099511628211ULL;
+namespace hasher_consts{
+	constexpr size_t _FNV_offset_basis = 14695981039346656037ULL;
+	constexpr size_t _FNV_prime = 1099511628211ULL;
+}
 
 inline size_t append_bytes(const unsigned char* _First) noexcept {
-	size_t _Val = _FNV_offset_basis;
+	size_t _Val = hasher_consts::_FNV_offset_basis;
 	for (; *_First; ++_First) {
 		_Val ^= static_cast<size_t>(*_First);
-		_Val *= _FNV_prime;
+		_Val *= hasher_consts::_FNV_prime;
 	}
 
 	return _Val;
