@@ -118,7 +118,6 @@ A_Semaphore prompt{ true }, engine{ false };
 #define ENGINE_RELEASE() 
 #endif
 
-typedef int (*code_snippet)(void*);
 typedef void (*module_init_fn)(Context*);
 
 int n_recv = 0;
@@ -193,6 +192,8 @@ constexpr prt_fn_t monetdbe_prtfns[] = {
 };
 
 #include "monetdbe.h"
+#undef max
+#undef min
 inline constexpr static unsigned char monetdbe_type_szs[] = {
     sizeof(monetdbe_column_bool::null_value), sizeof(monetdbe_column_int8_t::null_value), 
     sizeof(monetdbe_column_int16_t::null_value), sizeof(monetdbe_column_int32_t::null_value), 
@@ -626,7 +627,7 @@ int launcher(int argc, char** argv){
     str = std::string("cd ") + pwd + std::string("&& python3 ./prompt.py ") + str;
     return system(str.c_str());
 }
-
+#if !( defined(_MSC_VER) && defined(_DEBUG) )
 extern "C" int __DLLEXPORT__ main(int argc, char** argv) {
 #ifdef __AQ_BUILD_LAUNCHER__
    return launcher(argc, argv);
@@ -680,3 +681,4 @@ extern "C" int __DLLEXPORT__ main(int argc, char** argv) {
    return 0;
 }
 
+#endif // MSCDBG

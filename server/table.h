@@ -24,7 +24,7 @@ namespace types {
 	enum Type_t;
 	template <typename T>
 	struct Types;
-	template <class T1, class T2>
+	template <class T1, class T2, class ...Ts>
 	struct Coercion;
 }
 #endif
