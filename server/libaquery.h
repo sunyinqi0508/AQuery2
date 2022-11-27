@@ -109,10 +109,9 @@ struct Context{
 	void init_session();
 	void end_session();
 	void* get_module_function(const char*);
-	std::unordered_map<const char*, void*> tables;
-    std::unordered_map<const char*, uColRef *> cols;
-    std::unordered_map<const char*, void*> loaded_modules;
-    std::unordered_map<const char*, StoredProcedure> stored_proc;
+	std::unordered_map<std::string, void*> tables;
+    std::unordered_map<std::string, uColRef *> cols;
+    std::unordered_map<std::string, StoredProcedure> stored_proc;
 };
 
 

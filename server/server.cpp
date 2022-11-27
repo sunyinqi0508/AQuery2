@@ -163,6 +163,20 @@ __AQEXPORT__(bool) have_hge(){
 
 using prt_fn_t = char* (*)(void*, char*);
 
+// This function contains heap allocations, free after use
+template<class String_T>
+char* to_lpstr(const String_T& str){
+    auto ret = static_cast<char*>(malloc(str.size() + 1));
+    memcpy(ret, str.c_str(), str.size());
+    ret[str.size()] = '\0';
+    return ret;
+}
+char* copy_lpstr(const char* str){
+    auto len = strlen(str);
+    auto ret = static_cast<char*>(malloc(len + 1));
+    memcpy(ret, str, len + 1);
+    return ret;
+}
 
 constexpr prt_fn_t monetdbe_prtfns[] = {
 	aq_to_chars<bool>, aq_to_chars<int8_t>, aq_to_chars<int16_t>, aq_to_chars<int32_t>, 
@@ -270,7 +284,18 @@ int dll_main(int argc, char** argv, Context* cxt){
     aq_timer timer;
     Config *cfg = reinterpret_cast<Config *>(argv[0]);
     std::unordered_map<std::string, void*> user_module_map;
+    std::string pwd = std::filesystem::current_path().c_str();
+    auto sep = std::filesystem::path::preferred_separator;
+    pwd += sep;
+    std::string procedure_root = pwd + "procedures" + sep;
     std::string procedure_name = "";
+    StoredProcedure current_procedure;
+    vector_type<char *> recorded_queries;
+    vector_type<void *> recorded_libraries;
+    bool procedure_recording = false, 
+         procedure_replaying = false;
+    uint32_t procedure_module_cursor = 0;
+
     if (cxt->module_function_maps == nullptr)
         cxt->module_function_maps = new std::unordered_map<std::string, void*>();
     auto module_fn_map = 
@@ -291,12 +316,12 @@ int dll_main(int argc, char** argv, Context* cxt){
         puts(*(const char**)(alt_server->getCol(0)));
         cxt->alt_server = alt_server;
     }
-    bool rec = false;
     while(cfg->running){
         ENGINE_ACQUIRE();
         if (cfg->new_query) {
             cfg->stats.postproc_time = 0;
             cfg->stats.monet_time = 0;
+start:
 
             void *handle = nullptr;
             void *user_module_handle = nullptr;
@@ -306,7 +331,28 @@ int dll_main(int argc, char** argv, Context* cxt){
                 Server* server = reinterpret_cast<Server*>(cxt->alt_server);
                 if(n_recv > 0){
                     if (cfg->backend_type == BACKEND_AQuery || cfg->has_dll) {
-                        handle = dlopen("./dll.so", RTLD_NOW);
+                        const char* proc_name = "./dll.so";
+                        std::string dll_path;
+                        if (procedure_recording) {
+                            dll_path = procedure_root + 
+                                procedure_name + std::to_string(recorded_libraries.size) + ".so";
+                            
+                            try{
+                                if (std::filesystem::exists(dll_path))
+                                    std::filesystem::remove(dll_path);
+                                std::filesystem::copy_file(proc_name, dll_path);
+                            } catch(std::filesystem::filesystem_error& e){
+                                puts(e.what());
+                                dll_path = proc_name;
+                            }
+                            proc_name = dll_path.c_str();
+                            if(recorded_libraries.size)
+                                recorded_queries.emplace_back(copy_lpstr("N"));
+                        }
+                        handle = dlopen(proc_name, RTLD_NOW);
+                        if (procedure_recording) {
+                            recorded_libraries.emplace_back(handle);
+                        }
                     }
                     for (const auto& module : user_module_map){
                         initialize_module(module.first.c_str(), module.second, cxt);
@@ -314,18 +360,24 @@ int dll_main(int argc, char** argv, Context* cxt){
                     cxt->init_session();
                     for(int i = 0; i < n_recv; ++i)
                     {
-                        //printf("%s, %d\n", n_recvd[i], n_recvd[i][0] == 'Q');
+                        printf("%s, %d\n", n_recvd[i], n_recvd[i][0] == 'Q');
                         switch(n_recvd[i][0]){
                         case 'Q': // SQL query for monetdbe
                             {
+                                if(procedure_recording){
+                                    recorded_queries.emplace_back(copy_lpstr(n_recvd[i]));
+                                }
                                 timer.reset();
                                 server->exec(n_recvd[i] + 1);
                                 cfg->stats.monet_time += timer.elapsed();
-                                // printf("Exec Q%d: %s", i, n_recvd[i]);
+                                printf("Exec Q%d: %s", i, n_recvd[i]);
                             }
                             break;
                         case 'P': // Postprocessing procedure 
                             if(handle && !server->haserror()) {
+                                if (procedure_recording) {
+                                    recorded_queries.emplace_back(copy_lpstr(n_recvd[i]));
+                                }
                                 code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, n_recvd[i]+1));
                                 timer.reset();
                                 c(cxt);
@@ -359,6 +411,12 @@ int dll_main(int argc, char** argv, Context* cxt){
                         case 'O':
                             {
                                 if(!server->haserror()){
+                                    if (procedure_recording){
+                                        char* buf = (char*) malloc (sizeof(char) * 6);
+                                        memcpy(buf, n_recvd[i], 5);
+                                        buf[5] = '\0';
+                                        recorded_queries.emplace_back(buf);
+                                    }
                                     uint32_t limit;
                                     memcpy(&limit, n_recvd[i] + 1, sizeof(uint32_t));
                                     if (limit == 0)
@@ -379,36 +437,115 @@ int dll_main(int argc, char** argv, Context* cxt){
                                 user_module_map.erase(it);
                             }
                             break;
+                        case 'N':
+                            {
+                                if(procedure_module_cursor < current_procedure.postproc_modules)
+                                    handle = current_procedure.__rt_loaded_modules[procedure_module_cursor++];
+                            }
+                            break;
                         case 'R': //recorded procedure
                             {
-                                auto proc_name = n_recvd[i] + 1;
+                                auto proc_name = n_recvd[i] + 2;
                                 proc_name = *proc_name?proc_name : proc_name + 1;
-                                const auto& load_modules = [](StoredProcedure &p){
+                                puts(proc_name);
+                                const auto& load_modules = [&](StoredProcedure &p) {
                                     if (!p.__rt_loaded_modules){
                                         p.__rt_loaded_modules = static_cast<void**>(
                                             malloc(sizeof(void*) * p.postproc_modules));
                                         for(uint32_t j = 0; j < p.postproc_modules; ++j){
-                                            p.__rt_loaded_modules[j] = dlopen(p.name, RTLD_NOW);
+                                            auto pj = dlopen(p.name, RTLD_NOW);
+                                            if (pj == nullptr){
+                                                printf("Error: failed to load module %s\n", p.name);
+                                                return true;
+                                            }
+                                            p.__rt_loaded_modules[j] = pj;
                                         }
                                     }
+                                    return false;
+                                };
+                                const auto& save_proc_tofile = [&](const StoredProcedure& p)  {
+                                    auto config_name = procedure_root + procedure_name + ".aqp";
+                                    auto fp = fopen(config_name.c_str(), "wb");
+                                    if (fp == nullptr){
+                                        printf("Error: failed to open file %s\n", config_name.c_str());
+                                        return true;
+                                    }
+                                    fwrite(&p.cnt, sizeof(p.cnt), 1, fp);
+                                    fwrite(&p.postproc_modules, sizeof(p.postproc_modules), 1, fp);
+                                    for(uint32_t j = 0; j < p.cnt; ++j){
+                                        auto current_query = p.queries[j];
+                                        auto len_query = strlen(current_query);
+                                        fwrite(current_query, len_query + 1, 1, fp);
+                                    }
+                                    fclose(fp);
+                                    return false;
+                                };
+                                const auto& load_proc_fromfile = [&](StoredProcedure& p)  {
+                                    auto config_name = procedure_root + p.name + ".aqp";
+                                    auto fp = fopen(config_name.c_str(), "rb");
+                                    if(fp == nullptr){
+                                        puts("ERROR: Procedure not found on disk.");
+                                        return false;
+                                    }
+                                    fread(&p.cnt, sizeof(p.cnt), 1, fp);
+                                    fread(&p.postproc_modules, sizeof(p.postproc_modules), 1, fp);
+                                    auto offset_now = ftell(fp);
+                                    fseek(fp, 0, SEEK_END);
+                                    auto queries_size = ftell(fp) - offset_now;
+                                    fseek(fp, offset_now, SEEK_SET);
+
+                                    p.queries = static_cast<char**>(malloc(sizeof(char*) * p.cnt));
+                                    p.queries[0] = static_cast<char*>(malloc(sizeof(char) * queries_size));
+                                    fread(&p.queries[0], queries_size, 1, fp);
+
+                                    for(uint32_t j = 1; j < p.cnt; ++j){
+                                        p.queries[j] = p.queries[j-1];
+                                        while(*p.queries[j] != '\0')
+                                            ++p.queries[j];
+                                    }
+                                    fclose(fp);
+                                    return load_modules(p);
                                 };
                                 switch(n_recvd[i][1]){
                                     case '\0':
+                                        current_procedure.name = copy_lpstr(proc_name);
+                                        current_procedure.cnt = 0;
+                                        current_procedure.queries = nullptr;
+                                        current_procedure.postproc_modules = 0;
+                                        current_procedure.__rt_loaded_modules = nullptr;
+                                        procedure_recording = true;
                                         procedure_name = proc_name;
                                     break;
                                     case 'T':
+                                        current_procedure.queries = recorded_queries.container;
+                                        current_procedure.cnt = recorded_queries.size;
+                                        current_procedure.name = copy_lpstr(proc_name);
+                                        current_procedure.postproc_modules = recorded_libraries.size;
+                                        current_procedure.__rt_loaded_modules = recorded_libraries.container;
+                                        recorded_queries.size = recorded_queries.capacity = 0;
+                                        recorded_queries.container = nullptr;
+                                        recorded_libraries.size = recorded_libraries.capacity = 0;
+                                        recorded_libraries.container = nullptr;
+                                        procedure_recording = false;
+                                        save_proc_tofile(current_procedure);
+                                        cxt->stored_proc.insert_or_assign(procedure_name, current_procedure);
                                         procedure_name = "";
                                     break;
                                     case 'E': // execute procedure
                                     {
-                                        auto _proc = cxt->stored_proc.find(procedure_name.c_str());
-                                        if (_proc == cxt->stored_proc.end())
-                                            printf("Procedure %s not found.\n", procedure_name.c_str());
+                                        auto _proc = cxt->stored_proc.find(proc_name);
+                                        if (_proc == cxt->stored_proc.end()){
+                                            printf("Procedure %s not found. Trying load from disk.\n", proc_name);
+                                            if (load_proc_fromfile(current_procedure)){
+                                                cxt->stored_proc.insert_or_assign(proc_name, current_procedure);
+                                            }
+                                        }
                                         else{
-                                            StoredProcedure &p = _proc->second;
-                                            n_recv = p.cnt;
-                                            n_recvd = p.queries;
-                                            load_modules(p);
+                                            current_procedure = _proc->second;
+                                            n_recv = current_procedure.cnt;
+                                            n_recvd = current_procedure.queries;
+                                            load_modules(current_procedure);
+                                            goto start; // yes, I know, refactor later!!
                                         }
                                     }
                                     break;
@@ -418,12 +555,22 @@ int dll_main(int argc, char** argv, Context* cxt){
                                     break;
                                     case 'L': //load procedure
                                     break;
+                                    case 'd': // display all procedures
+                                    for(const auto& p : cxt->stored_proc){
+                                        printf("Procedure: %s, %d queries, %d modules:\n", p.first.c_str(), 
+                                            p.second.cnt, p.second.postproc_modules);
+                                        for(uint32_t j = 0; j < p.second.cnt; ++j){
+                                            printf("\tQuery %d: %s\n", j, p.second.queries[j]);
+                                        }
+                                        puts("");
+                                    }
+                                    break;
                                 }
                             }
                             break;
                         }
                     }
-                    if(handle) {
+                    if(handle && procedure_replaying) {
                         dlclose(handle);
                         handle = nullptr;
                     }
@@ -486,7 +633,7 @@ extern "C" int __DLLEXPORT__ main(int argc, char** argv) {
 #endif
    // puts("running");
    Context* cxt = new Context();
-   cxt->aquery_root_path = std::filesystem::current_path().c_str();
+   cxt->aquery_root_path = to_lpstr(std::filesystem::current_path().string());
    // cxt->log("%d %s\n", argc, argv[1]);
 
 #ifdef THREADING

@@ -383,12 +383,13 @@ class projection(ast_node):
         if self.group_node is not None and self.group_node.use_sp_gb:
             gb_vartable : Dict[str, Union[str, int]] = deepcopy(self.pyname2cname)
             gb_cexprs : List[str] = []
-            
+            gb_colnames : List[str] = []
             for key, val in proj_map.items():
                 col_name = 'col_' + base62uuid(6)
                 self.context.emitc(f'decltype(auto) {col_name} = {self.out_table.contextname_cpp}->get_col<{key}>();')
                 gb_cexprs.append((col_name, val[2]))
-            self.group_node.finalize(gb_cexprs, gb_vartable)
+                gb_colnames.append(col_name)
+            self.group_node.finalize(gb_cexprs, gb_vartable, gb_colnames)
         else:
             for i, (key, val) in enumerate(proj_map.items()):
                 if type(val[1]) is int:
@@ -536,7 +537,7 @@ class groupby_c(ast_node):
     
     def produce(self, node : List[Tuple[expr, Set[ColRef]]]):
         self.context.headers.add('"./server/hasher.h"')
-        self.context.headers.add('unordered_map')
+        # self.context.headers.add('unordered_map')
         self.group = 'g' + base62uuid(7)
         self.group_type = 'record_type' + base62uuid(7)
         self.datasource = self.proj.datasource
@@ -565,8 +566,9 @@ class groupby_c(ast_node):
             [f'{c}[{scanner_itname}]' for c in g_contents_list]
         )
         self.context.emitc(f'typedef record<{",".join(g_contents_decltype)}> {self.group_type};')
-        self.context.emitc(f'unordered_map<{self.group_type}, vector_type<uint32_t>, '
+        self.context.emitc(f'ankerl::unordered_dense::map<{self.group_type}, vector_type<uint32_t>, '
             f'transTypes<{self.group_type}, hasher>> {self.group};')
+        self.context.emitc(f'{self.group}.reserve({first_col}.size);')
         self.n_grps = len(self.glist)
         self.scanner = scan(self, first_col + '.size', it_name=scanner_itname)
         self.scanner.add(f'{self.group}[forward_as_tuple({g_contents})].emplace_back({self.scanner.it_var});')
@@ -581,7 +583,10 @@ class groupby_c(ast_node):
     #     gscanner.add(f'{self.datasource.cxt_name}->order_by<{assumption.result()}>(&{val_var});')
     #     gscanner.finalize()
         
-    def finalize(self, cexprs : List[Tuple[str, expr]], var_table : Dict[str, Union[str, int]]):
+    def finalize(self, cexprs : List[Tuple[str, expr]], var_table : Dict[str, Union[str, int]], col_names : List[str]):
+        for c in col_names:
+            self.context.emitc(f'{c}.reserve({self.group}.size());')
+        
         gscanner = scan(self, self.group, loop_style = 'for_each')
         key_var = 'key_'+base62uuid(7)
         val_var = 'val_'+base62uuid(7)
@@ -713,10 +718,10 @@ class groupby(ast_node):
                 #     self.parent.var_table.
                 self.parent.col_ext.update(l[1])    
                 
-    def finalize(self, cexprs : List[Tuple[str, expr]], var_table : Dict[str, Union[str, int]]):
+    def finalize(self, cexprs : List[Tuple[str, expr]], var_table : Dict[str, Union[str, int]], col_names : List[str]):
         if self.use_sp_gb:
             self.dedicated_gb = groupby_c(self.parent, self.dedicated_glist)
-            self.dedicated_gb.finalize(cexprs, var_table)
+            self.dedicated_gb.finalize(cexprs, var_table, col_names)
 
 
 class join(ast_node):

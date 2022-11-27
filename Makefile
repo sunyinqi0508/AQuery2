@@ -2,7 +2,7 @@ OS_SUPPORT =
 MonetDB_LIB = 
 MonetDB_INC = 
 Defines = 
-CXXFLAGS = --std=c++1z
+CXXFLAGS = --std=c++2a
 ifeq ($(AQ_DEBUG), 1)
 	OPTFLAGS = -g3 -fsanitize=address -fsanitize=leak
 	LINKFLAGS = 

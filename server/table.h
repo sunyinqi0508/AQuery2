@@ -145,9 +145,19 @@ public:
 	ColRef<_Ty>& operator =(ColRef<_Ty>&& vt) {
 		vector_type<_Ty>::operator=(std::move(vt));
 		return *this;
+	
 	}
-	ColView<_Ty> operator [](const vector_type<uint32_t>& idxs) const {
-		return ColView<_Ty>(*this, idxs);
+	// ColView<_Ty> operator [](vector_type<uint32_t>& idxs) const {
+	// 	return ColView<_Ty>(*this, std::move(idxs));
+	// }
+	// ColView<_Ty> operator [](const vector_type<uint32_t>& idxs) const {
+	// 	return ColView<_Ty>(*this, idxs);
+	// }
+	vector_type<_Ty> operator[](vector_type<uint32_t>& idxs) const {
+		vector_type<_Ty> ret(idxs.size);
+		for (uint32_t i = 0; i < idxs.size; ++i)
+			ret.container[i] = this->container[idxs[i]];
+		return ret;
 	}
 	vector_type<_Ty> operator [](const std::vector<bool>& idxs) const {
 		vector_type<_Ty> ret (this->size);
@@ -226,7 +236,7 @@ class ColView : public vector_base<_Ty> {
 public:
 	typedef ColRef<_Ty> Decayed_t;
 	const uint32_t size;
-	const ColRef<_Ty> orig;
+	const ColRef<_Ty>& orig;
 	vector_type<uint32_t> idxs;
 	ColView(const ColRef<_Ty>& orig, vector_type<uint32_t>&& idxs) : orig(orig), size(idxs.size), idxs(std::move(idxs)) {}
 	ColView(const ColRef<_Ty>& orig, const vector_type<uint32_t>& idxs) : orig(orig), idxs(idxs), size(idxs.size) {}
@@ -274,6 +284,7 @@ public:
 			ret[i] = orig[idxs[i]];
 		return ret;
 	}
+
 	ColView<_Ty> subvec(uint32_t start, uint32_t end) const {
 		uint32_t len = end - start;
 		return ColView<_Ty>(orig, idxs.subvec(start, end));
