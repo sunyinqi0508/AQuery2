@@ -16,6 +16,8 @@ private:;
 	std::atomic<uint32_t> alive_cnt;
 	std::atomic<uint64_t> current_size;
 	volatile bool lock;
+	using gc_deallocator_t = void (*)(void*);
+
 	// maybe use volatile std::thread::id instead
 protected:
 	void acquire_lock();
@@ -46,6 +48,12 @@ public:
 		terminate_daemon();
 	}
 	static GC* gc_handle;
+	template <class T>
+	constexpr static inline gc_deallocator_t _delete(T*){
+		return [](void* v){
+			delete (T*)v;
+		};
+	} 
     constexpr static void(*_free) (void*) = free;
 };
 

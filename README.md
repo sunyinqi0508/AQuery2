@@ -304,10 +304,11 @@ SELECT * FROM my_table WHERE c1 > 10
 - [x] Query Optimization
   - [x] Selection/Order by push-down
   - [x] Join Optimization (Only in Hybrid Engine)
-  - [ ] Threaded GC
+  - [x] Threaded GC
 - [ ] Extensibility 
   - [x] UDFs (Hybrid Engine only)
   - [x] SDK and User Module 
+  - [x] Stored Procedures
   - [ ] Triggers 
 
 # Known Issues:

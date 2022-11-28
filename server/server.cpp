@@ -347,8 +347,8 @@ start:
                                 dll_path = proc_name;
                             }
                             proc_name = dll_path.c_str();
-                            if(recorded_libraries.size)
-                                recorded_queries.emplace_back(copy_lpstr("N"));
+                            //if(recorded_libraries.size)
+                            recorded_queries.emplace_back(copy_lpstr("N"));
                         }
                         handle = dlopen(proc_name, RTLD_NOW);
                         if (procedure_recording) {
@@ -442,6 +442,7 @@ start:
                             {
                                 if(procedure_module_cursor < current_procedure.postproc_modules)
                                     handle = current_procedure.__rt_loaded_modules[procedure_module_cursor++];
+                                printf("Load %i = %p\n", procedure_module_cursor, handle);
                             }
                             break;
                         case 'R': //recorded procedure
@@ -510,10 +511,7 @@ start:
                                 switch(n_recvd[i][1]){
                                     case '\0':
                                         current_procedure.name = copy_lpstr(proc_name);
-                                        current_procedure.cnt = 0;
-                                        current_procedure.queries = nullptr;
-                                        current_procedure.postproc_modules = 0;
-                                        current_procedure.__rt_loaded_modules = nullptr;
+                                        AQ_ZeroMemory(current_procedure);
                                         procedure_recording = true;
                                         procedure_name = proc_name;
                                     break;
@@ -523,10 +521,8 @@ start:
                                         current_procedure.name = copy_lpstr(proc_name);
                                         current_procedure.postproc_modules = recorded_libraries.size;
                                         current_procedure.__rt_loaded_modules = recorded_libraries.container;
-                                        recorded_queries.size = recorded_queries.capacity = 0;
-                                        recorded_queries.container = nullptr;
-                                        recorded_libraries.size = recorded_libraries.capacity = 0;
-                                        recorded_libraries.container = nullptr;
+                                        AQ_ZeroMemory(recorded_queries);
+                                        AQ_ZeroMemory(recorded_libraries);
                                         procedure_recording = false;
                                         save_proc_tofile(current_procedure);
                                         cxt->stored_proc.insert_or_assign(procedure_name, current_procedure);
@@ -534,6 +530,7 @@ start:
                                     break;
                                     case 'E': // execute procedure
                                     {
+                                        procedure_module_cursor = 0;
                                         auto _proc = cxt->stored_proc.find(proc_name);
                                         if (_proc == cxt->stored_proc.end()){
                                             printf("Procedure %s not found. Trying load from disk.\n", proc_name);
@@ -571,7 +568,9 @@ start:
                             break;
                         }
                     }
-                    if(handle && procedure_replaying) {
+                    if(handle && 
+                        !procedure_replaying && !procedure_recording) {
+                        printf("Destroy %p\n", handle);
                         dlclose(handle);
                         handle = nullptr;
                     }
@@ -579,13 +578,11 @@ start:
                     cxt->end_session();
                     n_recv = 0;
                 }
-                if(server->last_error == nullptr){
-                    // TODO: Add feedback to prompt.
-                }   
-                else{
+                if (server->last_error != nullptr) {
+                    printf("Monetdbe Error: %s\n", server->last_error);
                     server->last_error = nullptr;
                     //goto finalize;
-                } 
+                }   
             }
             
             // puts(cfg->has_dll ? "true" : "false");
