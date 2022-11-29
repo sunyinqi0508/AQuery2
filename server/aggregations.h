@@ -31,7 +31,7 @@ double avg(const VT<T>& v) {
 
 template<class T, template<typename ...> class VT>
 VT<double> sqrt(const VT<T>& v) {
-	VT<double> ret{ v.size };
+	VT<double> ret(v.size);
 	for (uint32_t i = 0; i < v.size; ++i) {
 		ret[i] = sqrt(v[i]);
 	}
@@ -52,7 +52,7 @@ VT<T> truncate(const VT<T>& v, const uint32_t precision) {
 		return v.subvec_memcpy();
 	auto multiplier = pow(10, precision);
 	auto max_truncate = std::numeric_limits<T>::max()/multiplier;
-	VT<T> ret{ v.size };
+	VT<T> ret(v.size);
 	for (uint32_t i = 0; i < v.size; ++i) { // round or trunc??
 		ret[i] = v[i] < max_truncate ? round(v[i] * multiplier)/multiplier : v[i];
 	}
@@ -102,7 +102,7 @@ decayed_t<VT, T> maxs(const VT<T>& arr) {
 template<class T, template<typename ...> class VT>
 decayed_t<VT, T> minw(uint32_t w, const VT<T>& arr) {
 	const uint32_t& len = arr.size;
-	decayed_t<VT, T> ret{ len };
+	decayed_t<VT, T> ret(len);
 	std::deque<std::pair<T, uint32_t>> cache;
 	for (int i = 0; i < len; ++i) {
 		if (!cache.empty() && cache.front().second == i - w) cache.pop_front();
@@ -194,7 +194,7 @@ decayed_t<VT, types::GetFPType<types::GetLongType<T>>> avgw(uint32_t w, const VT
 	uint32_t i = 0;
 	types::GetLongType<T> s{};
 	w = w > len ? len : w;
-	if (len)	s = ret[i++] = arr[0];
+	if (len) s = ret[i++] = arr[0];
 	for (; i < w; ++i)
 		ret[i] = (s += arr[i]) / (FPType)(i + 1);
 	for (; i < len; ++i)

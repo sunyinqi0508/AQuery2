@@ -36,7 +36,7 @@ public:
 		this->size = vt.size;
 		this->capacity = vt.capacity;
 		if (capacity) {
-			// puts("copy");
+			//puts("copy");
 			this->container = (_Ty*)malloc(size * sizeof(_Ty));
 			memcpy(container, vt.container, sizeof(_Ty) * size);
 		}
@@ -153,17 +153,33 @@ public:
 		else
 			return distinct_copy();
 	}
-	inline void grow() {
-		if (size >= capacity) { // geometric growth
-			uint32_t new_capacity = size + 1 + (size >> 1);
-			_Ty* n_container = (_Ty*)malloc(new_capacity * sizeof(_Ty));
-			memcpy(n_container, container, sizeof(_Ty) * size);
+	// TODO: think of situations where this is a temp!! (copy on write!!!)
+	template <bool _grow = true>
+	inline void grow(uint32_t sz = 0) {
+		if constexpr (_grow)
+			sz = this->size;
+		if (sz >= capacity) { // geometric growth
+			uint32_t new_capacity;
+			if constexpr (_grow)
+				new_capacity = size + 1 + (size >> 1);
+			else	
+				new_capacity = sz;
+
+			_Ty* n_container = (_Ty*)realloc(container, new_capacity * sizeof(_Ty));
+			// memcpy(n_container, container, sizeof(_Ty) * size);
 			memset(n_container + size, 0, sizeof(_Ty) * (new_capacity - size));
-			if (capacity)
-				free(container);
+			// if (capacity)
+			// 	free(container);
 			container = n_container;
 			capacity = new_capacity;
 		}
+	}
+	inline void resize(const uint32_t sz){
+		size = sz;
+		grow<false>(sz);
+	}
+	inline void reserve(const uint32_t sz){
+		grow<false>(sz);
 	}
 
 	void emplace_back(const _Ty& _val) {

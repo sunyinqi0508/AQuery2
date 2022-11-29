@@ -304,10 +304,11 @@ SELECT * FROM my_table WHERE c1 > 10
 - [x] Query Optimization
   - [x] Selection/Order by push-down
   - [x] Join Optimization (Only in Hybrid Engine)
-  - [ ] Threaded GC
+  - [x] Threaded GC
 - [ ] Extensibility 
   - [x] UDFs (Hybrid Engine only)
   - [x] SDK and User Module 
+  - [x] Stored Procedures
   - [ ] Triggers 
 
 # Known Issues:
@@ -343,3 +344,7 @@ SELECT * FROM my_table WHERE c1 > 10
 
 - [MonetDB](https://www.monetdb.org) <br>
   License (Mozilla Public License): https://github.com/MonetDB/MonetDB/blob/master/license.txt
+
+- [ankerl::unordered_dense](https://github.com/martinus/unordered_dense)<br>
+  Author: Martin Ankerl <br>
+  License (MIT): http://opensource.org/licenses/MIT <br>

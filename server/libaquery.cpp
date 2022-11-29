@@ -9,6 +9,7 @@
 #include "utils.h"
 #include "libaquery.h"
 #include <random>
+#include "gc.h"
 
 char* gbuf = nullptr;
 
@@ -276,10 +277,29 @@ inline const char* str(const bool& v) {
 	return v ? "true" : "false";
 }
 
+class A{
+	public:
+	std::chrono::high_resolution_clock::time_point tp;
+	A(){
+		tp = std::chrono::high_resolution_clock::now();
+		printf("A %llx created.\n", tp.time_since_epoch().count());
+	}
+	~A() {
+		printf("A %llx died after %lldns.\n", tp.time_since_epoch().count(),
+		 (std::chrono::high_resolution_clock::now() - tp).count());
+	}
+};
 
 Context::Context() {
     current.memory_map = new std::unordered_map<void*, deallocator_t>;
-    init_session();
+#ifndef __AQ_USE_THREADEDGC__
+	this->gc = new GC();
+#endif
+	GC::gc_handle->reg(new A(), 6553600, [](void* a){
+		puts("deleting");
+		delete ((A*)a);
+	});
+	init_session();
 }
 
 Context::~Context() {
@@ -328,7 +348,6 @@ void* Context::get_module_function(const char* fname){
 // 	std::cout << ')';
 // }
 
-#include "gc.h"
 #include <utility>
 #include <thread>
 #ifndef __AQ_USE_THREADEDGC__
@@ -383,7 +402,7 @@ void GC::daemon() {
 
 	while (alive) {
 		if (running) {
-			if (current_size - max_size > 0 || 
+			if (uint64_t(current_size) > max_size || 
 				forceclean_timer > forced_clean) 
 			{
 				gc();

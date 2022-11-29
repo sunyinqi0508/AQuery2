@@ -3,7 +3,10 @@
 #include <type_traits>
 #include <tuple>
 #include <functional>
+#include <string_view>
 #include "types.h"
+// #include "robin_hood.h"
+#include "unordered_dense.h"
 // only works for 64 bit systems
 namespace hasher_consts{
 	constexpr size_t _FNV_offset_basis = 14695981039346656037ULL;
@@ -16,7 +19,7 @@ inline size_t append_bytes(const unsigned char* _First) noexcept {
 		_Val ^= static_cast<size_t>(*_First);
 		_Val *= hasher_consts::_FNV_prime;
 	}
-
+	
 	return _Val;
 }
 
@@ -67,37 +70,44 @@ struct hasher {
 #else
 		#define _current_type current_type
 #endif
-		return std::hash<_current_type>()(std::get<i>(record)) ^ hashi<i + 1>(record);
+		return ankerl::unordered_dense::hash<_current_type>()(std::get<i>(record)) ^ hashi<i + 1>(record);
 	}
 	size_t operator()(const std::tuple<Types...>& record) const {
 		return hashi(record);
 	}
 };
+template <class T>
+struct hasher<T>{
+	size_t operator()(const std::tuple<T>& record) const {
+		return ankerl::unordered_dense::hash<T>()(std::get<0>(record));
+	}
+};
 
-
-namespace std{
-
+namespace ankerl::unordered_dense{
 	template<>
 	struct hash<astring_view> {
 		size_t operator()(const astring_view& _Keyval) const noexcept {
-			return append_bytes(_Keyval.str);
+			
+			return ankerl::unordered_dense::hash<std::string_view>()(_Keyval.rstr);
+			//return append_bytes(_Keyval.str);
+			
 		}
 	};
 
 	template<>
 	struct hash<types::date_t> {
 		size_t operator() (const types::date_t& _Keyval) const noexcept {
-			return std::hash<unsigned int>()(*(unsigned int*)(&_Keyval));
+			return ankerl::unordered_dense::hash<unsigned int>()(*(unsigned int*)(&_Keyval));
 		}
 	};
 
 	template<>
 	struct hash<types::time_t> {
 		size_t operator() (const types::time_t& _Keyval) const noexcept {
-			return std::hash<unsigned int>()(_Keyval.ms) ^ 
-			std::hash<unsigned char>()(_Keyval.seconds) ^
-			std::hash<unsigned char>()(_Keyval.minutes) ^
-			std::hash<unsigned char>()(_Keyval.hours)
+			return ankerl::unordered_dense::hash<unsigned int>()(_Keyval.ms) ^ 
+			ankerl::unordered_dense::hash<unsigned char>()(_Keyval.seconds) ^
+			ankerl::unordered_dense::hash<unsigned char>()(_Keyval.minutes) ^
+			ankerl::unordered_dense::hash<unsigned char>()(_Keyval.hours)
 			;
 		}
 	};
@@ -105,8 +115,8 @@ namespace std{
 	template<>
 	struct hash<types::timestamp_t>{
 		size_t operator() (const types::timestamp_t& _Keyval) const noexcept {
-			return std::hash<types::date_t>()(_Keyval.date) ^ 
-				std::hash<types::time_t>()(_Keyval.time);
+			return ankerl::unordered_dense::hash<types::date_t>()(_Keyval.date) ^ 
+				ankerl::unordered_dense::hash<types::time_t>()(_Keyval.time);
 		}
 	};
 #ifdef __SIZEOF_INT128__
@@ -114,12 +124,11 @@ namespace std{
 	template<>
 	struct hash<int128_struct>{
 		size_t operator() (const int128_struct& _Keyval) const noexcept {
-			return std::hash<uint64_t>()(_Keyval.__struct.low) ^ std::hash<uint64_t>()(_Keyval.__struct.high);
+			return ankerl::unordered_dense::hash<uint64_t>()(_Keyval.__struct.low) ^ ankerl::unordered_dense::hash<uint64_t>()(_Keyval.__struct.high);
 		}
 	};
 #endif
 	template <class ...Types>
 	struct hash<std::tuple<Types...>> : public hasher<Types...>{ };
-
 }
 

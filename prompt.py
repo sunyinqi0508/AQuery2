@@ -613,16 +613,21 @@ def prompt(running = lambda:True, next = lambda:input('> '), state : Optional[Pr
             elif q.startswith('procedure'):
                 qs = re.split(r'[ \t\r\n]', q)
                 procedure_help = '''Usage: procedure <procedure_name> [record|stop|run|remove|save|load]'''
-                send_to_server = lambda str: state.send(1, ctypes.c_char_p(bytes(str, 'utf-8')))
+                def send_to_server(payload : str): 
+                    state.payload = (ctypes.c_char_p*1)(ctypes.c_char_p(bytes(payload, 'utf-8')))
+                    state.cfg.has_dll = 0
+                    state.send(1, state.payload)
+                    state.set_ready()
                 if len(qs) > 2:
                     if qs[2].lower() =='record':
-                        if state.current_procedure != qs[1]:             
+                        if state.current_procedure is not None and state.current_procedure != qs[1]:             
                             print(f'Cannot record 2 procedures at the same time. Stop recording {state.current_procedure} first.')
-                        elif not state.current_procedure:
+                        elif state.current_procedure is None:
                             state.current_procedure = qs[1]
-                            send_to_server(f'R\0{qs[1]}', 'utf-8')
+                            send_to_server(f'R\0{qs[1]}')
                     elif qs[2].lower() == 'stop':
                         send_to_server(f'RT\0{qs[1]}')
+                        state.current_procedure = None
                     else:
                         if state.current_procedure:
                             print(f'Procedure manipulation commands are disallowed during procedure recording.')
@@ -635,6 +640,10 @@ def prompt(running = lambda:True, next = lambda:input('> '), state : Optional[Pr
                             send_to_server(f'RS\0{qs[1]}')
                         elif qs[2].lower() == 'load':
                             send_to_server(f'RL\0{qs[1]}')
+                     
+                elif len(qs) > 1:
+                    if qs[1].lower() == 'display':
+                        send_to_server(f'Rd\0')
                 else:
                     print(procedure_help)
                 continue

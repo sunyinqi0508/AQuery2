@@ -73,6 +73,7 @@ struct StoredProcedure{
 	const char* name;
 	void **__rt_loaded_modules;
 };
+
 struct Context{
     typedef int (*printf_type) (const char *format, ...);
 
@@ -90,7 +91,7 @@ struct Context{
 #ifdef THREADING
 	void* thread_pool;
 #endif	
-#ifdef __AQ_THREADED_GC__
+#ifndef __AQ_USE_THREADEDGC__
 	void* gc;
 #endif
 	printf_type print = &printf;
@@ -109,10 +110,9 @@ struct Context{
 	void init_session();
 	void end_session();
 	void* get_module_function(const char*);
-	std::unordered_map<const char*, void*> tables;
-    std::unordered_map<const char*, uColRef *> cols;
-    std::unordered_map<const char*, void*> loaded_modules;
-    std::unordered_map<const char*, StoredProcedure> stored_proc;
+	std::unordered_map<std::string, void*> tables;
+    std::unordered_map<std::string, uColRef *> cols;
+    std::unordered_map<std::string, StoredProcedure> stored_proc;
 };
 
 
@@ -163,4 +163,10 @@ template<> char* aq_to_chars<types::date_t>(void* , char*);
 template<> char* aq_to_chars<types::time_t>(void* , char*);
 template<> char* aq_to_chars<types::timestamp_t>(void* , char*);
 typedef int (*code_snippet)(void*);
+
+template <class _This_Struct>
+inline void AQ_ZeroMemory(_This_Struct& __val) {
+	memset(&__val, 0, sizeof(_This_Struct));
+}
+
 #endif
