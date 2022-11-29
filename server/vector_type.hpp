@@ -61,6 +61,7 @@ public:
 	typedef std::conditional_t<is_cstr<_Ty>(), astring_view, _Ty> value_t;
 	vector_type(const uint32_t& size) : size(size), capacity(size) {
 		container = (_Ty*)malloc(size * sizeof(_Ty));
+		// TODO: calloc for objects. 
 	}
 	constexpr vector_type(std::initializer_list<_Ty> _l) {
 		size = capacity = _l.size();
@@ -164,6 +165,7 @@ public:
 			capacity = new_capacity;
 		}
 	}
+
 	void emplace_back(const _Ty& _val) {
 		grow();
 		container[size++] = _val;
