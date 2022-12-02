@@ -144,10 +144,9 @@ class TableInfo:
     
 class Context:
     def new(self):
-        self.headers = set(['\"./server/libaquery.h\"', 
-                            '\"./server/monetdb_conn.h\"'])
-
+        self.headers = set(['\"./server/monetdb_conn.h\"'])
         self.ccode = ''
+
         self.sql = ''  
         self.finalized = False
         self.udf = None
@@ -175,7 +174,8 @@ class Context:
         self.have_hge = False
         self.Error = lambda *args: print(*args)
         self.Info = lambda *_: None
-        
+        # self.new() called everytime new query batch is started
+
     def get_scan_var(self):
         it_var = 'i' + base62uuid(2)
         scan_vars = set(s.it_var for s in self.scans)
@@ -277,7 +277,8 @@ class Context:
             headers = ''
             # if build_driver == 'MSBuild':
                 # headers ='#include \"./server/pch.hpp\"\n'
-             
+            with open('header.cxx', 'r') as header:
+                headers += header.read() 
             for h in self.headers:
                 if h[0] != '"':
                     headers += '#include <' + h + '>\n'
@@ -287,6 +288,6 @@ class Context:
                 headers += '#undef max\n'
                 headers += '#undef min\n'
 
-            self.ccode = headers + '\n'.join(self.procs)
+            self.ccode += headers + '\n'.join(self.procs)
             self.headers = set()
         return self.ccode

@@ -15,7 +15,7 @@
 #include <iostream>
 #include "hasher.h"
 #include "types.h"
-
+#include "gc.h"
 #pragma pack(push, 1)
 template<class T>
 struct vector_base {};
@@ -61,6 +61,7 @@ public:
 	typedef std::conditional_t<is_cstr<_Ty>(), astring_view, _Ty> value_t;
 	vector_type(const uint32_t& size) : size(size), capacity(size) {
 		container = (_Ty*)malloc(size * sizeof(_Ty));
+		// TODO: calloc for objects. 
 	}
 	constexpr vector_type(std::initializer_list<_Ty> _l) {
 		size = capacity = _l.size();
@@ -180,6 +181,7 @@ public:
 	inline void reserve(const uint32_t sz){
 		grow<false>(sz);
 	}
+
 	void emplace_back(const _Ty& _val) {
 		grow();
 		container[size++] = _val;
@@ -323,7 +325,7 @@ public:
 	inline vector_type<_Ty> subvec_deep(uint32_t start = 0) const { return subvec_deep(start, size); }
 	vector_type<_Ty> getRef() { return vector_type<_Ty>(container, size); }
 	~vector_type() {
-		if (capacity > 0) free(container);
+		if (capacity > 0) GC::gc_handle->reg(container, sizeof(_Ty) * capacity);//free(container);
 		container = 0; size = capacity = 0;
 	}
 #define Compare(_op) \

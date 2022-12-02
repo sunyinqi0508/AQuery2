@@ -228,6 +228,7 @@
     <ClInclude Include="..\server\priority_vector.hpp" />
     <ClInclude Include="..\server\table.h" />
     <ClInclude Include="..\server\types.h" />
+    <ClInclude Include="..\server\unordered_dense.h" />
     <ClInclude Include="..\server\utils.h" />
     <ClInclude Include="..\server\vector_type.hpp" />
     <ClInclude Include="..\server\winhelper.h" />
