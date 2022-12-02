@@ -285,10 +285,10 @@ int dll_main(int argc, char** argv, Context* cxt){
     aq_timer timer;
     Config *cfg = reinterpret_cast<Config *>(argv[0]);
     std::unordered_map<std::string, void*> user_module_map;
-    std::string pwd = std::filesystem::current_path().c_str();
-    auto sep = std::filesystem::path::preferred_separator;
+    std::string pwd = (char*)(std::filesystem::current_path().string().c_str());
+    char sep = std::filesystem::path::preferred_separator;
     pwd += sep;
-    std::string procedure_root = pwd + "procedures" + sep;
+    std::string procedure_root = (pwd + "procedures") + sep;
     std::string procedure_name = "";
     StoredProcedure current_procedure;
     vector_type<char *> recorded_queries;
@@ -296,6 +296,18 @@ int dll_main(int argc, char** argv, Context* cxt){
     bool procedure_recording = false, 
          procedure_replaying = false;
     uint32_t procedure_module_cursor = 0;
+    try {
+        if (!std::filesystem::is_directory(procedure_root)) {
+            if (std::filesystem::exists(procedure_root))
+                std::filesystem::remove_all(procedure_root);
+        }
+        if (!std::filesystem::exists(procedure_root)) {
+            std::filesystem::create_directory(procedure_root);
+        }
+    }
+    catch (std::filesystem::filesystem_error& e) {
+        printf("Failed to create directory %s: %s\n", procedure_root.c_str(), e.what());
+    }
 
     if (cxt->module_function_maps == nullptr)
         cxt->module_function_maps = new std::unordered_map<std::string, void*>();
@@ -351,6 +363,12 @@ start:
                             recorded_queries.emplace_back(copy_lpstr("N"));
                         }
                         handle = dlopen(proc_name, RTLD_NOW);
+#ifndef __AQ_USE_THREADEDGC__
+                        {
+                            typedef void (*aq_gc_init_t) (Context*);
+                            ((aq_gc_init_t)dlsym(handle, "__AQ_Init_GC__"))(cxt);
+                        }
+#endif
                         if (procedure_recording) {
                             recorded_libraries.emplace_back(handle);
                         }
@@ -380,6 +398,7 @@ start:
                                     recorded_queries.emplace_back(copy_lpstr(n_recvd[i]));
                                 }
                                 code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, n_recvd[i]+1));
+                                printf("%p", dlsym(handle, n_recvd[i] + 1));
                                 timer.reset();
                                 c(cxt);
                                 cfg->stats.postproc_time += timer.elapsed();
@@ -543,6 +562,7 @@ start:
                                             n_recv = current_procedure.cnt;
                                             n_recvd = current_procedure.queries;
                                             load_modules(current_procedure);
+                                            procedure_replaying = true;
                                             goto start; // yes, I know, refactor later!!
                                         }
                                     }
@@ -568,12 +588,7 @@ start:
                             break;
                         }
                     }
-                    if(handle && 
-                        !procedure_replaying && !procedure_recording) {
-                        printf("Destroy %p\n", handle);
-                        dlclose(handle);
-                        handle = nullptr;
-                    }
+                    
                     printf("%lld, %lld", cfg->stats.monet_time, cfg->stats.postproc_time);
                     cxt->end_session();
                     n_recv = 0;
@@ -591,7 +606,13 @@ start:
                 code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, "dllmain"));
                 c(cxt);
             }
-            if (handle) dlclose(handle);
+            if (handle && 
+                !procedure_replaying && !procedure_recording) { 
+                printf("Destroy %p\n", handle);
+                dlclose(handle);
+                handle = nullptr;
+            }
+            procedure_replaying = false;
             cfg->new_query = 0;
         }
         //puts(cfg->running? "true": "false");
@@ -624,7 +645,7 @@ int launcher(int argc, char** argv){
     str = std::string("cd ") + pwd + std::string("&& python3 ./prompt.py ") + str;
     return system(str.c_str());
 }
-#if !( defined(_MSC_VER) && defined(_DEBUG) )
+#if true || !( defined(_MSC_VER) && defined(_DEBUG) )
 extern "C" int __DLLEXPORT__ main(int argc, char** argv) {
 #ifdef __AQ_BUILD_LAUNCHER__
    return launcher(argc, argv);
@@ -639,9 +660,6 @@ extern "C" int __DLLEXPORT__ main(int argc, char** argv) {
     cxt->thread_pool = tp;
 #endif
     
-#ifdef __AQ_THREADED_GC__
-    cxt->gc_thread = new std::thread(gc_thread, cxt);
-#endif    
    const char* shmname;
    if (argc < 0)
         return dll_main(argc, argv, cxt);

@@ -15,7 +15,7 @@
 #include <iostream>
 #include "hasher.h"
 #include "types.h"
-
+#include "gc.h"
 #pragma pack(push, 1)
 template<class T>
 struct vector_base {};
@@ -325,7 +325,7 @@ public:
 	inline vector_type<_Ty> subvec_deep(uint32_t start = 0) const { return subvec_deep(start, size); }
 	vector_type<_Ty> getRef() { return vector_type<_Ty>(container, size); }
 	~vector_type() {
-		if (capacity > 0) free(container);
+		if (capacity > 0) GC::gc_handle->reg(container, sizeof(_Ty) * capacity);//free(container);
 		container = 0; size = capacity = 0;
 	}
 #define Compare(_op) \

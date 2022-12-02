@@ -456,14 +456,14 @@ void GC::reg(void* v, uint32_t sz, void(*f)(void*)) { //~ 40ns expected v. free 
 	++alive_cnt;
 	current_size += sz;
 	auto _slot = (slot_pos += 1);
-	_q[_slot] = {v, f};
+	_q[_slot-1] = {v, f};
 	--alive_cnt;
 	running = true;
 }
 
 #endif
 
-GC* GC::gc_handle = nullptr;
+inline GC* GC::gc_handle = nullptr;
 
 #include "dragonbox/dragonbox_to_chars.hpp" 
 

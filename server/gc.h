@@ -1,3 +1,4 @@
+#pragma once
 #ifndef __AQ_USE_THREADEDGC__
 #include <atomic>
 class GC {

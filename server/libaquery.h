@@ -4,7 +4,6 @@
 #ifdef __INTELLISENSE__
 	#define __AQUERY_ITC_USE_SEMPH__
 	#define THREADING
-	#define __AQ_THREADED_GC__
 #endif
 
 #include <unordered_map>
