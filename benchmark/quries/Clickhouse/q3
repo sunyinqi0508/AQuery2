@@ -1,0 +1,4 @@
+-- group by multiple keys
+SELECT sum(quantity)
+FROM benchmark.trade10m
+GROUP BY stocksymbol, price

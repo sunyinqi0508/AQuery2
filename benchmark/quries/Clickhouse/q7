@@ -1,0 +1,5 @@
+-- moving_avg
+SELECT stocksymbol, groupArrayMovingAvg(5)(price) AS moving_avg_price
+FROM 
+(SELECT * FROM benchmark.trade01m ORDER BY time)
+GROUP BY stocksymbol

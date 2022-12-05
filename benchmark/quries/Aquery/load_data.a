@@ -1,0 +1,6 @@
+CREATE TABLE trade01m(stocksymbol STRING, time INT, quantity INT, price INT)
+load data infile "../tables/trade01m.csv" into table trade01m fields terminated by ','
+CREATE TABLE trade1m(stocksymbol STRING, time INT, quantity INT, price INT)
+load data infile "../tables/trade1m.csv" into table trade1m fields terminated by ','
+CREATE TABLE trade10m(stocksymbol STRING, time INT, quantity INT, price INT)
+load data infile "../tables/trade10m.csv" into table trade10m fields terminated by ','

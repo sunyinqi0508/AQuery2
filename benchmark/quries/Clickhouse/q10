@@ -1,0 +1,8 @@
+-- max rolling std
+select
+    stocksymbol,
+    max(stddevPop(price)) over
+        (partition by stocksymbol rows between 2 preceding AND CURRENT row) as maxRollingStd
+from 
+(SELECT * FROM benchmark.trade01m ORDER BY time)
+GROUP BY stocksymbol

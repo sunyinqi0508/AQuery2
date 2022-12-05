@@ -1,0 +1,3 @@
+SELECT stocksymbol, quantity, price
+FROM trade01m
+WHERE time >= 5288 and time <= 7000

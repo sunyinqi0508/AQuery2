@@ -1,0 +1,2 @@
+-- count values
+SELECT COUNT(*) FROM benchmark.trade10m

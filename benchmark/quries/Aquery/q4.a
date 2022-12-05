@@ -1,0 +1,5 @@
+-- append tables
+<sql>
+CREATE TABLE res4 AS
+SELECT * FROM trade10m UNION ALL SELECT * FROM trade10m
+</sql>
