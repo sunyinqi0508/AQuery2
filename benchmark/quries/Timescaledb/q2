@@ -1,0 +1,2 @@
+-- count values
+SELECT COUNT(*) FROM trade10m;

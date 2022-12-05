@@ -1,0 +1,5 @@
+CREATE table res7 AS
+SELECT stocksymbol, avgs(5, price)
+FROM trade10m
+ASSUMING ASC time
+GROUP BY stocksymbol

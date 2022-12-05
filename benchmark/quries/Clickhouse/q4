@@ -1,0 +1,2 @@
+-- append two tables
+SELECT * FROM benchmark.trade10m UNION ALL SELECT * FROM benchmark.trade10m

@@ -1,0 +1,6 @@
+<sql>
+CREATE TABLE res9 AS
+SELECT stocksymbol, MAX(price) - MIN(price)
+FROM trade10m
+GROUP BY stocksymbol
+</sql>
