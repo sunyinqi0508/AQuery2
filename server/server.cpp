@@ -503,6 +503,7 @@ start:
                                 };
                                 const auto& load_proc_fromfile = [&](StoredProcedure& p)  {
                                     auto config_name = procedure_root + p.name + ".aqp";
+                                    puts(p.name);
                                     auto fp = fopen(config_name.c_str(), "rb");
                                     if(fp == nullptr){
                                         puts("ERROR: Procedure not found on disk.");
@@ -517,12 +518,14 @@ start:
 
                                     p.queries = static_cast<char**>(malloc(sizeof(char*) * p.cnt));
                                     p.queries[0] = static_cast<char*>(malloc(sizeof(char) * queries_size));
-                                    fread(&p.queries[0], queries_size, 1, fp);
+                                    fread(p.queries[0], 1, queries_size, fp);
 
                                     for(uint32_t j = 1; j < p.cnt; ++j){
                                         p.queries[j] = p.queries[j-1];
-                                        while(*p.queries[j] != '\0')
+                                        while(*(p.queries[j]) != '\0')
                                             ++p.queries[j];
+                                        ++p.queries[j];
+                                        puts(p.queries[j-1]);
                                     }
                                     fclose(fp);
                                     return load_modules(p);
@@ -553,18 +556,22 @@ start:
                                         auto _proc = cxt->stored_proc.find(proc_name);
                                         if (_proc == cxt->stored_proc.end()){
                                             printf("Procedure %s not found. Trying load from disk.\n", proc_name);
-                                            if (load_proc_fromfile(current_procedure)){
+                                            current_procedure.name = copy_lpstr(proc_name);
+                                            if (!load_proc_fromfile(current_procedure)){
                                                 cxt->stored_proc.insert_or_assign(proc_name, current_procedure);
+                                            }
+                                            else {
+                                                continue;
                                             }
                                         }
                                         else{
                                             current_procedure = _proc->second;
-                                            n_recv = current_procedure.cnt;
-                                            n_recvd = current_procedure.queries;
-                                            load_modules(current_procedure);
-                                            procedure_replaying = true;
-                                            goto start; // yes, I know, refactor later!!
                                         }
+                                        n_recv = current_procedure.cnt;
+                                        n_recvd = current_procedure.queries;
+                                        load_modules(current_procedure);
+                                        procedure_replaying = true;
+                                        goto start; // yes, I know, refactor later!!
                                     }
                                     break;
                                     case 'D': // delete procedure
@@ -572,6 +579,9 @@ start:
                                     case 'S': //save procedure
                                     break;
                                     case 'L': //load procedure
+                                    if (!load_proc_fromfile(current_procedure)) {
+                                        cxt->stored_proc.insert_or_assign(proc_name, current_procedure);
+                                    }
                                     break;
                                     case 'd': // display all procedures
                                     for(const auto& p : cxt->stored_proc){

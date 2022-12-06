@@ -4,10 +4,10 @@ MonetDB_INC =
 Defines = 
 CXXFLAGS = --std=c++2a
 ifeq ($(AQ_DEBUG), 1)
-	OPTFLAGS = -g3 -fsanitize=address -fsanitize=leak
+	OPTFLAGS = -g3 #-fsanitize=address 
 	LINKFLAGS = 
 else
-	OPTFLAGS = -O3 -DNDEBUG -fno-stack-protector 
+	OPTFLAGS = -Ofast -DNDEBUG -fno-stack-protector 
 	LINKFLAGS = -flto -s
 endif
 SHAREDFLAGS = -shared  
