@@ -6,6 +6,8 @@
 #include "monetdb_conn.h"
 #include "monetdbe.h"
 #include "table.h"
+#include <thread>
+
 #undef ERROR
 #undef static_assert
 
@@ -86,7 +88,10 @@ void Server::connect(Context *cxt){
     }
 
     server = (monetdbe_database*)malloc(sizeof(monetdbe_database));
-    auto ret = monetdbe_open(server, nullptr, nullptr);
+    monetdbe_options ops;
+    AQ_ZeroMemory(ops);
+    ops.nr_threads = std::thread::hardware_concurrency();
+    auto ret = monetdbe_open(server, nullptr, &ops);
     if (ret == 0){
         status = true;
         this->server = server;

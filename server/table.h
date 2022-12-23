@@ -289,6 +289,7 @@ public:
 		uint32_t len = end - start;
 		return ColView<_Ty>(orig, idxs.subvec(start, end));
 	}
+
 	ColRef<_Ty> subvec_deep(uint32_t start, uint32_t end) const {
 		uint32_t len = end - start;
 		ColRef<_Ty> subvec(len);

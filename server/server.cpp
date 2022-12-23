@@ -191,6 +191,21 @@ constexpr prt_fn_t monetdbe_prtfns[] = {
 	aq_to_chars<std::nullptr_t>
 };
 
+#ifndef __AQ_USE_THREADEDGC__
+void aq_init_gc(void *handle, Context* cxt)
+{
+    typedef void (*aq_gc_init_t) (Context*);
+    if (handle && cxt){
+        auto sym = dlsym(handle, "__AQ_Init_GC__");
+        if(sym){
+            ((aq_gc_init_t)sym)(cxt);
+        }
+    }
+}
+#else //__AQ_USE_THREADEDGC__
+#define aq_init_gc(h, c) 
+#endif //__AQ_USE_THREADEDGC__
+
 #include "monetdbe.h"
 #undef max
 #undef min
@@ -363,12 +378,7 @@ start:
                             recorded_queries.emplace_back(copy_lpstr("N"));
                         }
                         handle = dlopen(proc_name, RTLD_NOW);
-#ifndef __AQ_USE_THREADEDGC__
-                        {
-                            typedef void (*aq_gc_init_t) (Context*);
-                            ((aq_gc_init_t)dlsym(handle, "__AQ_Init_GC__"))(cxt);
-                        }
-#endif
+                        aq_init_gc(handle, cxt);
                         if (procedure_recording) {
                             recorded_libraries.emplace_back(handle);
                         }
@@ -474,11 +484,13 @@ start:
                                         p.__rt_loaded_modules = static_cast<void**>(
                                             malloc(sizeof(void*) * p.postproc_modules));
                                         for(uint32_t j = 0; j < p.postproc_modules; ++j){
-                                            auto pj = dlopen(p.name, RTLD_NOW);
+                                            auto pj = dlopen((procedure_root + p.name + std::to_string(j) + ".so").c_str(), RTLD_NOW);
                                             if (pj == nullptr){
                                                 printf("Error: failed to load module %s\n", p.name);
                                                 return true;
                                             }
+                                            aq_init_gc(pj, cxt);
+
                                             p.__rt_loaded_modules[j] = pj;
                                         }
                                     }
@@ -528,6 +540,7 @@ start:
                                         puts(p.queries[j-1]);
                                     }
                                     fclose(fp);
+                                    p.__rt_loaded_modules = 0;
                                     return load_modules(p);
                                 };
                                 switch(n_recvd[i][1]){

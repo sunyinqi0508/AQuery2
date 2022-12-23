@@ -1059,6 +1059,18 @@ public:
         return do_insert_or_assign(std::move(key), std::forward<M>(mapped)).first;
     }
 
+    template <class K, class M>
+    auto hashtable_push(K&& key, M& mapped) {
+        ++ mapped.id;
+        ++ mapped.cnt;
+        auto it_isinserted = try_emplace(std::forward<K>(key), std::forward<M>(mapped));
+        if (!it_isinserted.second) {
+            --mapped.cnt;
+            return it_isinserted.first->second.id;
+        }
+        return mapped.id;
+    }
+
     template <typename K,
               typename M,
               typename Q = T,
