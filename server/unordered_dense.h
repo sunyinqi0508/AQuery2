@@ -1059,6 +1059,16 @@ public:
         return do_insert_or_assign(std::move(key), std::forward<M>(mapped)).first;
     }
 
+    template <class K>
+    unsigned hashtable_push(K&& key) {
+        auto it_isinserted = try_emplace(std::forward<K>(key), 1);
+        if (!it_isinserted.second) {
+            ++ it_isinserted.first->second;
+            return static_cast<unsigned>(it_isinserted.first - begin());
+        }
+        return static_cast<unsigned>(end() - begin() - 1);
+    }
+
     template <typename K,
               typename M,
               typename Q = T,
@@ -1409,7 +1419,7 @@ public:
     }
 
     // nonstandard API: expose the underlying values container
-    [[nodiscard]] auto values() const noexcept -> value_container_type const& {
+    [[nodiscard]] auto values() noexcept -> value_container_type & {
         return m_values;
     }
 

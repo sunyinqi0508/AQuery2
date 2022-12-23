@@ -187,6 +187,20 @@ decayed_t<VT, types::GetLongType<T>> sumw(uint32_t w, const VT<T>& arr) {
 }
 
 template<class T, template<typename ...> class VT>
+void avgw(uint32_t w, const VT<T>& arr, decayed_t<vector_type, types::GetFPType<types::GetLongType<T>>>& ret) {
+	typedef types::GetFPType<types::GetLongType<T>> FPType;
+	const uint32_t& len = arr.size;
+	uint32_t i = 0;
+	types::GetLongType<T> s{};
+	w = w > len ? len : w;
+	if (len) s = ret[i++] = arr[0];
+	for (; i < w; ++i)
+		ret[i] = (s += arr[i]) / (FPType)(i + 1);
+	for (; i < len; ++i)
+		ret[i] = ret[i - 1] + (arr[i] - arr[i - w]) / (FPType)w;
+}
+
+template<class T, template<typename ...> class VT>
 decayed_t<VT, types::GetFPType<types::GetLongType<T>>> avgw(uint32_t w, const VT<T>& arr) {
 	typedef types::GetFPType<types::GetLongType<T>> FPType;
 	const uint32_t& len = arr.size;

@@ -147,18 +147,18 @@ public:
 		return *this;
 	
 	}
-	// ColView<_Ty> operator [](vector_type<uint32_t>& idxs) const {
-	// 	return ColView<_Ty>(*this, std::move(idxs));
-	// }
-	// ColView<_Ty> operator [](const vector_type<uint32_t>& idxs) const {
-	// 	return ColView<_Ty>(*this, idxs);
-	// }
-	vector_type<_Ty> operator[](vector_type<uint32_t>& idxs) const {
-		vector_type<_Ty> ret(idxs.size);
-		for (uint32_t i = 0; i < idxs.size; ++i)
-			ret.container[i] = this->container[idxs[i]];
-		return ret;
-	}
+	 ColView<_Ty> operator [](vector_type<uint32_t>& idxs) const {
+	 	return ColView<_Ty>(*this, std::move(idxs));
+	 }
+	 ColView<_Ty> operator [](const vector_type<uint32_t>& idxs) const {
+	 	return ColView<_Ty>(*this, idxs);
+	 }
+	//vector_type<_Ty> operator[](vector_type<uint32_t>& idxs) const {
+	//	vector_type<_Ty> ret(idxs.size);
+	//	for (uint32_t i = 0; i < idxs.size; ++i)
+	//		ret.container[i] = this->container[idxs[i]];
+	//	return ret;
+	//}
 	vector_type<_Ty> operator [](const std::vector<bool>& idxs) const {
 		vector_type<_Ty> ret (this->size);
 		uint32_t i = 0;

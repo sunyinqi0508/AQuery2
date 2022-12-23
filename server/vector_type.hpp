@@ -88,6 +88,12 @@ public:
 	constexpr vector_type(const uint32_t size, void* data) : 
 		size(size), capacity(0), container(static_cast<_Ty*>(data)) {}
 
+	void init_from(const uint32_t size, void* data) {
+		this->container = static_cast<_Ty*>(data);
+		this->size = size;
+		this->capacity = 0;
+	}
+	
 	vector_type<_Ty>& operator =(const _Ty& vt) {
 		if (!container) { 
 			container = (_Ty*)malloc(sizeof(_Ty)); 
@@ -134,7 +140,7 @@ public:
 			container[i++] = v;
 		}
 		return *this;
-	}
+	} 
 	vector_type<_Ty> distinct_copy(){
 		auto d_vals = distinct_common();
 		vector_type<_Ty> ret(d_vals.size());
@@ -325,7 +331,7 @@ public:
 	inline vector_type<_Ty> subvec_deep(uint32_t start = 0) const { return subvec_deep(start, size); }
 	vector_type<_Ty> getRef() { return vector_type<_Ty>(container, size); }
 	~vector_type() {
-		if (capacity > 0) GC::gc_handle->reg(container, sizeof(_Ty) * capacity);//free(container);
+		if (capacity > 0);// GC::gc_handle->reg(container, sizeof(_Ty) * capacity);//free(container);
 		container = 0; size = capacity = 0;
 	}
 #define Compare(_op) \
