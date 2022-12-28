@@ -17,8 +17,6 @@
 #include "types.h"
 #include "gc.h"
 #pragma pack(push, 1)
-template<class T>
-struct vector_base {};
 
 struct vectortype_cstorage{
 	void* container;
@@ -32,7 +30,6 @@ public:
 	void inline _copy(const vector_type<_Ty>& vt) {
 		// quick init while using malloc
 		//if (capacity > 0) free(container);
-		
 		this->size = vt.size;
 		this->capacity = vt.capacity;
 		if (capacity) {
@@ -72,6 +69,8 @@ public:
 	}
 	constexpr vector_type() noexcept : size(0), capacity(0), container(0) {};
 	constexpr vector_type(_Ty* container, uint32_t len) noexcept : size(len), capacity(0), container(container) {};
+	constexpr vector_type(const char** container, uint32_t len, 
+		typename std::enable_if_t<!std::is_same_v<_Ty, const char*>>* = nullptr) noexcept = delete;
 	constexpr explicit vector_type(const vector_type<_Ty>& vt) noexcept : capacity(0) {
 		_copy(vt);
 	}
@@ -88,6 +87,12 @@ public:
 	constexpr vector_type(const uint32_t size, void* data) : 
 		size(size), capacity(0), container(static_cast<_Ty*>(data)) {}
 
+	void init_from(const uint32_t size, void* data) {
+		this->container = static_cast<_Ty*>(data);
+		this->size = size;
+		this->capacity = 0;
+	}
+	
 	vector_type<_Ty>& operator =(const _Ty& vt) {
 		if (!container) { 
 			container = (_Ty*)malloc(sizeof(_Ty)); 
@@ -134,7 +139,7 @@ public:
 			container[i++] = v;
 		}
 		return *this;
-	}
+	} 
 	vector_type<_Ty> distinct_copy(){
 		auto d_vals = distinct_common();
 		vector_type<_Ty> ret(d_vals.size());
@@ -388,6 +393,39 @@ public:
 	_Make_Ops(Ops)
 	_Make_Ops(Opseq)
 };
+
+template <>
+constexpr vector_type<std::string_view>::vector_type(const char** container, uint32_t len, 
+		typename std::enable_if_t<true>*) noexcept
+{
+	size = capacity = len;
+	this->container = static_cast<std::string_view*>(
+		malloc(sizeof(std::string_view) * len));
+	for(uint32_t i = 0; i < len; ++i){
+		this->container[i] = container[i];
+	}
+}
+
+template<>
+constexpr vector_type<std::string_view>::vector_type(const uint32_t size, void* data) : 
+	size(size), capacity(0) {
+	this->container = static_cast<std::string_view*>(
+		malloc(sizeof(std::string_view) * size));
+	for(uint32_t i = 0; i < size; ++i){
+		this->container[i] = ((const char**)data)[i];
+	}
+	//std::cout<<size << container[1];
+}
+
+// template<>
+// void vector_type<std::string_view>::init_from(const uint32_t size, void* data) {
+// 	this->size = this->capacity = size;
+// 	this->container = static_cast<std::string_view*>(
+// 		malloc(sizeof(std::string_view) * size));
+// 	for(uint32_t i = 0; i < size; ++i){
+// 		this->container[i] = container[i];
+// 	}
+// }
 
 
 template <>

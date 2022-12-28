@@ -110,7 +110,7 @@ class outfile(ast_node):
         filename = node['loc']['literal'] if 'loc' in node else node['literal']
         sep = ',' if 'term' not in node else node['term']['literal']
         file_pointer = 'fp_' + base62uuid(6)
-        self.emit(f'FILE* {file_pointer} = fopen("{filename}", "w");')
+        self.emit(f'FILE* {file_pointer} = fopen("{filename}", "wb");')
         self.emit(f'{out_table.cxt_name}->printall("{sep}", "\\n", nullptr, {file_pointer});')
         self.emit(f'fclose({file_pointer});')
         # self.context.headers.add('fstream')

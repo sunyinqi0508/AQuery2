@@ -4,6 +4,7 @@
 #include <string>
 #include <limits>
 #include <cstring>
+#include <string_view>
 template <class ...Types>
 std::string generate_printf_string(const char* sep = " ", const char* end = "\n") {
 	std::string str;
@@ -23,6 +24,11 @@ inline decltype(auto) print_hook(const T& v){
 template<>
 inline decltype(auto) print_hook<bool>(const bool& v) {
 	return v? "true" : "false";
+}
+
+template<>
+inline decltype(auto) print_hook<std::string_view>(const std::string_view& v) {
+	return v.data();
 }
 
 extern char* gbuf;

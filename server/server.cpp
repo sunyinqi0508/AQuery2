@@ -1,5 +1,5 @@
 #include "pch_msc.hpp"
-
+//#define TESTMAIN
 #include <iostream>
 #include <string>
 #include <chrono>
@@ -668,7 +668,7 @@ int launcher(int argc, char** argv){
     str = std::string("cd ") + pwd + std::string("&& python3 ./prompt.py ") + str;
     return system(str.c_str());
 }
-#if true || !( defined(_MSC_VER) && defined(_DEBUG) )
+#if !defined(TESTMAIN) && !( defined(_MSC_VER) && defined(_DEBUG) )
 extern "C" int __DLLEXPORT__ main(int argc, char** argv) {
 #ifdef __AQ_BUILD_LAUNCHER__
    return launcher(argc, argv);

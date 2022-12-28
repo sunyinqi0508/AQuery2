@@ -55,6 +55,7 @@ void print<bool>(const bool&v, const char* delimiter){
 	std::cout<< (v?"true":"false") << delimiter;
 }
 
+
 template<class T> 
 T getInt(const char*& buf){
 	T ret = 0;
@@ -537,4 +538,11 @@ aq_to_chars<types::timestamp_t>(void* value, char* buffer) {
 	return buffer;
 }
 
+template<> 
+char* 
+aq_to_chars<std::string_view>(void* value, char* buffer){
+	const auto& src = *static_cast<std::string_view*>(value);
+	memcpy(buffer, src.data(), src.size());
+	return buffer + src.size();
+}
 

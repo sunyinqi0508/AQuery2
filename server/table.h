@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cstdarg>
 #include <vector>
+#include <string_view>
 #include "io.h"
 #include "hasher.h"
 
@@ -147,18 +148,18 @@ public:
 		return *this;
 	
 	}
-	// ColView<_Ty> operator [](vector_type<uint32_t>& idxs) const {
-	// 	return ColView<_Ty>(*this, std::move(idxs));
-	// }
-	// ColView<_Ty> operator [](const vector_type<uint32_t>& idxs) const {
-	// 	return ColView<_Ty>(*this, idxs);
-	// }
-	vector_type<_Ty> operator[](vector_type<uint32_t>& idxs) const {
-		vector_type<_Ty> ret(idxs.size);
-		for (uint32_t i = 0; i < idxs.size; ++i)
-			ret.container[i] = this->container[idxs[i]];
-		return ret;
-	}
+	 ColView<_Ty> operator [](vector_type<uint32_t>& idxs) const {
+	 	return ColView<_Ty>(*this, std::move(idxs));
+	 }
+	 ColView<_Ty> operator [](const vector_type<uint32_t>& idxs) const {
+	 	return ColView<_Ty>(*this, idxs);
+	 }
+	//vector_type<_Ty> operator[](vector_type<uint32_t>& idxs) const {
+	//	vector_type<_Ty> ret(idxs.size);
+	//	for (uint32_t i = 0; i < idxs.size; ++i)
+	//		ret.container[i] = this->container[idxs[i]];
+	//	return ret;
+	//}
 	vector_type<_Ty> operator [](const std::vector<bool>& idxs) const {
 		vector_type<_Ty> ret (this->size);
 		uint32_t i = 0;
@@ -474,7 +475,7 @@ struct TableInfo {
 
 		std::string printf_string =
 			generate_printf_string<typename std::tuple_element<cols, tuple_type>::type ...>(sep, end);
-		// puts(printf_string.c_str());
+		puts(printf_string.c_str());
 		std::string header_string = std::string();
 		constexpr static int a_cols[] = { cols... };
 		if (fp == nullptr){
@@ -488,6 +489,7 @@ struct TableInfo {
 			if (header_string.size() - l_sep >= 0)
 				header_string.resize(header_string.size() - l_sep);
 		}
+		
 		const auto& prt_loop = [&fp, &view, &printf_string, *this, &limit](const auto& f) {
 #ifdef __AQ__HAS__INT128__			
 			constexpr auto num_hge = count_type<__int128_t, __uint128_t>((tuple_type*)(0));
@@ -920,6 +922,7 @@ template <class ...Types>
 void print(const TableView<Types...>& v, const char* delimiter = " ", const char* endline = "\n") {
 	v.print(delimiter, endline);
 }
+
 template <class T>
 void print(const T& v, const char* delimiter = " ") {
 	std::cout << v << delimiter;
@@ -934,7 +937,6 @@ void print<__uint128_t>(const __uint128_t& v, const char* delimiter);
 #endif
 template <>
 void print<bool>(const bool& v, const char* delimiter);
-
 template <class T>
 void inline print_impl(const T& v, const char* delimiter, const char* endline) {
 	for (const auto& vi : v) {

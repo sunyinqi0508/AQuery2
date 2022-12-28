@@ -1300,7 +1300,7 @@ class outfile(ast_node):
         filename = self.node['loc']['literal'] if 'loc' in self.node else self.node['literal']
         sep = ',' if 'term' not in self.node else self.node['term']['literal']
         file_pointer = 'fp_' + base62uuid(6)
-        self.addc(f'FILE* {file_pointer} = fopen("{filename}", "w");')
+        self.addc(f'FILE* {file_pointer} = fopen("{filename}", "wb");')
         self.addc(f'{self.parent.out_table.contextname_cpp}->printall("{sep}", "\\n", nullptr, {file_pointer});')
         self.addc(f'fclose({file_pointer});')  
         self.context.ccode += self.ccode
