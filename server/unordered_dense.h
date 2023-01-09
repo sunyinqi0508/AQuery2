@@ -1062,7 +1062,7 @@ public:
     // template <class K>
     // bool hashtable_push(K&& key) {
     //     auto it_isinserted = try_emplace(std::forward<K>(key), 1);
-    //     if (!it_isinserted.second) 
+    //     if (!it_isinserted.second)
     //         ++ it_isinserted.first->second;
     //     return it_isinserted.second;
     // }
@@ -1113,8 +1113,8 @@ public:
 template <class K,
               typename Q = T,
               typename H = Hash,
-              typename KE = KeyEqual,
-              std::enable_if_t<!is_map_v<Q> && is_transparent_v<H, KE>, bool> = true>
+              typename KE = KeyEqual>//,
+              //std::enable_if_t<!is_map_v<Q> && is_transparent_v<H, KE>, bool> = true>
     auto hashtable_push(K&& key) -> unsigned {
         if (is_full()) {
             increase_size();
@@ -1141,35 +1141,35 @@ template <class K,
         place_and_shift_up({dist_and_fingerprint, value_idx}, bucket_idx);
         return static_cast<uint32_t>(value_idx);
     }
-    template <class... Args>
-    auto hashtable_push(Args&&... args) -> unsigned {
-        if (is_full()) {
-            increase_size();
-        }
+    // template <class... Args>
+    // auto hashtable_push(Args&&... args) -> unsigned {
+    //     if (is_full()) {
+    //         increase_size();
+    //     }
 
-        // we have to instantiate the value_type to be able to access the key.
-        // 1. emplace_back the object so it is constructed. 2. If the key is already there, pop it later in the loop.
-        auto& key = get_key(m_values.emplace_back(std::forward<Args>(args)...));
-        auto hash = mixed_hash(key);
-        auto dist_and_fingerprint = dist_and_fingerprint_from_hash(hash);
-        auto bucket_idx = bucket_idx_from_hash(hash);
+    //     // we have to instantiate the value_type to be able to access the key.
+    //     // 1. emplace_back the object so it is constructed. 2. If the key is already there, pop it later in the loop.
+    //     auto& key = get_key(m_values.emplace_back(std::forward<Args>(args)...));
+    //     auto hash = mixed_hash(key);
+    //     auto dist_and_fingerprint = dist_and_fingerprint_from_hash(hash);
+    //     auto bucket_idx = bucket_idx_from_hash(hash);
 
-        while (dist_and_fingerprint <= at(m_buckets, bucket_idx).m_dist_and_fingerprint) {
-            if (dist_and_fingerprint == at(m_buckets, bucket_idx).m_dist_and_fingerprint &&
-                m_equal(key, get_key(m_values[at(m_buckets, bucket_idx).m_value_idx]))) {
-                m_values.pop_back(); // value was already there, so get rid of it
-                return static_cast<uint32_t>(at(m_buckets, bucket_idx).m_value_idx);
-            }
-            dist_and_fingerprint = dist_inc(dist_and_fingerprint);
-            bucket_idx = next(bucket_idx);
-        }
+    //     while (dist_and_fingerprint <= at(m_buckets, bucket_idx).m_dist_and_fingerprint) {
+    //         if (dist_and_fingerprint == at(m_buckets, bucket_idx).m_dist_and_fingerprint &&
+    //             m_equal(key, get_key(m_values[at(m_buckets, bucket_idx).m_value_idx]))) {
+    //             m_values.pop_back(); // value was already there, so get rid of it
+    //             return static_cast<uint32_t>(at(m_buckets, bucket_idx).m_value_idx);
+    //         }
+    //         dist_and_fingerprint = dist_inc(dist_and_fingerprint);
+    //         bucket_idx = next(bucket_idx);
+    //     }
 
-        // value is new, place the bucket and shift up until we find an empty spot
-        auto value_idx = static_cast<value_idx_type>(m_values.size() - 1);
-        place_and_shift_up({dist_and_fingerprint, value_idx}, bucket_idx);
+    //     // value is new, place the bucket and shift up until we find an empty spot
+    //     auto value_idx = static_cast<value_idx_type>(m_values.size() - 1);
+    //     place_and_shift_up({dist_and_fingerprint, value_idx}, bucket_idx);
 
-        return static_cast<uint32_t>(value_idx);
-    }
+    //     return static_cast<uint32_t>(value_idx);
+    // }
     template <class... Args>
     auto emplace(Args&&... args) -> std::pair<iterator, bool> {
         if (is_full()) {

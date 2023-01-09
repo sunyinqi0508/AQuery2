@@ -427,6 +427,19 @@ constexpr vector_type<std::string_view>::vector_type(const uint32_t size, void* 
 // 	}
 // }
 
+// template<template <typename> class VT>
+// inline void 
+// prealloc_vector (VT &vt, uint32_t sz) { 
+// 	vt.reserve(sz); 
+// }
+
+// template<class T>
+// inline void 
+// prealloc_vector (vector_type<vector_type<T>> &vt, 
+// 				uint32_t outer_sz, uint32_t inner_sz) { 
+// 	vt.reserve(outer_sz); 
+// 	auto mem = static_cast<T*>(malloc(inner_sz * sizeof(T)));
+// }
 
 template <>
 class vector_type<void> {
@@ -460,4 +473,48 @@ public:
 	vector_type<void> subvec_deep(uint32_t);
 };
 #pragma pack(pop)
+
+template <class Key, class Hash>
+class AQHashTable : public ankerl::unordered_dense::set<Key, Hash> {
+public:
+	uint32_t* reversemap, *mapbase, *ht_base;
+	AQHashTable() = default;
+	explicit AQHashTable(uint32_t sz) 
+		: ankerl::unordered_dense::set<Key, Hash>{} {
+		this->reserve(sz);
+		reversemap = static_cast<uint32_t *>(malloc(sizeof(uint32_t) * sz * 2));
+		mapbase = reversemap + sz;
+		ht_base =  static_cast<uint32_t *>(calloc(sz, sizeof(uint32_t)));
+	}
+
+	void init(uint32_t sz) {
+		ankerl::unordered_dense::set<Key, Hash>::reserve(sz);
+		reversemap = static_cast<uint32_t *>(malloc(sizeof(uint32_t) * sz * 2));
+		mapbase = reversemap + sz;
+		ht_base =  static_cast<uint32_t *>(calloc(sz, sizeof(uint32_t)));
+	}
+
+	inline void hashtable_push(Key&& k, uint32_t i){
+		reversemap[i] = ankerl::unordered_dense::set<Key, Hash>::hashtable_push(std::forward<Key&&>(k));
+		++ht_base[reversemap[i]];
+	}
+
+	auto ht_postproc(uint32_t sz) {
+		auto& arr_values = this->values();
+		const auto& len = this->size();
+
+		auto vecs = static_cast<vector_type<uint32_t>*>(malloc(sizeof(vector_type<uint32_t>) * len));
+		vecs[0].init_from(ht_base[0], mapbase);
+		for (uint32_t i = 1; i < len; ++i) {
+			vecs[i].init_from(ht_base[i], mapbase + ht_base[i - 1]);
+			ht_base[i] += ht_base[i - 1];
+		}
+		for (uint32_t i = 0; i < sz; ++i) {
+			auto id = reversemap[i];
+			mapbase[--ht_base[id]] = i;    
+		}
+		return vecs;
+	}
+};
+
 #endif

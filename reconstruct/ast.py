@@ -339,8 +339,8 @@ class projection(ast_node):
                 return ', '.join([self.pyname2cname[n.name] for n in lst_names])
             else:
                 return self.pyname2cname[proj_name]
-        
-        for key, val in proj_map.items():
+        gb_tovec = [False] * len(proj_map)
+        for i, (key, val) in enumerate(proj_map.items()):
             if type(val[1]) is str:
                 x = True
                 y = get_proj_name
@@ -357,22 +357,27 @@ class projection(ast_node):
                 out_typenames[key] = decltypestring
             else:
                 out_typenames[key] = val[0].cname
-            if (type(val[2].udf_called) is udf and # should bulkret also be colref?
+            elemental_ret_udf = (
+                    type(val[2].udf_called) is udf and # should bulkret also be colref?
                     val[2].udf_called.return_pattern == udf.ReturnPattern.elemental_return
-                    or 
-                    self.group_node and 
-                    (self.group_node.use_sp_gb and
+            )
+            folding_vector_groups = (
+                self.group_node and 
+                (
+                    self.group_node.use_sp_gb and
                     val[2].cols_mentioned.intersection(
                         self.datasource.all_cols().difference(
                             self.datasource.get_joint_cols(self.group_node.refs)
-                        ))
-                    ) and val[2].is_compound # compound val not in key
-                    # or 
-                    # val[2].is_compound > 1
-                    # (not self.group_node and val[2].is_compound)
-                    ):
-                    out_typenames[key] = f'vector_type<{out_typenames[key]}>'
-                    self.out_table.columns[key].compound = True
+                        )
+                    )
+                ) and 
+                val[2].is_compound # compound val not in key
+            )
+            if (elemental_ret_udf or folding_vector_groups):
+                out_typenames[key] = f'vector_type<{out_typenames[key]}>'
+                self.out_table.columns[key].compound = True
+                if self.group_node is not None and self.group_node.use_sp_gb:
+                    gb_tovec[i] = True
         outtable_col_nameslist = ', '.join([f'"{c.name}"' for c in self.out_table.columns])
         self.outtable_col_names = 'names_' + base62uuid(4)
         self.context.emitc(f'const char* {self.outtable_col_names}[] = {{{outtable_col_nameslist}}};')
@@ -384,12 +389,14 @@ class projection(ast_node):
             gb_vartable : Dict[str, Union[str, int]] = deepcopy(self.pyname2cname)
             gb_cexprs : List[str] = []
             gb_colnames : List[str] = []
+            gb_types : List[Types] = []
             for key, val in proj_map.items():
                 col_name = 'col_' + base62uuid(6)
                 self.context.emitc(f'decltype(auto) {col_name} = {self.out_table.contextname_cpp}->get_col<{key}>();')
                 gb_cexprs.append((col_name, val[2]))
                 gb_colnames.append(col_name)
-            self.group_node.finalize(gb_cexprs, gb_vartable, gb_colnames)
+                gb_types.append(val[0])
+            self.group_node.finalize(gb_cexprs, gb_vartable, gb_colnames, gb_types, gb_tovec)
         else:
             for i, (key, val) in enumerate(proj_map.items()):
                 if type(val[1]) is int:
@@ -533,6 +540,7 @@ class groupby_c(ast_node):
     def init(self, node : List[Tuple[expr, Set[ColRef]]]):
         self.proj : projection = self.parent
         self.glist : List[Tuple[expr, Set[ColRef]]] = node
+        self.vecs : str = 'vecs_' + base62uuid(3)
         return super().init(node)
     
     def produce(self, node : List[Tuple[expr, Set[ColRef]]]):
@@ -561,21 +569,22 @@ class groupby_c(ast_node):
                 e = g_str
             g_contents_list.append(e)
         first_col = g_contents_list[0]
+        self.total_sz = 'len_' + base62uuid(4)
+        self.context.emitc(f'uint32_t {self.total_sz} = {first_col}.size;')
         g_contents_decltype = [f'decays<decltype({c})::value_t>' for c in g_contents_list]
         g_contents = ', '.join(
             [f'{c}[{scanner_itname}]' for c in g_contents_list]
         )
         self.context.emitc(f'typedef record<{",".join(g_contents_decltype)}> {self.group_type};')
-        self.context.emitc(f'ankerl::unordered_dense::map<{self.group_type}, vector_type<uint32_t>, '
-            f'transTypes<{self.group_type}, hasher>> {self.group};')
-        self.context.emitc(f'{self.group}.reserve({first_col}.size);')
+        self.context.emitc(f'AQHashTable<{self.group_type}, '
+            f'transTypes<{self.group_type}, hasher>> {self.group} {{{self.total_sz}}};')
         self.n_grps = len(self.glist)
-        self.scanner = scan(self, first_col + '.size', it_name=scanner_itname)
-        self.scanner.add(f'{self.group}[forward_as_tuple({g_contents})].emplace_back({self.scanner.it_var});')
+        self.scanner = scan(self, self.total_sz, it_name=scanner_itname)
+        self.scanner.add(f'{self.group}.hashtable_push(forward_as_tuple({g_contents}), {self.scanner.it_var});')
 
     def consume(self, _):
         self.scanner.finalize()
-        
+        self.context.emitc(f'auto {self.vecs} = {self.group}.ht_postproc({self.total_sz});')
     # def deal_with_assumptions(self, assumption:assumption, out:TableInfo):
     #     gscanner = scan(self, self.group)
     #     val_var = 'val_'+base62uuid(7)
@@ -583,16 +592,40 @@ class groupby_c(ast_node):
     #     gscanner.add(f'{self.datasource.cxt_name}->order_by<{assumption.result()}>(&{val_var});')
     #     gscanner.finalize()
         
-    def finalize(self, cexprs : List[Tuple[str, expr]], var_table : Dict[str, Union[str, int]], col_names : List[str]):
-        for c in col_names:
+    def finalize(self, cexprs : List[Tuple[str, expr]], var_table : Dict[str, Union[str, int]], 
+                 col_names : List[str], col_types : List[Types], col_tovec : List[bool]):
+        tovec_columns = set()
+        for i, c in enumerate(col_names):
             self.context.emitc(f'{c}.reserve({self.group}.size());')
+            if col_tovec[i]: # and type(col_types[i]) is VectorT:
+                typename : Types = col_types[i] # .inner_type
+                self.context.emitc(f'auto buf_{c} = static_cast<{typename.cname} *>(malloc({self.total_sz} * sizeof({typename.cname})));')
+                tovec_columns.add(c)
+        self.arr_len = 'arrlen_' + base62uuid(3)
+        self.arr_values = 'arrvals_' + base62uuid(3)
         
-        gscanner = scan(self, self.group, loop_style = 'for_each')
+        if len(tovec_columns):
+            self.context.emitc(f'auto {self.arr_len} = {self.group}.size();')
+            self.context.emitc(f'auto {self.arr_values} = {self.group}.values();')
+            preproc_scanner = scan(self, self.arr_len)
+            preproc_scanner_it = preproc_scanner.it_var
+            for c in tovec_columns:
+                preproc_scanner.add(f'{c}[{preproc_scanner_it}].init_from'
+                                    f'({self.vecs}[{preproc_scanner_it}].size,'
+                                    f' {"buf_" + c} + {self.group}.ht_base'
+                                    f'[{preproc_scanner_it}]);'
+                )
+            preproc_scanner.finalize()
+            
+        # gscanner = scan(self, self.group, loop_style = 'for_each')
+        gscanner = scan(self, self.arr_len)
         key_var = 'key_'+base62uuid(7)
         val_var = 'val_'+base62uuid(7)
         
-        gscanner.add(f'auto &{key_var} = {gscanner.it_var}.first;', position = 'front')
-        gscanner.add(f'auto &{val_var} = {gscanner.it_var}.second;', position = 'front')
+        # gscanner.add(f'auto &{key_var} = {gscanner.it_var}.first;', position = 'front')
+        # gscanner.add(f'auto &{val_var} = {gscanner.it_var}.second;', position = 'front')
+        gscanner.add(f'auto &{key_var} = {self.arr_values}[{gscanner.it_var}];', position = 'front')
+        gscanner.add(f'auto &{val_var} = {self.vecs}[{gscanner.it_var}];', position = 'front')
         len_var = None
         def define_len_var():
             nonlocal len_var
@@ -627,7 +660,7 @@ class groupby_c(ast_node):
                         materialize_builtin = materialize_builtin, 
                         count=lambda:f'{val_var}.size')
                 
-        for ce in cexprs:
+        for i, ce in enumerate(cexprs):
             ex = ce[1]
             materialize_builtin = {}
             if type(ex.udf_called) is udf:
@@ -640,7 +673,16 @@ class groupby_c(ast_node):
                     materialize_builtin['_builtin_ret'] = f'{ce[0]}.back()'
                     gscanner.add(f'{ex.eval(c_code = True, y=get_var_names, materialize_builtin = materialize_builtin)};\n')
                     continue
-            gscanner.add(f'{ce[0]}.emplace_back({get_var_names_ex(ex)});\n')
+            if col_tovec[i]:
+                if ex.opname == 'avgs':
+                    patch_expr = get_var_names_ex(ex)
+                    patch_expr = patch_expr[:patch_expr.rindex(')')]
+                    patch_expr += ', ' + f'{ce[0]}[{gscanner.it_var}]' + ')'
+                    gscanner.add(f'{patch_expr};\n')
+                else:
+                    gscanner.add(f'{ce[0]}[{gscanner.it_var}] = {get_var_names_ex(ex)};\n')
+            else:
+                gscanner.add(f'{ce[0]}.emplace_back({get_var_names_ex(ex)});\n')
         
         gscanner.finalize()
         
@@ -718,10 +760,11 @@ class groupby(ast_node):
                 #     self.parent.var_table.
                 self.parent.col_ext.update(l[1])    
                 
-    def finalize(self, cexprs : List[Tuple[str, expr]], var_table : Dict[str, Union[str, int]], col_names : List[str]):
+    def finalize(self, cexprs : List[Tuple[str, expr]], var_table : Dict[str, Union[str, int]], 
+                 col_names : List[str], col_types : List[Types], col_tovec : List[bool]):
         if self.use_sp_gb:
             self.dedicated_gb = groupby_c(self.parent, self.dedicated_glist)
-            self.dedicated_gb.finalize(cexprs, var_table, col_names)
+            self.dedicated_gb.finalize(cexprs, var_table, col_names, col_types, col_tovec)
 
 
 class join(ast_node):

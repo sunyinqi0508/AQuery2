@@ -2,7 +2,7 @@ import struct
 import readline
 from typing import List
 
-name : str = input()
+name : str = input('Filename (in path ./procedures/<filename>.aqp):')
 
 def write():
     s : str = input()

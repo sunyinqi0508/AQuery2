@@ -295,6 +295,7 @@ void initialize_module(const char* module_name, void* module_handle, Context* cx
         printf("Warning: module %s have no session support.\n", module_name);
     }
 }
+
 #pragma endregion
 int dll_main(int argc, char** argv, Context* cxt){
     aq_timer timer;

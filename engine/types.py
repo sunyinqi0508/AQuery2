@@ -107,9 +107,9 @@ ULongT = Types(8, name = 'uint64', sqlname = 'UINT64', fp_type=DoubleT)
 UIntT = Types(7, name = 'uint32', sqlname = 'UINT32', long_type=ULongT, fp_type=FloatT)
 UShortT = Types(6, name = 'uint16', sqlname = 'UINT16', long_type=ULongT, fp_type=FloatT)
 UByteT = Types(5, name = 'uint8', sqlname = 'UINT8', long_type=ULongT, fp_type=FloatT)
-StrT = Types(200, name = 'str', cname = 'const char*', sqlname='TEXT', ctype_name = 'types::ASTR')
-TextT = Types(200, name = 'text', cname = 'const char*', sqlname='TEXT', ctype_name = 'types::ASTR')
-VarcharT = Types(200, name = 'varchar', cname = 'const char*', sqlname='VARCHAR', ctype_name = 'types::ASTR')
+StrT = Types(200, name = 'str', cname = 'string_view', sqlname='TEXT', ctype_name = 'types::ASTR')
+TextT = Types(200, name = 'text', cname = 'string_view', sqlname='TEXT', ctype_name = 'types::ASTR')
+VarcharT = Types(200, name = 'varchar', cname = 'string_view', sqlname='VARCHAR', ctype_name = 'types::ASTR')
 VoidT = Types(200, name = 'void', cname = 'void', sqlname='Null', ctype_name = 'types::None')
 
 class VectorT(Types):
