@@ -1,0 +1,7 @@
+-- groupby_multi_different_functions
+<sql>
+CREATE TABLE res1 AS
+SELECT avg(quantity) AS avg_quan, min(price) AS min_p
+FROM trade1m
+GROUP BY stocksymbol, time
+</sql>

@@ -1,0 +1,3 @@
+SELECT stocksymbol, MAX(price) - MIN(price)
+FROM trade01m
+GROUP BY stocksymbol;

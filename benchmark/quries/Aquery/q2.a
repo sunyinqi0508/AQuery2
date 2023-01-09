@@ -1,0 +1,4 @@
+-- count values
+<sql>
+SELECT COUNT(*) FROM trade10m
+</sql>

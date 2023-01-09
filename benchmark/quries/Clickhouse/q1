@@ -1,0 +1,4 @@
+-- groupby_multi_different_functions
+SELECT avg(quantity), min(price)
+FROM benchmark.trade10m
+GROUP BY stocksymbol, time

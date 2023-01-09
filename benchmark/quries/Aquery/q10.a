@@ -1,0 +1,4 @@
+SELECT stocksymbol, MAX(stddevs(3, price))
+FROM trade1m
+ASSUMING ASC time
+GROUP BY stocksymbol

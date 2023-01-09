@@ -1,0 +1,5 @@
+select
+    stocksymbol,
+    coalesce(avg(price) over
+        (partition by stocksymbol order by time rows between 4 preceding AND CURRENT row), price) as rollingAvg
+from trade10m;
