@@ -367,6 +367,19 @@ class expr(ast_node):
             self.curr_code += c.codegen(delegate)
         return self.curr_code
     
+    def remake_binary(self, ret_expr):
+        if self.root:
+            self.oldsql = self.sql
+            if (self.opname in builtin_binary_ops):
+                patched_opname = 'aqop_' + self.opname
+                self.sql = (f'{patched_opname}({self.children[0].sql}, '
+                            f'{self.children[1].sql}, {ret_expr})')
+                return True
+            elif self.opname in builtin_vecfunc:
+                self.sql = self.sql[:self.sql.rindex(')')]
+                self.sql += ', ' + ret_expr + ')'
+                return True
+        return False
     def __str__(self):
         return self.sql
     def __repr__(self):

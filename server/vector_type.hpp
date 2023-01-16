@@ -187,15 +187,15 @@ public:
 		grow<false>(sz);
 	}
 
-	void emplace_back(const _Ty& _val) {
+	inline void emplace_back(const _Ty& _val) {
 		grow();
 		container[size++] = _val;
 	}
-	void emplace_back(_Ty& _val) {
+	inline void emplace_back(_Ty& _val) {
 		grow();
 		container[size++] = std::move(_val);
 	}
-	void emplace_back(_Ty&& _val) {
+	inline void emplace_back(_Ty&& _val) {
 		grow();
 		container[size++] = std::move(_val);
 	}
@@ -212,10 +212,10 @@ public:
 		return _it;
 	}
 
-	iterator_t begin() const {
+	inline iterator_t begin() const {
 		return container;
 	}
-	iterator_t end() const {
+	inline iterator_t end() const {
 		return container + size;
 	}
 
@@ -229,7 +229,7 @@ public:
 		return container[_i];
 	}
 
-	void shrink_to_fit() {
+	inline void shrink_to_fit() {
 		if (size && capacity != size) {
 			capacity = size;
 			_Ty* _container = (_Ty*)malloc(sizeof(_Ty) * size);
@@ -239,13 +239,17 @@ public:
 		}
 	}
 
-	_Ty& back() {
+	inline void clear() {
+		this->size = 0;
+	}
+
+	inline _Ty& back() {
 		return container[size - 1];
 	}
-	void qpop() {
+	inline void qpop() {
 		size = size ? size - 1 : size;
 	}
-	void pop_resize() {
+	inline void pop_resize() {
 		if (size) {
 			--size;
 			if (capacity > (size << 1))
@@ -258,7 +262,7 @@ public:
 			}
 		}
 	}
-	_Ty pop() {
+	inline _Ty pop() {
 		return container[--size];
 	}
 	void merge(vector_type<_Ty>& _other) {
@@ -368,7 +372,7 @@ public:
 #define Ops(o, x) \
 	template<typename T>\
 	vector_type<typename types::Coercion<_Ty, T>::type> operator o (const vector_type<T>& r) const {\
-		/*[[likely]] if (r.size == size) {*/\
+		/*if (r.size == size) { [[likely]] */\
 			return x(r);\
 		/*}*/\
 	}
@@ -376,7 +380,7 @@ public:
 #define Opseq(o, x) \
 	template<typename T>\
 	vector_type<typename types::Coercion<_Ty, T>::type> operator o##= (const vector_type<T>& r) {\
-		/*[[likely]] if (r.size == size) {*/\
+		/*if (r.size == size) { [[likely]] */\
 			return x##eq(r);\
 		/*}*/\
 	}

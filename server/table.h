@@ -36,7 +36,8 @@ struct ColRef_cstorage {
 	int ty; // what if enum is not int?
 };
 
-template <template <class...> class VT, class T>
+template <template <class...> class VT, class T, 
+	std::enable_if_t<std::is_base_of_v<vector_base<T>, VT<T>>>* = nullptr>
 std::ostream& operator<<(std::ostream& os, const VT<T>& v)
 {
 	v.out();
@@ -143,7 +144,7 @@ public:
 		vector_type<_Ty>::operator=(vt);
 		return *this;
 	}
-	ColRef<_Ty>& operator =(ColRef<_Ty>&& vt) {
+	ColRef<_Ty>& operator =(ColRef<_Ty>&& vt) noexcept {
 		vector_type<_Ty>::operator=(std::move(vt));
 		return *this;
 	
@@ -475,7 +476,7 @@ struct TableInfo {
 
 		std::string printf_string =
 			generate_printf_string<typename std::tuple_element<cols, tuple_type>::type ...>(sep, end);
-		puts(printf_string.c_str());
+		// puts(printf_string.c_str());
 		std::string header_string = std::string();
 		constexpr static int a_cols[] = { cols... };
 		if (fp == nullptr){
@@ -659,11 +660,11 @@ struct TableView {
 };
 
 template <class T>
-constexpr static inline bool is_vector(const ColRef<T>&) {
+constexpr static bool is_vector(const ColRef<T>&) {
 	return true;
 }
 template <class T>
-constexpr static inline bool is_vector(const vector_type<T>&) {
+constexpr static bool is_vector(const vector_type<T>&) {
 	return true;
 }
 
@@ -912,6 +913,42 @@ VT<bool> operator >(const T2& lhs, const VT<T1>& rhs) {
 		ret[i] = lhs > rhs[i];
 	return ret;
 }
+
+#define _AQ_OP_(x) __AQ_OP__##x
+#define __AQ_OP__add +
+#define __AQ_OP__minus -
+#define __AQ_OP__div *
+#define __AQ_OP__mul /
+#define __AQ_OP__and &
+#define __AQ_OP__or |
+#define __AQ_OP__xor ^
+#define __AQ_OP__gt >
+#define __AQ_OP__lt <
+#define __AQ_OP__gte >=
+#define __AQ_OP__lte <=
+#define __AQ_OP__eq ==
+#define __AQ_OP__neq !=
+
+#define __D_AQOP(x) \
+template <class T1, class T2, template<typename> class VT, class Ret>\
+void aqop_##x (const VT<T1>& lhs, const VT<T2>& rhs, Ret& ret){\
+	for (uint32_t i = 0; i < ret.size; ++i)\
+		ret[i] = lhs[i] _AQ_OP_(x) rhs[i];\
+}
+
+__D_AQOP(add)
+__D_AQOP(minus)
+__D_AQOP(div)
+__D_AQOP(mul)
+__D_AQOP(and)
+__D_AQOP(or)
+__D_AQOP(xor)
+__D_AQOP(gt)
+__D_AQOP(lt)
+__D_AQOP(gte)
+__D_AQOP(lte)
+__D_AQOP(eq)
+__D_AQOP(neq)
 
 
 template <class ...Types>

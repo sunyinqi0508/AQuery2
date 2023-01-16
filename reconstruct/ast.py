@@ -604,9 +604,10 @@ class groupby_c(ast_node):
         self.arr_len = 'arrlen_' + base62uuid(3)
         self.arr_values = 'arrvals_' + base62uuid(3)
         
+        self.context.emitc(f'auto {self.arr_len} = {self.group}.size();')
+        self.context.emitc(f'auto {self.arr_values} = {self.group}.values();')
+        
         if len(tovec_columns):
-            self.context.emitc(f'auto {self.arr_len} = {self.group}.size();')
-            self.context.emitc(f'auto {self.arr_values} = {self.group}.values();')
             preproc_scanner = scan(self, self.arr_len)
             preproc_scanner_it = preproc_scanner.it_var
             for c in tovec_columns:
@@ -674,11 +675,8 @@ class groupby_c(ast_node):
                     gscanner.add(f'{ex.eval(c_code = True, y=get_var_names, materialize_builtin = materialize_builtin)};\n')
                     continue
             if col_tovec[i]:
-                if ex.opname == 'avgs':
-                    patch_expr = get_var_names_ex(ex)
-                    patch_expr = patch_expr[:patch_expr.rindex(')')]
-                    patch_expr += ', ' + f'{ce[0]}[{gscanner.it_var}]' + ')'
-                    gscanner.add(f'{patch_expr};\n')
+                if ex.remake_binary(f'{ce[0]}[{gscanner.it_var}]'):
+                    gscanner.add(f'{get_var_names_ex(ex)};\n')
                 else:
                     gscanner.add(f'{ce[0]}[{gscanner.it_var}] = {get_var_names_ex(ex)};\n')
             else:
