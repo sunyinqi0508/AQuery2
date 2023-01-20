@@ -49,20 +49,25 @@ public:
 		this->container = vt.container;
 		// puts("move");
 		vt.size = vt.capacity = 0;	
-		vt.container = 0;
+		vt.container = nullptr;
 	}
 public:
 	_Ty* container;
 	uint32_t size, capacity;
 	typedef _Ty* iterator_t;
 	typedef std::conditional_t<is_cstr<_Ty>(), astring_view, _Ty> value_t;
-	vector_type(const uint32_t& size) : size(size), capacity(size) {
+	explicit vector_type(const uint32_t& size) : size(size), capacity(size) {
+		if (GC::scratch_space != nullptr) {
+			[[likely]]
+			container = (_Ty*)GC::scratch_space->alloc(size * sizeof(_Ty));
+		}
 		container = (_Ty*)malloc(size * sizeof(_Ty));
 		// TODO: calloc for objects. 
 	}
-	constexpr vector_type(std::initializer_list<_Ty> _l) {
+	explicit constexpr vector_type(std::initializer_list<_Ty> _l) {
 		size = capacity = _l.size();
-		_Ty* _container = this->container = (_Ty*)malloc(sizeof(_Ty) * _l.size());
+		this->container = (_Ty*)malloc(sizeof(_Ty) * capacity);
+		_Ty* _container = this->container;
 		for (const auto& l : _l) {
 			*(_container++) = l;
 		}
@@ -80,8 +85,9 @@ public:
 	constexpr vector_type(vector_type<_Ty>&& vt) noexcept : capacity(0) {
 		_move(std::move(vt));
 	}
-	vector_type(vectortype_cstorage vt) noexcept : capacity(vt.capacity), size(vt.size), container((_Ty*)vt.container) {
-		out(10);
+	explicit vector_type(vectortype_cstorage vt) noexcept : 
+		capacity(vt.capacity), size(vt.size), container((_Ty*)vt.container) {
+		// out(10);
 	};
 	// size >= capacity ==> readonly vector
 	constexpr vector_type(const uint32_t size, void* data) : 
@@ -499,7 +505,7 @@ public:
 	}
 
 	inline void hashtable_push(Key&& k, uint32_t i){
-		reversemap[i] = ankerl::unordered_dense::set<Key, Hash>::hashtable_push(std::forward<Key&&>(k));
+		reversemap[i] = ankerl::unordered_dense::set<Key, Hash>::hashtable_push(std::move(k));
 		++ht_base[reversemap[i]];
 	}
 

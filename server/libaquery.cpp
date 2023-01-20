@@ -468,6 +468,7 @@ void GC::reg(void* v, uint32_t sz, void(*f)(void*)) { //~ 40ns expected v. free 
 #endif
 
 inline GC* GC::gc_handle = nullptr;
+inline ScratchSpace* GC::scratch_space = nullptr;
 
 void ScratchSpace::init(size_t initial_capacity) {
 	ret = nullptr;

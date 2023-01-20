@@ -4,8 +4,8 @@ from enum import Enum, auto
 from typing import Dict, List, Optional, Set, Tuple, Union
 
 from engine.types import *
-from engine.utils import (base62alp, base62uuid, enlist, get_innermost,
-                          get_legal_name)
+from engine.utils import (base62alp, base62uuid, enlist, 
+                          get_innermost, get_legal_name)
 from reconstruct.storage import ColRef, Context, TableInfo
 
 class ast_node:
@@ -599,7 +599,7 @@ class groupby_c(ast_node):
             self.context.emitc(f'{c}.reserve({self.group}.size());')
             if col_tovec[i]: # and type(col_types[i]) is VectorT:
                 typename : Types = col_types[i] # .inner_type
-                self.context.emitc(f'auto buf_{c} = static_cast<{typename.cname} *>(malloc({self.total_sz} * sizeof({typename.cname})));')
+                self.context.emitc(f'auto buf_{c} = static_cast<{typename.cname} *>(calloc({self.total_sz}, sizeof({typename.cname})));')
                 tovec_columns.add(c)
         self.arr_len = 'arrlen_' + base62uuid(3)
         self.arr_values = 'arrvals_' + base62uuid(3)
@@ -617,7 +617,8 @@ class groupby_c(ast_node):
                                     f'[{preproc_scanner_it}]);'
                 )
             preproc_scanner.finalize()
-            
+        
+        self.context.emitc(f'GC::scratch_space = GC::gc_handle ? &(GC::gc_handle->scratch) : nullptr;')
         # gscanner = scan(self, self.group, loop_style = 'for_each')
         gscanner = scan(self, self.arr_len)
         key_var = 'key_'+base62uuid(7)
@@ -683,6 +684,7 @@ class groupby_c(ast_node):
                 gscanner.add(f'{ce[0]}.emplace_back({get_var_names_ex(ex)});\n')
         
         gscanner.finalize()
+        self.context.emitc(f'GC::scratch_space = nullptr;')
         
         self.datasource.groupinfo = None
 

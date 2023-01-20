@@ -13,7 +13,7 @@ size_t count(const VT<T>& v) {
 }
 
 template <class T>
-constexpr static inline size_t count(const T&) { return 1; }
+constexpr static size_t count(const T&) { return 1; }
 
 // TODO: Specializations for dt/str/none
 template<class T, template<typename ...> class VT>
@@ -441,14 +441,12 @@ inline decayed_t<VT, T> aggnext(const VT<T>& arr) {
 template<class T, template<typename ...> class VT>
 T last(const VT<T>& arr) {
 	if (!arr.size) return 0;
-	const uint32_t& len = arr.size;
 	return arr[arr.size - 1];
 }
 
 template<class T, template<typename ...> class VT>
 T first(const VT<T>& arr) {
 	if (!arr.size) return 0;
-	const uint32_t& len = arr.size;
 	return arr[0];
 }
 

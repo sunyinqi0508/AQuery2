@@ -1,4 +1,5 @@
 #pragma once
+#include <atomic>
 
 class ScratchSpace {
 public:
@@ -35,10 +36,8 @@ public:
 
 
 #ifndef __AQ_USE_THREADEDGC__
-#include <atomic>
 class GC {
-private:;
-
+private:
 	size_t max_slots, 
 		   interval, forced_clean, 
 		   forceclean_timer = 0;
@@ -53,7 +52,6 @@ private:;
 	std::atomic<uint64_t> current_size;
 	volatile bool lock;
 	using gc_deallocator_t = void (*)(void*);
-	ScratchSpace scratch;
 	// maybe use volatile std::thread::id instead
 protected:
 	void acquire_lock();
@@ -64,6 +62,7 @@ protected:
 	void terminate_daemon();
 
 public:
+	ScratchSpace scratch;
 	void reg(void* v, uint32_t sz = 0xffffffff, 
 			void(*f)(void*) = free
 		);
@@ -92,6 +91,7 @@ public:
 	}
 
 	static GC* gc_handle;
+	static ScratchSpace *scratch_space;
 	template <class T>
 	static inline gc_deallocator_t _delete(T*) {
 		return [](void* v){
