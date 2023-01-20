@@ -13,7 +13,7 @@ long long testing_throughput(uint32_t n_jobs, bool prompt = true){
     auto tp = ThreadPool(thread::hardware_concurrency());
     getchar();
     auto i = 0u;
-    fp = fopen("tmp.tmp", "w");
+    fp = fopen("tmp.tmp", "wb");
     auto time = chrono::high_resolution_clock::now();
     while(i++ < n_jobs) tp.enqueue_task({ [](void* f) {fprintf(fp, "%d ", *(int*)f); free(f); }, new int(i) });
     puts("done dispatching.");
@@ -53,7 +53,7 @@ long long testing_transaction(uint32_t n_burst, uint32_t n_batch,
 }
 
 long long testing_destruction(bool prompt = true){
-    fp = fopen("tmp.tmp", "w");
+    fp = fopen("tmp.tmp", "wb");
     if (prompt) {
         puts("Press any key to start.");
         getchar();

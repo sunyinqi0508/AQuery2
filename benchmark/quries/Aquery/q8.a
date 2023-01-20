@@ -1,0 +1,6 @@
+<sql>
+CREATE TABLE res8 AS
+SELECT stocksymbol, quantity, price
+FROM trade10m
+WHERE time >= 5288 and time <= 7000
+</sql>

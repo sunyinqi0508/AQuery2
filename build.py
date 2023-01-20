@@ -117,7 +117,7 @@ class build_manager:
             else:
                 mgr.cxx = os.environ['CXX']
             if 'AQ_DEBUG' not in os.environ:
-                os.environ['AQ_DEBUG'] = '0' if mgr.OptimizationLv else '1'
+                os.environ['AQ_DEBUG'] = ('0' if mgr.OptimizationLv != '0' else '1')
 
         def libaquery_a(self):
             self.build_cmd = [['rm', 'libaquery.a'],['make', 'libaquery']]
@@ -184,7 +184,7 @@ class build_manager:
     def __init__(self) -> None:
         self.method = 'make'
         self.cxx = ''
-        self.OptimizationLv = '0' # [O0, O1, O2, O3, Ofast]
+        self.OptimizationLv = '4' # [O0, O1, O2, O3, Ofast]
         self.Platform = 'amd64'
         self.PCH = os.environ['PCH'] if 'PCH' in os.environ else 1
         self.StaticLib = 1

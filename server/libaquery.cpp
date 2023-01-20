@@ -55,6 +55,7 @@ void print<bool>(const bool&v, const char* delimiter){
 	std::cout<< (v?"true":"false") << delimiter;
 }
 
+
 template<class T> 
 T getInt(const char*& buf){
 	T ret = 0;
@@ -451,6 +452,9 @@ void GC::reg(void* v, uint32_t sz, void(*f)(void*)) { //~ 40ns expected v. free 
 		f(v);
 		return;
 	}
+	else if (sz == 0xffffffff)
+		sz = this->threshould;
+	
 	auto _q = static_cast<memoryqueue_t>(q);
 	while(lock);
 	++alive_cnt;
@@ -464,6 +468,72 @@ void GC::reg(void* v, uint32_t sz, void(*f)(void*)) { //~ 40ns expected v. free 
 #endif
 
 inline GC* GC::gc_handle = nullptr;
+inline ScratchSpace* GC::scratch_space = nullptr;
+
+void ScratchSpace::init(size_t initial_capacity) {
+	ret = nullptr;
+	scratchspace = static_cast<char*>(malloc(initial_capacity));
+	ptr = cnt = 0;
+	capacity = initial_capacity;
+	this->initial_capacity = initial_capacity;
+	temp_memory_fractions = new vector_type<void*>();
+}
+
+inline void* ScratchSpace::alloc(uint32_t sz){
+    ptr = this->cnt;
+	this->cnt += sz; // major cost
+	if (this->cnt > capacity) {
+		[[unlikely]] 
+		capacity = this->cnt + (capacity >> 1);
+		auto vec_tmpmem_fractions = static_cast<vector_type<char *>*>(temp_memory_fractions);
+		vec_tmpmem_fractions->emplace_back(scratchspace);
+		scratchspace = static_cast<char*>(malloc(capacity));
+		ptr = 0;
+	}
+	return scratchspace + ptr;
+}
+
+inline void ScratchSpace::register_ret(void* ret){
+	this->ret = ret;
+}
+
+inline void ScratchSpace::release(){
+	ptr = cnt = 0;
+	auto vec_tmpmem_fractions = 
+		static_cast<vector_type<void*>*>(temp_memory_fractions);
+	if (vec_tmpmem_fractions->size) {
+    	[[unlikely]]
+		for(auto& mem : *vec_tmpmem_fractions){
+			//free(mem);
+			GC::gc_handle->reg(mem);
+		}
+		vec_tmpmem_fractions->clear();
+	}
+}
+
+inline void ScratchSpace::reset() {
+	this->release();
+	ret = nullptr;
+	if (capacity != initial_capacity){
+		capacity = initial_capacity;
+		scratchspace = static_cast<char*>(realloc(scratchspace, capacity));
+	}
+}
+
+void ScratchSpace::cleanup(){
+	auto vec_tmpmem_fractions = 
+		static_cast<vector_type<void*>*>(temp_memory_fractions);
+	if (vec_tmpmem_fractions->size) {
+		for(auto& mem : *vec_tmpmem_fractions){
+			free(mem); 
+			//GC::gc_handle->reg(mem);
+		}
+		vec_tmpmem_fractions->clear();
+	}
+	delete vec_tmpmem_fractions;
+	free(this->scratchspace);
+}
+
 
 #include "dragonbox/dragonbox_to_chars.hpp" 
 
@@ -537,4 +607,11 @@ aq_to_chars<types::timestamp_t>(void* value, char* buffer) {
 	return buffer;
 }
 
+template<> 
+char* 
+aq_to_chars<std::string_view>(void* value, char* buffer){
+	const auto& src = *static_cast<std::string_view*>(value);
+	memcpy(buffer, src.data(), src.size());
+	return buffer + src.size();
+}
 

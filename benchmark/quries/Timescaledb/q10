@@ -1,0 +1,7 @@
+select
+    stocksymbol,
+    max(stddev(price)) over
+        (partition by stocksymbol rows between 2 preceding AND CURRENT row) as maxRollingStd
+from 
+(SELECT * FROM trade01m ORDER BY time) as t
+GROUP BY stocksymbol;

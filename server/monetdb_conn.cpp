@@ -6,6 +6,8 @@
 #include "monetdb_conn.h"
 #include "monetdbe.h"
 #include "table.h"
+#include <thread>
+
 #undef ERROR
 #undef static_assert
 
@@ -73,11 +75,11 @@ void Server::connect(Context *cxt){
         printf("Error: Server %p already connected. Restart? (Y/n). \n", server);
         char c[50];
         std::cin.getline(c, 49);
-        for(int i = 0; i < 50; ++i){
+        for(int i = 0; i < 50; ++i) {
             if (!c[i] || c[i] == 'y' || c[i] == 'Y'){
                 monetdbe_close(*server);
                 free(*server);
-                this->server = 0;
+                this->server = nullptr;
                 break;
             }
             else if(c[i]&&!(c[i] == ' ' || c[i] == '\t'))
@@ -86,7 +88,10 @@ void Server::connect(Context *cxt){
     }
 
     server = (monetdbe_database*)malloc(sizeof(monetdbe_database));
-    auto ret = monetdbe_open(server, nullptr, nullptr);
+    monetdbe_options ops;
+    AQ_ZeroMemory(ops);
+    ops.nr_threads = std::thread::hardware_concurrency();
+    auto ret = monetdbe_open(server, nullptr, &ops);
     if (ret == 0){
         status = true;
         this->server = server;
@@ -148,8 +153,7 @@ void Server::print_results(const char* sep, const char* end){
             szs [i] = monetdbe_type_szs[cols[i]->type];
             header_string = header_string + cols[i]->name + sep + '|' + sep;
         }
-        const size_t l_sep = strlen(sep) + 1;
-		if (header_string.size() - l_sep >= 0)
+		if (const size_t l_sep = strlen(sep) + 1; header_string.size() >= l_sep)
 			header_string.resize(header_string.size() - l_sep);
         header_string += end + std::string(header_string.size(), '=') + end;
         fputs(header_string.c_str(), stdout);

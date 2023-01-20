@@ -3,6 +3,9 @@
 #include <cstdint>
 #include <type_traits>
 #include <tuple>
+#include <string_view>
+#include <string>
+#include <utility>
 using std::size_t;
 
 #if  defined(__SIZEOF_INT128__) and not defined(_WIN32)
@@ -12,6 +15,9 @@ using std::size_t;
 #ifdef _MSC_VER
 #define __restrict__ __restrict
 #endif
+
+template<class T>
+struct vector_base {};
 
 template <class T>
 constexpr static inline bool is_vector(const T&) {
@@ -32,23 +38,23 @@ struct aqis_same_impl {
 		
 		std::conditional_t<
 			std::is_same_v<T1, bool> || std::is_same_v<T2, bool>, 
+			std::bool_constant<std::is_same_v<T1, bool> && std::is_same_v<T2, bool>>,
 			Cond(
-				(std::is_same_v<T1, bool> && std::is_same_v<T2, bool>), 
-				std::true_type, 
-				std::false_type
-			),
-			Cond(
-				std::is_signed_v<T1> == std::is_signed_v<T2>,
-				Cond(
-					std::is_floating_point_v<T1> == std::is_floating_point_v<T2>,
-					Cond(
-						aq_szof<T1> == aq_szof<T2>, // deal with sizeof(void)
-						std::true_type,
-						std::false_type
-					),
-					std::false_type
-				),
-				std::false_type
+                !(std::is_class_v<T1> || std::is_class_v<T2>),
+                Cond(
+                    std::is_signed_v<T1> == std::is_signed_v<T2>,
+                    Cond(
+                        std::is_floating_point_v<T1> == std::is_floating_point_v<T2>,
+                        std::bool_constant<aq_szof<T1> == aq_szof<T2>>, // deal with sizeof(void)
+                        std::false_type
+                    ),
+				    std::false_type
+                ),
+                Cond( 
+                    (std::is_class_v<T1> && std::is_class_v<T2>),
+                    std::bool_constant<(std::is_base_of_v<T1, T2> || std::is_base_of_v<T2, T1>)>,
+                    std::false_type
+                )
 			)
 		>::value;
 };
@@ -63,12 +69,12 @@ constexpr bool aqis_same<T1, T2> = aqis_same_impl<T1, T2>::value;
 namespace types {
 	enum Type_t {
 		AINT32, AFLOAT, ASTR, ADOUBLE, ALDOUBLE, AINT64, AINT128, AINT16, ADATE, ATIME, AINT8,
-		AUINT32, AUINT64, AUINT128, AUINT16, AUINT8, ABOOL, VECTOR, ATIMESTAMP, ACHAR, NONE, ERROR
+		AUINT32, AUINT64, AUINT128, AUINT16, AUINT8, ABOOL, VECTOR, ATIMESTAMP, ACHAR, ASV, NONE, ERROR
 	};
-	static constexpr const char* printf_str[] = { "%d", "%f", "%s", "%lf", "%Lf", "%ld", "%d", "%hi", "%s", "%s", "%hhd",
-		"%u", "%lu", "%s", "%hu", "%hhu", "%s", "%s", "Vector<%s>", "%s", "%c", "NULL", "ERROR" };
+	static constexpr const char* printf_str[] = { "%d", "%f", "%s", "%lf", "%Lf", "%ld", "%s", "%hi", "%s", "%s", "%hhd",
+		"%u", "%lu", "%s", "%hu", "%hhu", "%s", "Vector<%s>", "%s", "%c", "%s", "NULL", "ERROR" };
 	static constexpr const char* SQL_Type[] = { "INT", "REAL", "TEXT", "DOUBLE", "DOUBLE", "BIGINT", "HUGEINT", "SMALLINT", "DATE", "TIME", "TINYINT",
-		"INT", "BIGINT", "HUGEINT", "SMALLINT", "TINYINT", "BOOL", "HUGEINT", "TIMESTAMP", "CHAR", "NULL", "ERROR"};
+		"INT", "BIGINT", "HUGEINT", "SMALLINT", "TINYINT", "BOOL", "HUGEINT", "TIMESTAMP", "CHAR", "TEXT", "NULL", "ERROR"};
 	
 	
 	// TODO: deal with data/time <=> str/uint conversion
@@ -169,6 +175,8 @@ namespace types {
 		f(unsigned short, AUINT16) \
 		f(bool, ABOOL) \
 		f(timestamp_t, ATIMESTAMP) \
+		f(std::string_view, ASV) \
+		f(std::string, ASV) \
 		F_INT128(f)
 
 		inline constexpr static Type_t getType() {
@@ -399,7 +407,6 @@ struct transValues_s<lT<vT, T...>, vT, rT> {
 	using type = rT<T...>;
 };
 
-#include <utility>
 template <class vT, int i, template <vT ...> class rT>
 using transValues = typename transValues_s<std::make_integer_sequence<vT, i>, vT, rT>::type;
 template <int i, template <int ...> class rT>
@@ -427,8 +434,17 @@ template <class ...T>
 using get_first = typename get_first_impl<T...>::first;
 template <class T>
 struct value_type_rec_impl { typedef T type; };
+
 template <template <class...> class VT, class ...V>
-struct value_type_rec_impl<VT<V...>> { typedef typename value_type_rec_impl<get_first<V...>>::type type; };
+struct value_type_rec_impl<VT<V...>> { 
+    typedef typename 
+    std::conditional_t<
+        std::is_base_of_v<vector_base<get_first<V...>>, VT<V...>>, 
+        typename value_type_rec_impl<get_first<V...>>::type, 
+        VT<V...>
+    > type; 
+};
+
 template <class T>
 using value_type_r = typename value_type_rec_impl<T>::type;
 

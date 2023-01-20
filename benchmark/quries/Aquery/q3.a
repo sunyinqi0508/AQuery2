@@ -1,0 +1,7 @@
+-- group by multiple keys
+<sql>
+create table res3 AS
+SELECT sum(quantity) as sum_quantity
+FROM trade01m
+GROUP BY stocksymbol, price
+</sql>

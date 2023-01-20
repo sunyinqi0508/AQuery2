@@ -1,9 +1,43 @@
 #pragma once
-#ifndef __AQ_USE_THREADEDGC__
 #include <atomic>
-class GC {
-private:;
 
+class ScratchSpace {
+public:
+	void* ret;
+	char* scratchspace;
+	size_t ptr;
+	size_t cnt;
+	size_t capacity;
+	size_t initial_capacity;
+	void* temp_memory_fractions;
+
+	//uint8_t status; 
+	// record maximum size
+	constexpr static uint8_t Grow = 0x1;
+	// no worry about overflow
+	constexpr static uint8_t Use = 0x0; 
+
+	void init(size_t initial_capacity);
+
+	// apply for memory
+	void* alloc(uint32_t sz);
+
+	void register_ret(void* ret);
+
+	// reorganize memory space
+	void release();
+
+	// reset status of the scratch space 
+	void reset();
+
+	// reset scratch space to initial capacity.
+	void cleanup();
+};
+
+
+#ifndef __AQ_USE_THREADEDGC__
+class GC {
+private:
 	size_t max_slots, 
 		   interval, forced_clean, 
 		   forceclean_timer = 0;
@@ -18,7 +52,6 @@ private:;
 	std::atomic<uint64_t> current_size;
 	volatile bool lock;
 	using gc_deallocator_t = void (*)(void*);
-
 	// maybe use volatile std::thread::id instead
 protected:
 	void acquire_lock();
@@ -29,28 +62,38 @@ protected:
 	void terminate_daemon();
 
 public:
-	void reg(void* v, uint32_t sz = 1, 
+	ScratchSpace scratch;
+	void reg(void* v, uint32_t sz = 0xffffffff, 
 			void(*f)(void*) = free
 		);
+
+	uint32_t get_threshold() const {
+		return threshould;
+	}
 
 	GC(
 		uint64_t max_size = 0xfffffff, uint32_t max_slots = 4096, 
 		uint32_t interval = 10000, uint32_t forced_clean = 1000000,
-		uint32_t threshould = 64 //one seconds
+		uint32_t threshould = 64, //one seconds
+		uint32_t scratch_sz = 0x1000000 // 16 MB
 	) : max_size(max_size), max_slots(max_slots), 
 		interval(interval), forced_clean(forced_clean), 
 		threshould(threshould) {
 
 		start_deamon();
 		GC::gc_handle = this;
+		this->scratch.init(1);
 	} // 256 MB
 
 	~GC(){
 		terminate_daemon();
+		scratch.cleanup();
 	}
+
 	static GC* gc_handle;
+	static ScratchSpace *scratch_space;
 	template <class T>
-	constexpr static inline gc_deallocator_t _delete(T*){
+	static inline gc_deallocator_t _delete(T*) {
 		return [](void* v){
 			delete (T*)v;
 		};

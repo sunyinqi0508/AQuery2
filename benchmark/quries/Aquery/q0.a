@@ -1,0 +1,5 @@
+-- select rows
+<sql>
+CREATE TABLE res0 AS
+SELECT * FROM trade10m
+</sql>

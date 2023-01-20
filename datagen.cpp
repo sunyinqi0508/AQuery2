@@ -80,7 +80,7 @@ int gen_trade_data(int argc, char* argv[])
         memmove(p + lens[i], p + lens[0], (lens[i - 1] - lens[i]) * sizeof(int));
     permutation(p, lens[0] + N);
     // for (int i = 0; i < lens[0] + N; ++i) printf("%d ", p[i]);
-    FILE* fp = fopen("trade.csv", "w");
+    FILE* fp = fopen("trade.csv", "wb");
     int* last_price = new int[N];
     memset(last_price, -1, sizeof(int) * N);
     fprintf(fp, "stocksymbol, time, quantity, price\n");
@@ -131,7 +131,7 @@ int gen_stock_data(int argc, char* argv[]){
     }
     IDs[n_stocks] = "S";
     names[n_stocks] = "x";
-    FILE* fp = fopen("./data/stock.csv", "w");
+    FILE* fp = fopen("./data/stock.csv", "wb");
     fprintf(fp, "ID, timestamp, tradeDate, price\n");
     char date_str_buf [types::date_t::string_length()];
     int* timestamps = new int[n_data];
@@ -142,7 +142,7 @@ int gen_stock_data(int argc, char* argv[]){
         fprintf(fp, "%s,%d,%s,%d\n", IDs[ui(engine)%(n_stocks + 1)].c_str(), timestamps[i], date, ui(engine) % 1000);
     }
     fclose(fp);
-    fp = fopen("./data/base.csv", "w");
+    fp = fopen("./data/base.csv", "wb");
     fprintf(fp, "ID, name\n");
     for(int i = 0; i < n_stocks + 1; ++ i){
         fprintf(fp, "%s,%s\n", IDs[i].c_str(), names[i].c_str());

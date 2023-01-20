@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cstdarg>
 #include <vector>
+#include <string_view>
 #include "io.h"
 #include "hasher.h"
 
@@ -35,7 +36,8 @@ struct ColRef_cstorage {
 	int ty; // what if enum is not int?
 };
 
-template <template <class...> class VT, class T>
+template <template <class...> class VT, class T, 
+	std::enable_if_t<std::is_base_of_v<vector_base<T>, VT<T>>>* = nullptr>
 std::ostream& operator<<(std::ostream& os, const VT<T>& v)
 {
 	v.out();
@@ -142,7 +144,7 @@ public:
 		vector_type<_Ty>::operator=(vt);
 		return *this;
 	}
-	ColRef<_Ty>& operator =(ColRef<_Ty>&& vt) {
+	ColRef<_Ty>& operator =(ColRef<_Ty>&& vt) noexcept {
 		vector_type<_Ty>::operator=(std::move(vt));
 		return *this;
 	
@@ -289,6 +291,7 @@ public:
 		uint32_t len = end - start;
 		return ColView<_Ty>(orig, idxs.subvec(start, end));
 	}
+
 	ColRef<_Ty> subvec_deep(uint32_t start, uint32_t end) const {
 		uint32_t len = end - start;
 		ColRef<_Ty> subvec(len);
@@ -329,7 +332,7 @@ template<class ...Types> struct TableInfo;
 template<class ...Types> struct TableView;
 
 template <long long _Index, bool order = true, class... _Types>
-constexpr inline auto& get(const TableInfo<_Types...>& table) noexcept {
+constexpr auto& get(const TableInfo<_Types...>& table) noexcept {
 	if constexpr (order)
 		return *(ColRef<std::tuple_element_t<_Index, std::tuple<_Types...>>> *) & (table.colrefs[_Index]);
 	else
@@ -337,7 +340,7 @@ constexpr inline auto& get(const TableInfo<_Types...>& table) noexcept {
 }
 
 template <long long _Index, class... _Types>
-constexpr inline ColRef<std::tuple_element_t<_Index, std::tuple<_Types...>>>& get(const TableView<_Types...>& table) noexcept {
+constexpr ColRef<std::tuple_element_t<_Index, std::tuple<_Types...>>>& get(const TableView<_Types...>& table) noexcept {
 	return *(ColRef<std::tuple_element_t<_Index, std::tuple<_Types...>>> *) & (table.info.colrefs[_Index]);
 }
 
@@ -347,9 +350,6 @@ template <class V>
 struct is_vector_impl<ColView<V>> : std::true_type {};
 template <class V>
 struct is_vector_impl<vector_type<V>> : std::true_type {};
-
-template<class ...Types>
-struct TableView;
 
 template<class ...Types>
 struct TableInfo {
@@ -459,8 +459,7 @@ struct TableInfo {
 		std::string header_string = std::string();
 		for (uint32_t i = 0; i < sizeof...(Types); ++i)
 			header_string += std::string(this->colrefs[i].name) + sep + '|' + sep;
-		const size_t l_sep = strlen(sep) + 1;
-		if (header_string.size() - l_sep >= 0)
+		if (const size_t l_sep = strlen(sep) + 1; header_string.size() >= l_sep)
 			header_string.resize(header_string.size() - l_sep);
 		header_string += end + std::string(header_string.size(), '=') + end;
 		return header_string;
@@ -487,6 +486,7 @@ struct TableInfo {
 			if (header_string.size() - l_sep >= 0)
 				header_string.resize(header_string.size() - l_sep);
 		}
+		
 		const auto& prt_loop = [&fp, &view, &printf_string, *this, &limit](const auto& f) {
 #ifdef __AQ__HAS__INT128__			
 			constexpr auto num_hge = count_type<__int128_t, __uint128_t>((tuple_type*)(0));
@@ -531,7 +531,7 @@ struct TableInfo {
 		}
 	}
 	template <int ...vals> struct applier {
-		inline constexpr static void apply(const TableInfo<Types...>& t, const char* __restrict sep = ",", const char* __restrict end = "\n",
+		constexpr static void apply(const TableInfo<Types...>& t, const char* __restrict sep = ",", const char* __restrict end = "\n",
 			const vector_type<uint32_t>* __restrict view = nullptr, FILE* __restrict fp = nullptr, uint32_t limit = std::numeric_limits<uint32_t>::max()
 			) 
 		{
@@ -656,11 +656,11 @@ struct TableView {
 };
 
 template <class T>
-constexpr static inline bool is_vector(const ColRef<T>&) {
+constexpr static bool is_vector(const ColRef<T>&) {
 	return true;
 }
 template <class T>
-constexpr static inline bool is_vector(const vector_type<T>&) {
+constexpr static bool is_vector(const vector_type<T>&) {
 	return true;
 }
 
@@ -910,6 +910,42 @@ VT<bool> operator >(const T2& lhs, const VT<T1>& rhs) {
 	return ret;
 }
 
+#define _AQ_OP_(x) __AQ_OP__##x
+#define __AQ_OP__add +
+#define __AQ_OP__minus -
+#define __AQ_OP__div *
+#define __AQ_OP__mul /
+#define __AQ_OP__and &
+#define __AQ_OP__or |
+#define __AQ_OP__xor ^
+#define __AQ_OP__gt >
+#define __AQ_OP__lt <
+#define __AQ_OP__gte >=
+#define __AQ_OP__lte <=
+#define __AQ_OP__eq ==
+#define __AQ_OP__neq !=
+
+#define __D_AQOP(x) \
+template <class T1, class T2, template<typename> class VT, class Ret>\
+void aqop_##x (const VT<T1>& lhs, const VT<T2>& rhs, Ret& ret){\
+	for (uint32_t i = 0; i < ret.size; ++i)\
+		ret[i] = lhs[i] _AQ_OP_(x) rhs[i];\
+}
+
+__D_AQOP(add)
+__D_AQOP(minus)
+__D_AQOP(div)
+__D_AQOP(mul)
+__D_AQOP(and)
+__D_AQOP(or)
+__D_AQOP(xor)
+__D_AQOP(gt)
+__D_AQOP(lt)
+__D_AQOP(gte)
+__D_AQOP(lte)
+__D_AQOP(eq)
+__D_AQOP(neq)
+
 
 template <class ...Types>
 void print(const TableInfo<Types...>& v, const char* delimiter = " ", const char* endline = "\n") {
@@ -919,6 +955,7 @@ template <class ...Types>
 void print(const TableView<Types...>& v, const char* delimiter = " ", const char* endline = "\n") {
 	v.print(delimiter, endline);
 }
+
 template <class T>
 void print(const T& v, const char* delimiter = " ") {
 	std::cout << v << delimiter;
@@ -933,7 +970,6 @@ void print<__uint128_t>(const __uint128_t& v, const char* delimiter);
 #endif
 template <>
 void print<bool>(const bool& v, const char* delimiter);
-
 template <class T>
 void inline print_impl(const T& v, const char* delimiter, const char* endline) {
 	for (const auto& vi : v) {

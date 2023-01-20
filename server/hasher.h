@@ -132,7 +132,3 @@ namespace ankerl::unordered_dense{
 	struct hash<std::tuple<Types...>> : public hasher<Types...>{ };
 }
 
-struct aq_hashtable_value_t {
-	uint32_t id;
-	uint32_t cnt;
-};

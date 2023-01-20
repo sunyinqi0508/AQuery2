@@ -107,9 +107,9 @@ ULongT = Types(8, name = 'uint64', sqlname = 'UINT64', fp_type=DoubleT)
 UIntT = Types(7, name = 'uint32', sqlname = 'UINT32', long_type=ULongT, fp_type=FloatT)
 UShortT = Types(6, name = 'uint16', sqlname = 'UINT16', long_type=ULongT, fp_type=FloatT)
 UByteT = Types(5, name = 'uint8', sqlname = 'UINT8', long_type=ULongT, fp_type=FloatT)
-StrT = Types(200, name = 'str', cname = 'const char*', sqlname='TEXT', ctype_name = 'types::ASTR')
-TextT = Types(200, name = 'text', cname = 'const char*', sqlname='TEXT', ctype_name = 'types::ASTR')
-VarcharT = Types(200, name = 'varchar', cname = 'const char*', sqlname='VARCHAR', ctype_name = 'types::ASTR')
+StrT = Types(200, name = 'str', cname = 'string_view', sqlname='TEXT', ctype_name = 'types::ASTR')
+TextT = Types(200, name = 'text', cname = 'string_view', sqlname='TEXT', ctype_name = 'types::ASTR')
+VarcharT = Types(200, name = 'varchar', cname = 'string_view', sqlname='VARCHAR', ctype_name = 'types::ASTR')
 VoidT = Types(200, name = 'void', cname = 'void', sqlname='Null', ctype_name = 'types::None')
 
 class VectorT(Types):
@@ -305,7 +305,7 @@ opor = OperatorBase('or', 2, logical, cname = '||', sqlname = ' OR ', call = bin
 opxor = OperatorBase('xor', 2, logical, cname = '^', sqlname = ' XOR ', call = binary_op_behavior)
 opgt = OperatorBase('gt', 2, logical, cname = '>', sqlname = '>', call = binary_op_behavior)
 oplt = OperatorBase('lt', 2, logical, cname = '<', sqlname = '<', call = binary_op_behavior)
-opge = OperatorBase('gte', 2, logical, cname = '>=', sqlname = '>=', call = binary_op_behavior)
+opgte = OperatorBase('gte', 2, logical, cname = '>=', sqlname = '>=', call = binary_op_behavior)
 oplte = OperatorBase('lte', 2, logical, cname = '<=', sqlname = '<=', call = binary_op_behavior)
 opneq = OperatorBase('neq', 2, logical, cname = '!=', sqlname = '!=', call = binary_op_behavior)
 opeq = OperatorBase('eq', 2, logical, cname = '==', sqlname = '=', call = binary_op_behavior)
@@ -355,19 +355,27 @@ fnpow = OperatorBase('pow', 2, lambda *_ : DoubleT, cname = 'pow', sqlname = 'PO
 # type collections
 def _op_make_dict(*items : OperatorBase):
     return { i.name: i for i in items}
+#binary op
 builtin_binary_arith = _op_make_dict(opadd, opdiv, opmul, opsub, opmod)
 builtin_binary_logical = _op_make_dict(opand, opor, opxor, opgt, oplt, 
-                                       opge, oplte, opneq, opeq)
+                                       opgte, oplte, opneq, opeq)
+builtin_binary_ops = {**builtin_binary_arith, **builtin_binary_logical}
+#unary op
 builtin_unary_logical = _op_make_dict(opnot)
 builtin_unary_arith = _op_make_dict(opneg)
 builtin_unary_special = _op_make_dict(spnull, opdistinct)
+# functions 
 builtin_cstdlib = _op_make_dict(fnsqrt, fnlog, fnsin, fncos, fntan, fnpow)
-builtin_func = _op_make_dict(fnmax, fnmin, fnsum, fnavg, fnmaxs, 
-                             fnmins, fndeltas, fnratios, fnlast,
-                             fnfirst, fnsums, fnavgs, fncnt, 
-                             fnpack, fntrunc, fnprev, fnnext, 
-                             fnvar, fnvars, fnstd, fnstds)
+builtin_aggfunc = _op_make_dict(fnmax, fnmin, fnsum, fnavg, 
+                                fnlast, fnfirst, fncnt, fnvar, fnstd)
+builtin_vecfunc = _op_make_dict(fnmaxs, 
+                             fnmins, fndeltas, fnratios, fnsums, fnavgs, 
+                             fnpack, fntrunc, fnprev, fnnext, fnvars, fnstds)
+builtin_vecfunc = {**builtin_vecfunc, **builtin_cstdlib}
+builtin_func = {**builtin_vecfunc, **builtin_aggfunc}
+
 user_module_func = {}
+
 builtin_operators : Dict[str, OperatorBase] = {**builtin_binary_arith, **builtin_binary_logical, 
     **builtin_unary_arith, **builtin_unary_logical, **builtin_unary_special, **builtin_func, **builtin_cstdlib, 
     **user_module_func}

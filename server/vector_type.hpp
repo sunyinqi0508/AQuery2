@@ -17,8 +17,6 @@
 #include "types.h"
 #include "gc.h"
 #pragma pack(push, 1)
-template<class T>
-struct vector_base {};
 
 struct vectortype_cstorage{
 	void* container;
@@ -32,7 +30,6 @@ public:
 	void inline _copy(const vector_type<_Ty>& vt) {
 		// quick init while using malloc
 		//if (capacity > 0) free(container);
-		
 		this->size = vt.size;
 		this->capacity = vt.capacity;
 		if (capacity) {
@@ -52,26 +49,33 @@ public:
 		this->container = vt.container;
 		// puts("move");
 		vt.size = vt.capacity = 0;	
-		vt.container = 0;
+		vt.container = nullptr;
 	}
 public:
 	_Ty* container;
 	uint32_t size, capacity;
 	typedef _Ty* iterator_t;
 	typedef std::conditional_t<is_cstr<_Ty>(), astring_view, _Ty> value_t;
-	vector_type(const uint32_t& size) : size(size), capacity(size) {
+	explicit vector_type(const uint32_t& size) : size(size), capacity(size) {
+		if (GC::scratch_space != nullptr) {
+			[[likely]]
+			container = (_Ty*)GC::scratch_space->alloc(size * sizeof(_Ty));
+		}
 		container = (_Ty*)malloc(size * sizeof(_Ty));
 		// TODO: calloc for objects. 
 	}
-	constexpr vector_type(std::initializer_list<_Ty> _l) {
+	explicit constexpr vector_type(std::initializer_list<_Ty> _l) {
 		size = capacity = _l.size();
-		_Ty* _container = this->container = (_Ty*)malloc(sizeof(_Ty) * _l.size());
+		this->container = (_Ty*)malloc(sizeof(_Ty) * capacity);
+		_Ty* _container = this->container;
 		for (const auto& l : _l) {
 			*(_container++) = l;
 		}
 	}
 	constexpr vector_type() noexcept : size(0), capacity(0), container(0) {};
 	constexpr vector_type(_Ty* container, uint32_t len) noexcept : size(len), capacity(0), container(container) {};
+	constexpr vector_type(const char** container, uint32_t len, 
+		typename std::enable_if_t<!std::is_same_v<_Ty, const char*>>* = nullptr) noexcept = delete;
 	constexpr explicit vector_type(const vector_type<_Ty>& vt) noexcept : capacity(0) {
 		_copy(vt);
 	}
@@ -81,8 +85,9 @@ public:
 	constexpr vector_type(vector_type<_Ty>&& vt) noexcept : capacity(0) {
 		_move(std::move(vt));
 	}
-	vector_type(vectortype_cstorage vt) noexcept : capacity(vt.capacity), size(vt.size), container((_Ty*)vt.container) {
-		out(10);
+	explicit vector_type(vectortype_cstorage vt) noexcept : 
+		capacity(vt.capacity), size(vt.size), container((_Ty*)vt.container) {
+		// out(10);
 	};
 	// size >= capacity ==> readonly vector
 	constexpr vector_type(const uint32_t size, void* data) : 
@@ -188,15 +193,15 @@ public:
 		grow<false>(sz);
 	}
 
-	void emplace_back(const _Ty& _val) {
+	inline void emplace_back(const _Ty& _val) {
 		grow();
 		container[size++] = _val;
 	}
-	void emplace_back(_Ty& _val) {
+	inline void emplace_back(_Ty& _val) {
 		grow();
 		container[size++] = std::move(_val);
 	}
-	void emplace_back(_Ty&& _val) {
+	inline void emplace_back(_Ty&& _val) {
 		grow();
 		container[size++] = std::move(_val);
 	}
@@ -213,10 +218,10 @@ public:
 		return _it;
 	}
 
-	iterator_t begin() const {
+	inline iterator_t begin() const {
 		return container;
 	}
-	iterator_t end() const {
+	inline iterator_t end() const {
 		return container + size;
 	}
 
@@ -230,7 +235,7 @@ public:
 		return container[_i];
 	}
 
-	void shrink_to_fit() {
+	inline void shrink_to_fit() {
 		if (size && capacity != size) {
 			capacity = size;
 			_Ty* _container = (_Ty*)malloc(sizeof(_Ty) * size);
@@ -240,13 +245,17 @@ public:
 		}
 	}
 
-	_Ty& back() {
+	inline void clear() {
+		this->size = 0;
+	}
+
+	inline _Ty& back() {
 		return container[size - 1];
 	}
-	void qpop() {
+	inline void qpop() {
 		size = size ? size - 1 : size;
 	}
-	void pop_resize() {
+	inline void pop_resize() {
 		if (size) {
 			--size;
 			if (capacity > (size << 1))
@@ -259,7 +268,7 @@ public:
 			}
 		}
 	}
-	_Ty pop() {
+	inline _Ty pop() {
 		return container[--size];
 	}
 	void merge(vector_type<_Ty>& _other) {
@@ -331,7 +340,7 @@ public:
 	inline vector_type<_Ty> subvec_deep(uint32_t start = 0) const { return subvec_deep(start, size); }
 	vector_type<_Ty> getRef() { return vector_type<_Ty>(container, size); }
 	~vector_type() {
-		if (capacity > 0);// GC::gc_handle->reg(container, sizeof(_Ty) * capacity);//free(container);
+		if (capacity > 0) GC::gc_handle->reg(container, sizeof(_Ty) * capacity);//free(container);
 		container = 0; size = capacity = 0;
 	}
 #define Compare(_op) \
@@ -369,7 +378,7 @@ public:
 #define Ops(o, x) \
 	template<typename T>\
 	vector_type<typename types::Coercion<_Ty, T>::type> operator o (const vector_type<T>& r) const {\
-		/*[[likely]] if (r.size == size) {*/\
+		/*if (r.size == size) { [[likely]] */\
 			return x(r);\
 		/*}*/\
 	}
@@ -377,7 +386,7 @@ public:
 #define Opseq(o, x) \
 	template<typename T>\
 	vector_type<typename types::Coercion<_Ty, T>::type> operator o##= (const vector_type<T>& r) {\
-		/*[[likely]] if (r.size == size) {*/\
+		/*if (r.size == size) { [[likely]] */\
 			return x##eq(r);\
 		/*}*/\
 	}
@@ -395,6 +404,52 @@ public:
 	_Make_Ops(Opseq)
 };
 
+template <>
+constexpr vector_type<std::string_view>::vector_type(const char** container, uint32_t len, 
+		typename std::enable_if_t<true>*) noexcept
+{
+	size = capacity = len;
+	this->container = static_cast<std::string_view*>(
+		malloc(sizeof(std::string_view) * len));
+	for(uint32_t i = 0; i < len; ++i){
+		this->container[i] = container[i];
+	}
+}
+
+template<>
+constexpr vector_type<std::string_view>::vector_type(const uint32_t size, void* data) : 
+	size(size), capacity(0) {
+	this->container = static_cast<std::string_view*>(
+		malloc(sizeof(std::string_view) * size));
+	for(uint32_t i = 0; i < size; ++i){
+		this->container[i] = ((const char**)data)[i];
+	}
+	//std::cout<<size << container[1];
+}
+
+// template<>
+// void vector_type<std::string_view>::init_from(const uint32_t size, void* data) {
+// 	this->size = this->capacity = size;
+// 	this->container = static_cast<std::string_view*>(
+// 		malloc(sizeof(std::string_view) * size));
+// 	for(uint32_t i = 0; i < size; ++i){
+// 		this->container[i] = container[i];
+// 	}
+// }
+
+// template<template <typename> class VT>
+// inline void 
+// prealloc_vector (VT &vt, uint32_t sz) { 
+// 	vt.reserve(sz); 
+// }
+
+// template<class T>
+// inline void 
+// prealloc_vector (vector_type<vector_type<T>> &vt, 
+// 				uint32_t outer_sz, uint32_t inner_sz) { 
+// 	vt.reserve(outer_sz); 
+// 	auto mem = static_cast<T*>(malloc(inner_sz * sizeof(T)));
+// }
 
 template <>
 class vector_type<void> {
@@ -428,4 +483,48 @@ public:
 	vector_type<void> subvec_deep(uint32_t);
 };
 #pragma pack(pop)
+
+template <class Key, class Hash>
+class AQHashTable : public ankerl::unordered_dense::set<Key, Hash> {
+public:
+	uint32_t* reversemap, *mapbase, *ht_base;
+	AQHashTable() = default;
+	explicit AQHashTable(uint32_t sz) 
+		: ankerl::unordered_dense::set<Key, Hash>{} {
+		this->reserve(sz);
+		reversemap = static_cast<uint32_t *>(malloc(sizeof(uint32_t) * sz * 2));
+		mapbase = reversemap + sz;
+		ht_base =  static_cast<uint32_t *>(calloc(sz, sizeof(uint32_t)));
+	}
+
+	void init(uint32_t sz) {
+		ankerl::unordered_dense::set<Key, Hash>::reserve(sz);
+		reversemap = static_cast<uint32_t *>(malloc(sizeof(uint32_t) * sz * 2));
+		mapbase = reversemap + sz;
+		ht_base =  static_cast<uint32_t *>(calloc(sz, sizeof(uint32_t)));
+	}
+
+	inline void hashtable_push(Key&& k, uint32_t i){
+		reversemap[i] = ankerl::unordered_dense::set<Key, Hash>::hashtable_push(std::move(k));
+		++ht_base[reversemap[i]];
+	}
+
+	auto ht_postproc(uint32_t sz) {
+		auto& arr_values = this->values();
+		const auto& len = this->size();
+
+		auto vecs = static_cast<vector_type<uint32_t>*>(malloc(sizeof(vector_type<uint32_t>) * len));
+		vecs[0].init_from(ht_base[0], mapbase);
+		for (uint32_t i = 1; i < len; ++i) {
+			vecs[i].init_from(ht_base[i], mapbase + ht_base[i - 1]);
+			ht_base[i] += ht_base[i - 1];
+		}
+		for (uint32_t i = 0; i < sz; ++i) {
+			auto id = reversemap[i];
+			mapbase[--ht_base[id]] = i;    
+		}
+		return vecs;
+	}
+};
+
 #endif

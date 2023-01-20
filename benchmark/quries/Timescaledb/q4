@@ -1,0 +1,2 @@
+-- append tables
+SELECT * FROM trade10m UNION ALL SELECT * FROM trade10m;

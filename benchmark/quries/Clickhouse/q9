@@ -1,0 +1,3 @@
+SELECT stocksymbol, MAX(price) - MIN(price)
+FROM benchmark.trade1m
+GROUP BY stocksymbol
