@@ -480,8 +480,8 @@ void ScratchSpace::init(size_t initial_capacity) {
 }
 
 inline void* ScratchSpace::alloc(uint32_t sz){
-	this->cnt += sz; // major cost
     ptr = this->cnt;
+	this->cnt += sz; // major cost
 	if (this->cnt > capacity) {
 		[[unlikely]] 
 		capacity = this->cnt + (capacity >> 1);
@@ -499,14 +499,13 @@ inline void ScratchSpace::register_ret(void* ret){
 
 inline void ScratchSpace::release(){
 	ptr = cnt = 0;
-	ret = nullptr;
 	auto vec_tmpmem_fractions = 
 		static_cast<vector_type<void*>*>(temp_memory_fractions);
 	if (vec_tmpmem_fractions->size) {
-    //[[unlikely]]
+    	[[unlikely]]
 		for(auto& mem : *vec_tmpmem_fractions){
-			 free(mem);
-			//GC::gc_handle->reg(mem);
+			//free(mem);
+			GC::gc_handle->reg(mem);
 		}
 		vec_tmpmem_fractions->clear();
 	}
@@ -514,6 +513,7 @@ inline void ScratchSpace::release(){
 
 inline void ScratchSpace::reset() {
 	this->release();
+	ret = nullptr;
 	if (capacity != initial_capacity){
 		capacity = initial_capacity;
 		scratchspace = static_cast<char*>(realloc(scratchspace, capacity));

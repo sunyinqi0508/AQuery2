@@ -332,7 +332,7 @@ template<class ...Types> struct TableInfo;
 template<class ...Types> struct TableView;
 
 template <long long _Index, bool order = true, class... _Types>
-constexpr inline auto& get(const TableInfo<_Types...>& table) noexcept {
+constexpr auto& get(const TableInfo<_Types...>& table) noexcept {
 	if constexpr (order)
 		return *(ColRef<std::tuple_element_t<_Index, std::tuple<_Types...>>> *) & (table.colrefs[_Index]);
 	else
@@ -340,7 +340,7 @@ constexpr inline auto& get(const TableInfo<_Types...>& table) noexcept {
 }
 
 template <long long _Index, class... _Types>
-constexpr inline ColRef<std::tuple_element_t<_Index, std::tuple<_Types...>>>& get(const TableView<_Types...>& table) noexcept {
+constexpr ColRef<std::tuple_element_t<_Index, std::tuple<_Types...>>>& get(const TableView<_Types...>& table) noexcept {
 	return *(ColRef<std::tuple_element_t<_Index, std::tuple<_Types...>>> *) & (table.info.colrefs[_Index]);
 }
 
@@ -350,9 +350,6 @@ template <class V>
 struct is_vector_impl<ColView<V>> : std::true_type {};
 template <class V>
 struct is_vector_impl<vector_type<V>> : std::true_type {};
-
-template<class ...Types>
-struct TableView;
 
 template<class ...Types>
 struct TableInfo {
@@ -462,8 +459,7 @@ struct TableInfo {
 		std::string header_string = std::string();
 		for (uint32_t i = 0; i < sizeof...(Types); ++i)
 			header_string += std::string(this->colrefs[i].name) + sep + '|' + sep;
-		const size_t l_sep = strlen(sep) + 1;
-		if (header_string.size() - l_sep >= 0)
+		if (const size_t l_sep = strlen(sep) + 1; header_string.size() >= l_sep)
 			header_string.resize(header_string.size() - l_sep);
 		header_string += end + std::string(header_string.size(), '=') + end;
 		return header_string;
@@ -535,7 +531,7 @@ struct TableInfo {
 		}
 	}
 	template <int ...vals> struct applier {
-		inline constexpr static void apply(const TableInfo<Types...>& t, const char* __restrict sep = ",", const char* __restrict end = "\n",
+		constexpr static void apply(const TableInfo<Types...>& t, const char* __restrict sep = ",", const char* __restrict end = "\n",
 			const vector_type<uint32_t>* __restrict view = nullptr, FILE* __restrict fp = nullptr, uint32_t limit = std::numeric_limits<uint32_t>::max()
 			) 
 		{

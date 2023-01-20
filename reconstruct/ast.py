@@ -683,6 +683,8 @@ class groupby_c(ast_node):
             else:
                 gscanner.add(f'{ce[0]}.emplace_back({get_var_names_ex(ex)});\n')
         
+        gscanner.add(f'GC::scratch_space->release();')
+        
         gscanner.finalize()
         self.context.emitc(f'GC::scratch_space = nullptr;')
         
