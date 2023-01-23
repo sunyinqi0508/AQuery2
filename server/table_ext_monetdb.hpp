@@ -82,7 +82,7 @@ void TableInfo<Ts ...>::monetdb_append_table(void* srv, const char* alt_name) {
 
 finialize:	
 	for(uint32_t i = 0; i < cnt; ++i) 
-		GC::gc_handle->reg(gc_vecs[i]);
+		;//GC::gc_handle->reg(gc_vecs[i]);
 }
 
 

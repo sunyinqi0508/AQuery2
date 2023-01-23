@@ -60,6 +60,7 @@ public:
 		if (GC::scratch_space != nullptr) {
 			[[likely]]
 			container = (_Ty*)GC::scratch_space->alloc(size * sizeof(_Ty));
+			this->capacity = 0;
 		}
 		else{
 			container = (_Ty*)malloc(size * sizeof(_Ty));
