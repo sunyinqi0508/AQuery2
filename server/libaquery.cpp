@@ -615,3 +615,26 @@ aq_to_chars<std::string_view>(void* value, char* buffer){
 	return buffer + src.size();
 }
 
+// Defined in vector_type.h
+template <>
+vector_type<std::string_view>::vector_type(const char** container, uint32_t len, 
+		typename std::enable_if_t<true>*) noexcept
+{
+	size = capacity = len;
+	this->container = static_cast<std::string_view*>(
+		malloc(sizeof(std::string_view) * len));
+	for(uint32_t i = 0; i < len; ++i){
+		this->container[i] = container[i];
+	}
+}
+
+template<>
+vector_type<std::string_view>::vector_type(const uint32_t size, void* data) : 
+	size(size), capacity(0) {
+	this->container = static_cast<std::string_view*>(
+		malloc(sizeof(std::string_view) * size));
+	for(uint32_t i = 0; i < size; ++i){
+		this->container[i] = ((const char**)data)[i];
+	}
+	//std::cout<<size << container[1];
+}

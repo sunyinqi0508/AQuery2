@@ -393,9 +393,9 @@ template <class ...T1s, class ...T2s, template <class...> class T1>
 struct same_class_impl<T1<T1s...>, T1<T2s...>> : std::true_type {};
 
 template <class T1, class T2>
-bool same_class = same_class_impl<T1, T2>::value;
+constexpr bool same_class = same_class_impl<T1, T2>::value;
 template <class T1, template <class...> class T2>
-bool instance_of = instance_of_impl<T1, T2>::value;
+constexpr bool instance_of = instance_of_impl<T1, T2>::value;
 
 template <class lT, template <typename ...> class rT>
 using transTypes = typename transTypes_s<lT, rT>::type;

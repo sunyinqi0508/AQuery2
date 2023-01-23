@@ -60,8 +60,11 @@ public:
 		if (GC::scratch_space != nullptr) {
 			[[likely]]
 			container = (_Ty*)GC::scratch_space->alloc(size * sizeof(_Ty));
+			this->capacity = 0;
 		}
-		container = (_Ty*)malloc(size * sizeof(_Ty));
+		else{
+			container = (_Ty*)malloc(size * sizeof(_Ty));
+		}
 		// TODO: calloc for objects. 
 	}
 	explicit constexpr vector_type(std::initializer_list<_Ty> _l) {
@@ -74,7 +77,7 @@ public:
 	}
 	constexpr vector_type() noexcept : size(0), capacity(0), container(0) {};
 	constexpr vector_type(_Ty* container, uint32_t len) noexcept : size(len), capacity(0), container(container) {};
-	constexpr vector_type(const char** container, uint32_t len, 
+	vector_type(const char** container, uint32_t len, 
 		typename std::enable_if_t<!std::is_same_v<_Ty, const char*>>* = nullptr) noexcept = delete;
 	constexpr explicit vector_type(const vector_type<_Ty>& vt) noexcept : capacity(0) {
 		_copy(vt);
@@ -90,7 +93,7 @@ public:
 		// out(10);
 	};
 	// size >= capacity ==> readonly vector
-	constexpr vector_type(const uint32_t size, void* data) : 
+	vector_type(const uint32_t size, void* data) : 
 		size(size), capacity(0), container(static_cast<_Ty*>(data)) {}
 
 	void init_from(const uint32_t size, void* data) {
@@ -341,7 +344,8 @@ public:
 	vector_type<_Ty> getRef() { return vector_type<_Ty>(container, size); }
 	~vector_type() {
 		if (capacity > 0) GC::gc_handle->reg(container, sizeof(_Ty) * capacity);//free(container);
-		container = 0; size = capacity = 0;
+		container = nullptr; 
+		size = capacity = 0;
 	}
 #define Compare(_op) \
 	template<typename T> \
@@ -404,28 +408,6 @@ public:
 	_Make_Ops(Opseq)
 };
 
-template <>
-constexpr vector_type<std::string_view>::vector_type(const char** container, uint32_t len, 
-		typename std::enable_if_t<true>*) noexcept
-{
-	size = capacity = len;
-	this->container = static_cast<std::string_view*>(
-		malloc(sizeof(std::string_view) * len));
-	for(uint32_t i = 0; i < len; ++i){
-		this->container[i] = container[i];
-	}
-}
-
-template<>
-constexpr vector_type<std::string_view>::vector_type(const uint32_t size, void* data) : 
-	size(size), capacity(0) {
-	this->container = static_cast<std::string_view*>(
-		malloc(sizeof(std::string_view) * size));
-	for(uint32_t i = 0; i < size; ++i){
-		this->container[i] = ((const char**)data)[i];
-	}
-	//std::cout<<size << container[1];
-}
 
 // template<>
 // void vector_type<std::string_view>::init_from(const uint32_t size, void* data) {
@@ -526,5 +508,11 @@ public:
 		return vecs;
 	}
 };
+
+template<>
+vector_type<std::string_view>::vector_type(const uint32_t size, void* data);
+template <>
+vector_type<std::string_view>::vector_type(const char** container, uint32_t len, 
+		typename std::enable_if_t<true>*) noexcept;
 
 #endif
