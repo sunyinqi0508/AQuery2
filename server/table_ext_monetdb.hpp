@@ -28,7 +28,7 @@ inline constexpr monetdbe_types AQType_2_monetdbe[] = {
 #else	
 		monetdbe_int64_t,
 #endif
-		monetdbe_timestamp, monetdbe_int64_t, monetdbe_int64_t
+		monetdbe_timestamp, monetdbe_int8_t, monetdbe_str, monetdbe_int64_t, monetdbe_int64_t
 };
 
 template<class ...Ts>
@@ -75,12 +75,14 @@ void TableInfo<Ts ...>::monetdb_append_table(void* srv, const char* alt_name) {
 			auto err = monetdbe_append(*((monetdbe_database*)server->server), "sys", alt_name, monetdbe_cols, sizeof...(Ts));
 			if (err)
 				puts(err);
-			return;
+			goto finialize;
 		}
 	}
-	// for(uint32_t i = 0; i < n_vecs; ++i) 
-	// 		free(gc_vecs[i]);
 	puts("Error! Empty table.");
+
+finialize:	
+	for(uint32_t i = 0; i < cnt; ++i) 
+		GC::gc_handle->reg(gc_vecs[i]);
 }
 
 
@@ -92,6 +94,16 @@ void* ColRef<Type>::monetdb_get_col(void** gc_vecs, uint32_t& cnt) {
 	col->type = aq_type;
 	col->count = this->size;
 	col->data = this->container;
+
+	if constexpr(std::is_same_v<Type, std::string_view>) {
+		auto _data = static_cast<const char **>(
+			malloc(sizeof(const char *) * this->size));
+		for(uint32_t i = 0; i < this->size; ++i){
+			_data[i] = this->container[i].data();
+		}
+		col->data = _data;
+		gc_vecs[cnt++] = _data;
+	}
 	col->name = const_cast<char*>(this->name);
 	// auto arr = (types::timestamp_t*) malloc (sizeof(types::timestamp_t)* this->size);
 	// if constexpr (is_vector_type<Type>){
@@ -102,5 +114,4 @@ void* ColRef<Type>::monetdb_get_col(void** gc_vecs, uint32_t& cnt) {
 	// }
 	return col;
 }
-
 #endif

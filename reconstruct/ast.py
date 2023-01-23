@@ -596,11 +596,14 @@ class groupby_c(ast_node):
                  col_names : List[str], col_types : List[Types], col_tovec : List[bool]):
         tovec_columns = set()
         for i, c in enumerate(col_names):
-            self.context.emitc(f'{c}.reserve({self.group}.size());')
             if col_tovec[i]: # and type(col_types[i]) is VectorT:
+                self.context.emitc(f'{c}.resize({self.group}.size());')
                 typename : Types = col_types[i] # .inner_type
                 self.context.emitc(f'auto buf_{c} = static_cast<{typename.cname} *>(calloc({self.total_sz}, sizeof({typename.cname})));')
                 tovec_columns.add(c)
+            else:
+                self.context.emitc(f'{c}.reserve({self.group}.size());')
+                
         self.arr_len = 'arrlen_' + base62uuid(3)
         self.arr_values = 'arrvals_' + base62uuid(3)
         

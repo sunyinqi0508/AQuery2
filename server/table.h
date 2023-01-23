@@ -913,8 +913,8 @@ VT<bool> operator >(const T2& lhs, const VT<T1>& rhs) {
 #define _AQ_OP_(x) __AQ_OP__##x
 #define __AQ_OP__add +
 #define __AQ_OP__minus -
-#define __AQ_OP__div *
-#define __AQ_OP__mul /
+#define __AQ_OP__mul *
+#define __AQ_OP__div /
 #define __AQ_OP__and &
 #define __AQ_OP__or |
 #define __AQ_OP__xor ^
@@ -934,8 +934,8 @@ void aqop_##x (const VT<T1>& lhs, const VT<T2>& rhs, Ret& ret){\
 
 __D_AQOP(add)
 __D_AQOP(minus)
-__D_AQOP(div)
 __D_AQOP(mul)
+__D_AQOP(div)
 __D_AQOP(and)
 __D_AQOP(or)
 __D_AQOP(xor)
