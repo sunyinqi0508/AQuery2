@@ -16,18 +16,6 @@ struct SharedMemory
     void FreeMemoryMap();
 };
 
-#ifndef __USE_STD_SEMAPHORE__
-class A_Semaphore {
-private:
-	void* native_handle;
-public:
-	A_Semaphore(bool);
-	void acquire();
-	void release();
-	~A_Semaphore();
-};
-#endif
-
 #endif // WIN32
 
 #endif // WINHELPER

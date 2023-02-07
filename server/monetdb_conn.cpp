@@ -5,8 +5,18 @@
 #include <string>
 #include "monetdb_conn.h"
 #include "monetdbe.h"
+
 #include "table.h"
 #include <thread>
+
+#ifdef _WIN32
+    #include "winhelper.h"
+#else 
+    #include <dlfcn.h>
+    #include <fcntl.h>
+    #include <sys/mman.h>
+    #include <atomic>
+#endif // _WIN32
 
 #undef ERROR
 #undef static_assert
@@ -214,4 +224,47 @@ bool Server::havehge() {
     // puts("false");
     return false;
 #endif
+}
+
+
+void ExecuteStoredProcedureEx(const StoredProcedure *p, Context* cxt){
+    auto server = static_cast<Server*>(cxt->alt_server);
+    void* handle = nullptr;
+    uint32_t procedure_module_cursor = 0;
+    for(uint32_t i = 0; i < p->cnt; ++i) {
+        switch(p->queries[i][0]){
+            case 'Q': {
+                server->exec(p->queries[i]);
+            } 
+            break;
+            case 'P': {
+                auto c = code_snippet(dlsym(handle, p->queries[i]+1));
+                c(cxt);
+            }
+            break;
+            case 'N': {
+                if(procedure_module_cursor < p->postproc_modules)
+                    handle = p->__rt_loaded_modules[procedure_module_cursor++];
+            }
+            break;
+            case 'O': {
+                uint32_t limit;
+                memcpy(&limit, p->queries[i] + 1, sizeof(uint32_t));
+                if (limit == 0)
+                    continue;
+                print_monetdb_results(server, " ", "\n", limit); 
+            }
+            break;
+            default:
+                printf("Warning Q%u: unrecognized command %c.\n", 
+                    i, p->queries[i][0]);
+        }
+    }
+}
+
+int execTriggerPayload(void* args) {
+    auto spp = (StoredProcedurePayload*)(args);
+    ExecuteStoredProcedureEx(spp->p, spp->cxt);
+    delete spp;
+    return 0;
 }

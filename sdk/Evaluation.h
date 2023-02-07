@@ -17,8 +17,4 @@ minEval giniDense(long max, long size, long classes, long** rem, long* d, double
 
 minEval entropyDense(long max, long size, long classes, long** rem, long* d, double* record, long* totalT);
 
-minEval giniDenseIncremental(long max, double* record, long** count, long classes, long newSize, long* T);
-
-minEval entropyDenseIncremental(long max, double* record, long** count, long classes, long newSize, long* T);
-
 #endif

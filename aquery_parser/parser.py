@@ -5,7 +5,7 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 #
 # Contact: Kyle Lahnakoski (kyle@lahnakoski.com)
-#
+# Bill Sun  2022 - 2023
 
 from sre_parse import WHITESPACE
 
@@ -28,37 +28,12 @@ simple_ident = Regex(simple_ident.__regex__()[1])
 
 def common_parser():
     combined_ident = Combine(delimited_list(
-        ansi_ident | mysql_backtick_ident | simple_ident, separator=".", combine=True,
+        ansi_ident | aquery_backtick_ident | simple_ident, separator=".", combine=True,
     )).set_parser_name("identifier")
 
-    return parser(ansi_string | mysql_doublequote_string, combined_ident)
+    return parser(ansi_string | aquery_doublequote_string, combined_ident)
 
-
-def mysql_parser():
-    mysql_string = ansi_string | mysql_doublequote_string
-    mysql_ident = Combine(delimited_list(
-        mysql_backtick_ident | sqlserver_ident | simple_ident,
-        separator=".",
-        combine=True,
-    )).set_parser_name("mysql identifier")
-
-    return parser(mysql_string, mysql_ident)
-
-
-def sqlserver_parser():
-    combined_ident = Combine(delimited_list(
-        ansi_ident
-        | mysql_backtick_ident
-        | sqlserver_ident
-        | Word(FIRST_IDENT_CHAR, IDENT_CHAR),
-        separator=".",
-        combine=True,
-    )).set_parser_name("identifier")
-
-    return parser(ansi_string, combined_ident, sqlserver=True)
-
-
-def parser(literal_string, ident, sqlserver=False):
+def parser(literal_string, ident):
     with Whitespace() as engine:
         engine.add_ignore(Literal("--") + restOfLine)
         engine.add_ignore(Literal("#") + restOfLine)
@@ -184,12 +159,10 @@ def parser(literal_string, ident, sqlserver=False):
             )
         )
 
-        if not sqlserver:
-            # SQL SERVER DOES NOT SUPPORT [] FOR ARRAY CONSTRUCTION (USED FOR IDENTIFIERS)
-            create_array = (
-                Literal("[") + delimited_list(Group(expr))("args") + Literal("]")
-                | create_array
-            )
+        create_array = (
+            Literal("[") + delimited_list(Group(expr))("args") + Literal("]")
+            | create_array
+        )
 
         create_array = create_array / to_array
 

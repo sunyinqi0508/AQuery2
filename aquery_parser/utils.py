@@ -5,7 +5,7 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 #
 # Contact: Kyle Lahnakoski (kyle@lahnakoski.com)
-#
+# Bill Sun  2022 - 2023
 
 import ast
 
@@ -610,9 +610,8 @@ hex_num = (
 
 # STRINGS
 ansi_string = Regex(r"\'(\'\'|[^'])*\'") / to_string
-mysql_doublequote_string = Regex(r'\"(\"\"|[^"])*\"') / to_string
+aquery_doublequote_string = Regex(r'\"(\"\"|[^"])*\"') / to_string
 
 # BASIC IDENTIFIERS
 ansi_ident = Regex(r'\"(\"\"|[^"])*\"') / unquote
-mysql_backtick_ident = Regex(r"\`(\`\`|[^`])*\`") / unquote
-sqlserver_ident = Regex(r"\[(\]\]|[^\]])*\]") / unquote
+aquery_backtick_ident = Regex(r"\`(\`\`|[^`])*\`") / unquote

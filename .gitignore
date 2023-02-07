@@ -59,6 +59,10 @@ data/benchmark
 !nyctx100.csv
 !network.csv
 !test_complex.csv
+data/electricity*
+data/covtype*
+data/phishing*
+data/power*
 *.out
 *.asm
 !mmw.so

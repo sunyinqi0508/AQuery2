@@ -5,18 +5,18 @@ LOAD MODULE FROM "./libirf.so"
      predict(X:vecvecdouble) -> vecint
  );
 
- create table source(x1 double, x2 double, x3 double, x4 double, x5 int64);
- load data infile "data/benchmark" into table source fields terminated by ",";
+create table source(x1 double, x2 double, x3 double, x4 double, x5 int64);
+load data infile "data/benchmark" into table source fields terminated by ",";
 
- create table sparse(x int);
- insert into sparse values (1);
- insert into sparse values (1);
- insert into sparse values (1);
- insert into sparse values (1);
+create table sparse(x int);
+insert into sparse values (1);
+insert into sparse values (1);
+insert into sparse values (1);
+insert into sparse values (1);
 
- select newtree(6, 4, sparse.x, 0, 4, 2, 0, 400, 2147483647) from sparse
+select newtree(6, 4, sparse.x, 0, 4, 2, 0, 400, 2147483647) from sparse
 
- select fit(pack(x1, x2, x3, x4), x5) from source
+select fit(pack(x1, x2, x3, x4), x5) from source
 
 -- select pack(x1, x2, x3, x4) from source
-  select predict(pack(x1, x2, x3, x4)) from source
+select predict(pack(x1, x2, x3, x4)) from source

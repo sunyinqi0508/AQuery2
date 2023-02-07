@@ -24,7 +24,7 @@ struct Server{
     static bool havehge();
     void test(const char*);
     void print_results(const char* sep = " ", const char* end = "\n");
-    friend void print_monetdb_results(Server* srv, const char* sep, const char* end, int limit);
+    friend void print_monetdb_results(void* _srv, const char* sep, const char* end, int limit);
     ~Server();
 };
 

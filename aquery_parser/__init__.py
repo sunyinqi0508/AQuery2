@@ -5,20 +5,18 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 #
 # Contact: Kyle Lahnakoski (kyle@lahnakoski.com)
-#
+# Bill Sun  2022 - 2023
 
 from __future__ import absolute_import, division, unicode_literals
 
 import json
 from threading import Lock
 
-from aquery_parser.sql_parser import scrub
+from aquery_parser.parser import scrub
 from aquery_parser.utils import ansi_string, simple_op, normal_op
-
+import aquery_parser.parser
 parse_locker = Lock()  # ENSURE ONLY ONE PARSING AT A TIME
 common_parser = None
-mysql_parser = None
-sqlserver_parser = None
 
 SQL_NULL = {"null": {}}
 
@@ -33,43 +31,9 @@ def parse(sql, null=SQL_NULL, calls=simple_op):
 
     with parse_locker:
         if not common_parser:
-            common_parser = sql_parser.common_parser()
+            common_parser = aquery_parser.parser.common_parser()
         result = _parse(common_parser, sql, null, calls)
         return result
-
-
-def parse_mysql(sql, null=SQL_NULL, calls=simple_op):
-    """
-    PARSE MySQL ASSUME DOUBLE QUOTED STRINGS ARE LITERALS
-    :param sql: String of SQL
-    :param null: What value to use as NULL (default is the null function `{"null":{}}`)
-    :return: parse tree
-    """
-    global mysql_parser
-
-    with parse_locker:
-        if not mysql_parser:
-            mysql_parser = sql_parser.mysql_parser()
-        return _parse(mysql_parser, sql, null, calls)
-
-
-def parse_sqlserver(sql, null=SQL_NULL, calls=simple_op):
-    """
-    PARSE MySQL ASSUME DOUBLE QUOTED STRINGS ARE LITERALS
-    :param sql: String of SQL
-    :param null: What value to use as NULL (default is the null function `{"null":{}}`)
-    :return: parse tree
-    """
-    global sqlserver_parser
-
-    with parse_locker:
-        if not sqlserver_parser:
-            sqlserver_parser = sql_parser.sqlserver_parser()
-        return _parse(sqlserver_parser, sql, null, calls)
-
-
-parse_bigquery = parse_mysql
-
 
 def _parse(parser, sql, null, calls):
     utils.null_locations = []
@@ -85,4 +49,4 @@ def _parse(parser, sql, null, calls):
 
 _ = json.dumps
 
-__all__ = ["parse", "format", "parse_mysql", "parse_bigquery", "normal_op", "simple_op"]
+__all__ = ["parse", "format", "normal_op", "simple_op"]
