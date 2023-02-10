@@ -34,4 +34,9 @@ struct monetdbe_table_data{
     void* cols;
 };
 
+size_t 
+monetdbe_get_size(void* dbhdl, const char *table_name);
+
+void* 
+monetdbe_get_col(void* dbhdl, const char *table_name, uint32_t col_id);
 #endif

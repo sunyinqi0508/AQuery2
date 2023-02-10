@@ -157,16 +157,16 @@ bool ThreadPool::busy(){
 IntervalBasedTriggerHost::IntervalBasedTriggerHost(ThreadPool* tp){
     this->tp = tp;
     this->triggers = new vector_type<IntervalBasedTrigger>;
-    adding_trigger = new mutex();
+    trigger_queue_lock = new mutex();
     this->now = std::chrono::high_resolution_clock::now().time_since_epoch().count();
 }
 
 void IntervalBasedTriggerHost::add_trigger(StoredProcedure *p, uint32_t interval) {
     auto tr = IntervalBasedTrigger{.interval = interval, .time_remaining = 0, .sp = p};
     auto vt_triggers = static_cast<vector_type<IntervalBasedTrigger> *>(this->triggers);
-    adding_trigger->lock();
+    trigger_queue_lock->lock();
     vt_triggers->emplace_back(tr);
-    adding_trigger->unlock();
+    trigger_queue_lock->unlock();
 }
 
 void IntervalBasedTriggerHost::tick() {
@@ -174,7 +174,7 @@ void IntervalBasedTriggerHost::tick() {
     const auto delta_t = static_cast<uint32_t>((current_time - now) / 1000000); // miliseconds precision
     now = current_time;
     auto vt_triggers = static_cast<vector_type<IntervalBasedTrigger> *>(this->triggers);
-    adding_trigger->lock();
+    trigger_queue_lock->lock();
     for(auto& t : *vt_triggers) {
         if(t.tick(delta_t)) {
             payload_t payload;
@@ -184,7 +184,7 @@ void IntervalBasedTriggerHost::tick() {
             tp->enqueue_task(payload);
         }
     }
-    adding_trigger->unlock();
+    trigger_queue_lock->unlock();
 }
 
 void IntervalBasedTrigger::reset() {

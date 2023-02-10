@@ -10,7 +10,7 @@ RUN export OS_VER=`cat /etc/os-release | grep VERSION_CODENAME` &&\
 
 RUN wget --output-document=/etc/apt/trusted.gpg.d/monetdb.gpg https://dev.monetdb.org/downloads/MonetDB-GPG-KEY.gpg
 
-RUN apt update && apt install -y python3 python3-pip clang-14 libmonetdbe-dev git 
+RUN apt update && apt install -y python3 python3-pip clang-14 libmonetdbe-dev libmonetdb-client-dev monetdb5-sql-dev git 
 
 RUN git clone https://github.com/sunyinqi0508/AQuery2 
 

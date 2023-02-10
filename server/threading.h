@@ -49,7 +49,7 @@ protected:
     std::thread* handle;
     ThreadPool *tp;
     Context* cxt;
-    std::mutex* adding_trigger;
+    std::mutex* trigger_queue_lock;
 
     virtual void tick() = 0;
 public:
@@ -71,6 +71,7 @@ class IntervalBasedTriggerHost : public TriggerHost {
 public:
     explicit IntervalBasedTriggerHost(ThreadPool *tp);
     void add_trigger(StoredProcedure* stored_procedure, uint32_t interval);
+    void remove_trigger(uint32_t tid);
 private:
     unsigned long long now;
     void tick() override;

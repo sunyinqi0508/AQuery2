@@ -87,3 +87,5 @@ udf*.hpp
 *.ipynb
 saved_procedures/**
 procedures/**
+.mypy_cache
+__pycache__
