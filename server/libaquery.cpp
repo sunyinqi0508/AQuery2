@@ -281,15 +281,15 @@ inline const char* str(const bool& v) {
 	return v ? "true" : "false";
 }
 
-class A{
+class A {
 	public:
 	std::chrono::high_resolution_clock::time_point tp;
 	A(){
 		tp = std::chrono::high_resolution_clock::now();
-		printf("A %llx created.\n", tp.time_since_epoch().count());
+		printf("A %llu created.\n", tp.time_since_epoch().count());
 	}
 	~A() {
-		printf("A %llx died after %lldns.\n", tp.time_since_epoch().count(),
+		printf("A %llu died after %lldns.\n", tp.time_since_epoch().count(),
 		 (std::chrono::high_resolution_clock::now() - tp).count());
 	}
 };

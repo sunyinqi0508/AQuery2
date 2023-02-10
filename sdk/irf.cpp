@@ -1,22 +1,26 @@
 #include "DecisionTree.h"
+#include "RF.h"
+
 // __AQ_NO_SESSION__
 #include "../server/table.h"
 #include "aquery.h"
 
 DecisionTree *dt = nullptr;
+RandomForest *rf = nullptr;
 
 __AQEXPORT__(bool)
-newtree(int height, long f, ColRef<int> sparse, double forget, long maxf, long noclasses, Evaluation e, long r, long rb)
+newtree(int height, long f, ColRef<int> X, double forget, long maxf, long noclasses, Evaluation e, long r, long rb)
 {
-	if (sparse.size != f)
+	if (X.size != f)
 		return false;
-	int *issparse = (int *)malloc(f * sizeof(int));
-	for (long i = 0; i < f; i++)
-		issparse[i] = sparse.container[i];
+	int *X_cpy = (int *)malloc(f * sizeof(int));
+	
+	memcpy(X_cpy, X.container, f);
 
 	if (maxf < 0)
 		maxf = f;
-	dt = new DecisionTree(f, issparse, forget, maxf, noclasses, e);
+	dt = new DecisionTree(f, X_cpy, forget, maxf, noclasses, e);
+	rf = new RandomForest(height, f, X_cpy, forget, noclasses, e)
 	return true;
 }
 
@@ -44,7 +48,8 @@ fit(vector_type<vector_type<double>> v, vector_type<long> res)
 	double **data = (double **)malloc(v.size * sizeof(double *));
 	for (int i = 0; i < v.size; ++i)
 		data[i] = v.container[i].container;
-	dt->fit(data, res.container, v.size);
+	// dt->fit(data, res.container, v.size);
+	rf->fit(data, res.container, v.size);
 	return true;
 }
 
@@ -54,8 +59,8 @@ predict(vector_type<vector_type<double>> v)
 	int *result = (int *)malloc(v.size * sizeof(int));
 
 	for (long i = 0; i < v.size; i++)
-		result[i] = dt->Test(v.container[i].container, dt->DTree);
-
+		//result[i] = dt->Test(v.container[i].container, dt->DTree);
+		result[i] = rf->Test(v.container, rf->DTrees);
 	auto container = (vector_type<int> *)malloc(sizeof(vector_type<int>));
 	container->size = v.size;
 	container->capacity = 0;

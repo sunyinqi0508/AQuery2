@@ -6,6 +6,8 @@ LOAD MODULE FROM "./libirf.so"
  );
 
 create table source(x1 double, x2 double, x3 double, x4 double, x5 int64);
+-- Create trigger 1 ~~ to predict whenever sz(source > ?)
+-- Create trigger 2 ~~ to auto feed ~
 load data infile "data/benchmark" into table source fields terminated by ",";
 
 create table sparse(x int);

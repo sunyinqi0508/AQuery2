@@ -26,6 +26,7 @@ def process(f : str):
     with open(filename, 'rb') as ifile:
         icontents = ifile.read()
         with open(ofilename, 'wb') as ofile:
+            ofile.write(b'\n')
             for l in icontents.splitlines():
                 fields = l.strip().split(b' ')
                 subfields = fields[:-1]

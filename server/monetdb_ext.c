@@ -77,7 +77,7 @@ monetdbe_get_size(monetdbe_database dbhdl, const char *table_name)
 }
 
 void* 
-monetdbe_get_col(monetdbe_database dbhdl,  const char *table_name, uint32_t col_id) {
+monetdbe_get_col(monetdbe_database dbhdl, const char *table_name, uint32_t col_id) {
     monetdbe_database_internal* hdl = (monetdbe_database_internal*)dbhdl;
 	backend* be = ((backend *)(((monetdbe_database_internal*)dbhdl)->c->sqlcontext));
 	mvc *m = be->mvc;
