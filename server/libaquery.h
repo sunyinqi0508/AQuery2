@@ -66,23 +66,24 @@ struct Session{
     void* memory_map;
 };
 
-struct StoredProcedure{
+struct StoredProcedure {
 	uint32_t cnt, postproc_modules;
 	char **queries;
 	const char* name;
 	void **__rt_loaded_modules;
 };
 
-struct Context{
+
+struct Context {
     typedef int (*printf_type) (const char *format, ...);
 
-	void* module_function_maps = 0;
+	void* module_function_maps = nullptr;
 	Config* cfg;
 
 	int n_buffers, *sz_bufs;
 	void **buffers;
 
-	void* alt_server = 0;
+	void* alt_server = nullptr;
 	Log_level log_level = LOG_INFO;
 
 	Session current;
@@ -115,6 +116,12 @@ struct Context{
 };
 
 
+struct StoredProcedurePayload {
+	StoredProcedure *p;
+	Context* cxt;
+};
+
+int execTriggerPayload(void*);
 
 #ifdef _WIN32
 #define __DLLEXPORT__  __declspec(dllexport) __stdcall 
@@ -168,5 +175,80 @@ template <class _This_Struct>
 inline void AQ_ZeroMemory(_This_Struct& __val) {
 	memset(&__val, 0, sizeof(_This_Struct));
 }
+
+#ifdef __USE_STD_SEMAPHORE__
+	#include <semaphore>
+	class A_Semaphore {
+	private:
+		std::binary_semaphore native_handle;
+	public:
+		A_Semaphore(bool v = false) {
+			native_handle = std::binary_semaphore(v);
+		}
+		void acquire() {
+			native_handle.acquire();
+		}
+		void release() {
+			native_handle.release();
+		}
+		~A_Semaphore() { }
+	};
+#else
+	#ifdef _WIN32
+		class A_Semaphore {
+		private:
+			void* native_handle;
+		public:
+			A_Semaphore(bool);
+			void acquire();
+			void release();
+			~A_Semaphore();
+		};
+	#else
+		#ifdef __APPLE__
+			#include <dispatch/dispatch.h>
+			class A_Semaphore {
+			private:
+				dispatch_semaphore_t native_handle;
+			public:
+				explicit A_Semaphore(bool v = false) {
+					native_handle = dispatch_semaphore_create(v);
+				}
+				void acquire() {
+					// puts("acquire");
+					dispatch_semaphore_wait(native_handle, DISPATCH_TIME_FOREVER);
+				}
+				void release() {
+					// puts("release");
+					dispatch_semaphore_signal(native_handle);
+				}
+				~A_Semaphore() {
+				}
+			};
+		#else
+			#include <semaphore.h>
+			class A_Semaphore {
+			private:
+				sem_t native_handle;
+			public:
+				A_Semaphore(bool v = false) {
+					sem_init(&native_handle, v, 1);
+				}
+				void acquire() {
+					sem_wait(&native_handle);
+				}
+				void release() {
+					sem_post(&native_handle);
+				}
+				~A_Semaphore() {
+					sem_destroy(&native_handle);
+				}
+			};
+		#endif // __APPLE__
+
+	#endif // _WIN32 
+#endif //__USE_STD_SEMAPHORE__
+
+void print_monetdb_results(void* _srv, const char* sep, const char* end, uint32_t limit);
 
 #endif

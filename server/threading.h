@@ -7,7 +7,7 @@ typedef int(*payload_fn_t)(void*);
 struct payload_t{
     payload_fn_t f;
     void* args;
-    constexpr payload_t(payload_fn_t f, void* args) noexcept
+    constexpr payload_t(payload_fn_t f, void* args) noexcept 
         : f(f), args(args) {}
     constexpr payload_t() noexcept
         : f(nullptr), args(nullptr) {};
@@ -19,7 +19,7 @@ struct payload_t{
 class ThreadPool{
 
 public:
-    ThreadPool(uint32_t n_threads = 0);
+    explicit ThreadPool(uint32_t n_threads = 0);
     void enqueue_task(const payload_t& payload);
     bool busy();
     virtual ~ThreadPool();
@@ -39,29 +39,45 @@ private:
 
 };
 
-class Trigger{
-private:
-    void* triggers;  //min-heap by t-rem
-    virtual void tick() = 0;
+#include <thread>
+#include <mutex>
+class A_Semphore;
 
+class TriggerHost { 
+protected:
+    void* triggers;  
+    std::thread* handle;
+    ThreadPool *tp;
+    Context* cxt;
+    std::mutex* trigger_queue_lock;
+
+    virtual void tick() = 0;
 public:
-    Trigger(ThreadPool* tp);
+    TriggerHost() = default;
+    virtual ~TriggerHost() = default;
 };
 
-class IntervalBasedTrigger : public Trigger{
+struct StoredProcedure;
+
+struct IntervalBasedTrigger {
+    uint32_t interval; // in milliseconds
+    uint32_t time_remaining;
+    StoredProcedure* sp; 
+    void reset();
+    bool tick(uint32_t t); 
+};
+
+class IntervalBasedTriggerHost : public TriggerHost {
 public:
-    struct timer{
-        uint32_t interval; // in milliseconds
-        uint32_t time_remaining;
-        void reset();
-        bool tick(uint32_t t); 
-    };
-    void add_trigger();
+    explicit IntervalBasedTriggerHost(ThreadPool *tp);
+    void add_trigger(StoredProcedure* stored_procedure, uint32_t interval);
+    void remove_trigger(uint32_t tid);
 private:
+    unsigned long long now;
     void tick() override;
 };
 
-class CallbackBasedTrigger : public Trigger{
+class CallbackBasedTriggerHost : public TriggerHost {
 public:
     void add_trigger();
 private:

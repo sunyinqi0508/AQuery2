@@ -31,12 +31,14 @@ void print<__int128_t>(const __int128_t& v, const char* delimiter){
 	s[40] = 0;
 	std::cout<< get_int128str(v, s+40)<< delimiter;
 }
+
 template <>
 void print<__uint128_t>(const __uint128_t&v, const char* delimiter){
 	char s[41];
 	s[40] = 0;
     std::cout<< get_uint128str(v, s+40) << delimiter;
 }
+
 std::ostream& operator<<(std::ostream& os, __int128 & v)
 {
 	print(v);
@@ -76,6 +78,7 @@ char* intToString(T val, char* buf){
 	
 	return buf;
 }
+
 void skip(const char*& buf){ 
 	while(*buf && (*buf >'9' || *buf < '0')) buf++; 
 }
@@ -264,8 +267,8 @@ std::string base62uuid(int l) {
     static uniform_int_distribution<uint64_t> u(0x10000, 0xfffff);
     uint64_t uuid = (u(engine) << 32ull) + 
 		(std::chrono::system_clock::now().time_since_epoch().count() & 0xffffffff);
-    //printf("%llu\n", uuid);
-    string ret;
+    
+	string ret;
     while (uuid && l-- >= 0) {
         ret = string("") + base62alp[uuid % 62] + ret;
         uuid /= 62;
@@ -278,15 +281,15 @@ inline const char* str(const bool& v) {
 	return v ? "true" : "false";
 }
 
-class A{
+class A {
 	public:
 	std::chrono::high_resolution_clock::time_point tp;
 	A(){
 		tp = std::chrono::high_resolution_clock::now();
-		printf("A %llx created.\n", tp.time_since_epoch().count());
+		printf("A %llu created.\n", tp.time_since_epoch().count());
 	}
 	~A() {
-		printf("A %llx died after %lldns.\n", tp.time_since_epoch().count(),
+		printf("A %llu died after %lldns.\n", tp.time_since_epoch().count(),
 		 (std::chrono::high_resolution_clock::now() - tp).count());
 	}
 };
@@ -525,8 +528,8 @@ void ScratchSpace::cleanup(){
 		static_cast<vector_type<void*>*>(temp_memory_fractions);
 	if (vec_tmpmem_fractions->size) {
 		for(auto& mem : *vec_tmpmem_fractions){
-			free(mem); 
-			//GC::gc_handle->reg(mem);
+			//free(mem); 
+			GC::gc_handle->reg(mem);
 		}
 		vec_tmpmem_fractions->clear();
 	}

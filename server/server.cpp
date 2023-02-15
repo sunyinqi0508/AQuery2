@@ -20,10 +20,6 @@
 #include <sys/mman.h>
 #include <atomic>
 
-// fast numeric to string conversion
-#include "jeaiii_to_text.h"
-#include "dragonbox/dragonbox_to_chars.h"
-
 struct SharedMemory
 {
     std::atomic<bool> a;
@@ -41,69 +37,7 @@ struct SharedMemory
     }
 };
 
-#ifndef __USE_STD_SEMAPHORE__
-#ifdef __APPLE__
-#include <dispatch/dispatch.h>
-class A_Semaphore {
-private:
-	dispatch_semaphore_t native_handle;
-public:
-	A_Semaphore(bool v = false) {
-		native_handle = dispatch_semaphore_create(v);
-	}
-	void acquire() {
-        // puts("acquire");
-		dispatch_semaphore_wait(native_handle, DISPATCH_TIME_FOREVER);
-	}
-	void release() {
-        // puts("release");
-		dispatch_semaphore_signal(native_handle);
-	}
-	~A_Semaphore() {
-	}
-};
-#else
-#include <semaphore.h>
-class A_Semaphore {
-private:
-	sem_t native_handle;
-public:
-	A_Semaphore(bool v = false) {
-		sem_init(&native_handle, v, 1);
-	}
-	void acquire() {
-		sem_wait(&native_handle);
-	}
-	void release() {
-		sem_post(&native_handle);
-	}
-	~A_Semaphore() {
-		sem_destroy(&native_handle);
-	}
-};
-#endif
-#endif
-#endif
-
-#ifdef __USE_STD_SEMAPHORE__
-#define __AQUERY_ITC_USE_SEMPH__
-#include <semaphore>
-class A_Semaphore {
-private:
-    std::binary_semaphore native_handle;
-public:
-    A_Semaphore(bool v = false) {
-        native_handle = std::binary_semaphore(v);
-    }
-    void acquire() {
-        native_handle.acquire();
-    }
-    void release() {
-        native_handle.release();
-    }
-    ~A_Semaphore() { }
-};
-#endif
+#endif // _WIN32
 
 #ifdef __AQUERY_ITC_USE_SEMPH__
 A_Semaphore prompt{ true }, engine{ false };
@@ -225,9 +159,10 @@ inline constexpr static unsigned char monetdbe_type_szs[] = {
     1
 };
 constexpr uint32_t output_buffer_size = 65536;
-void print_monetdb_results(Server* srv, const char* sep = " ", const char* end = "\n", 
+void print_monetdb_results(void* _srv, const char* sep = " ", const char* end = "\n", 
     uint32_t limit = std::numeric_limits<uint32_t>::max()) {
-    if (!srv->haserror() && srv->cnt && limit){
+    auto srv = static_cast<Server *>(_srv);
+    if (!srv->haserror() && srv->cnt && limit) {
         char buffer[output_buffer_size];
         auto _res = static_cast<monetdbe_result*> (srv->res);
         const auto ncols = _res->ncols;
@@ -255,7 +190,7 @@ void print_monetdb_results(Server* srv, const char* sep = " ", const char* end =
             puts("Error: separator or end string too long");
             goto cleanup;
         }
-		if (header_string.size() - l_sep - 1>= 0)
+		if (header_string.size() >= l_sep + 1)
 			header_string.resize(header_string.size() - l_sep - 1);
         header_string += end + std::string(header_string.size(), '=') + end;
         fputs(header_string.c_str(), stdout);
@@ -324,7 +259,7 @@ int dll_main(int argc, char** argv, Context* cxt){
     catch (std::filesystem::filesystem_error& e) {
         printf("Failed to create directory %s: %s\n", procedure_root.c_str(), e.what());
     }
-
+    
     if (cxt->module_function_maps == nullptr)
         cxt->module_function_maps = new std::unordered_map<std::string, void*>();
     auto module_fn_map = 
@@ -590,9 +525,9 @@ start:
                                     break;
                                     case 'D': // delete procedure
                                     break;
-                                    case 'S': //save procedure
+                                    case 'S': // save procedure
                                     break;
-                                    case 'L': //load procedure
+                                    case 'L': // load procedure
                                     if (!load_proc_fromfile(current_procedure)) {
                                         cxt->stored_proc.insert_or_assign(proc_name, current_procedure);
                                     }

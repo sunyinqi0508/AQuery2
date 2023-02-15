@@ -59,6 +59,10 @@ data/benchmark
 !nyctx100.csv
 !network.csv
 !test_complex.csv
+data/electricity*
+data/covtype*
+data/phishing*
+data/power*
 *.out
 *.asm
 !mmw.so
@@ -83,3 +87,5 @@ udf*.hpp
 *.ipynb
 saved_procedures/**
 procedures/**
+.mypy_cache
+__pycache__

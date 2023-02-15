@@ -5,11 +5,25 @@
 #include <string>
 #include "monetdb_conn.h"
 #include "monetdbe.h"
+
 #include "table.h"
 #include <thread>
 
-#undef ERROR
-#undef static_assert
+#ifdef _WIN32
+    #include "winhelper.h"
+#else 
+    #include <dlfcn.h>
+    #include <fcntl.h>
+    #include <sys/mman.h>
+    #include <atomic>
+#endif // _WIN32
+
+#ifdef ERROR
+    #undef ERROR
+#endif
+#ifdef static_assert
+    #undef static_assert
+#endif
 
 constexpr const char* monetdbe_type_str[] = {
 	"monetdbe_bool", "monetdbe_int8_t", "monetdbe_int16_t", "monetdbe_int32_t", "monetdbe_int64_t",
@@ -76,7 +90,7 @@ void Server::connect(Context *cxt){
         char c[50];
         std::cin.getline(c, 49);
         for(int i = 0; i < 50; ++i) {
-            if (!c[i] || c[i] == 'y' || c[i] == 'Y'){
+            if (!c[i] || c[i] == 'y' || c[i] == 'Y') {
                 monetdbe_close(*server);
                 free(*server);
                 this->server = nullptr;
@@ -110,7 +124,7 @@ void Server::exec(const char* q){
     auto _res = static_cast<monetdbe_result*>(this->res);
     monetdbe_cnt _cnt = 0;
     auto qresult = monetdbe_query(*server, const_cast<char*>(q), &_res, &_cnt);
-    if (_res != 0){
+    if (_res != nullptr){
         this->cnt = _res->nrows;
         this->res = _res;
     }
@@ -152,6 +166,8 @@ void Server::print_results(const char* sep, const char* end){
             col_data[i] = static_cast<char *>(cols[i]->data);
             szs [i] = monetdbe_type_szs[cols[i]->type];
             header_string = header_string + cols[i]->name + sep + '|' + sep;
+            if (err_msg) [[unlikely]]
+                puts(err_msg);
         }
 		if (const size_t l_sep = strlen(sep) + 1; header_string.size() >= l_sep)
 			header_string.resize(header_string.size() - l_sep);
@@ -173,7 +189,7 @@ void Server::print_results(const char* sep, const char* end){
 void Server::close(){
     if(this->server){
         auto server = static_cast<monetdbe_database*>(this->server);
-        monetdbe_close(*(server));
+        monetdbe_close(*server);
         free(server);
         this->server = nullptr;
     }
@@ -214,4 +230,47 @@ bool Server::havehge() {
     // puts("false");
     return false;
 #endif
+}
+
+
+void ExecuteStoredProcedureEx(const StoredProcedure *p, Context* cxt){
+    auto server = static_cast<Server*>(cxt->alt_server);
+    void* handle = nullptr;
+    uint32_t procedure_module_cursor = 0;
+    for(uint32_t i = 0; i < p->cnt; ++i) {
+        switch(p->queries[i][0]){
+            case 'Q': {
+                server->exec(p->queries[i]);
+            } 
+            break;
+            case 'P': {
+                auto c = code_snippet(dlsym(handle, p->queries[i]+1));
+                c(cxt);
+            }
+            break;
+            case 'N': {
+                if(procedure_module_cursor < p->postproc_modules)
+                    handle = p->__rt_loaded_modules[procedure_module_cursor++];
+            }
+            break;
+            case 'O': {
+                uint32_t limit;
+                memcpy(&limit, p->queries[i] + 1, sizeof(uint32_t));
+                if (limit == 0)
+                    continue;
+                print_monetdb_results(server, " ", "\n", limit); 
+            }
+            break;
+            default:
+                printf("Warning Q%u: unrecognized command %c.\n", 
+                    i, p->queries[i][0]);
+        }
+    }
+}
+
+int execTriggerPayload(void* args) {
+    auto spp = (StoredProcedurePayload*)(args);
+    ExecuteStoredProcedureEx(spp->p, spp->cxt);
+    delete spp;
+    return 0;
 }

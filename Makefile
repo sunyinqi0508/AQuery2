@@ -2,6 +2,7 @@ OS_SUPPORT =
 MonetDB_LIB = 
 MonetDB_INC = 
 Defines = 
+CC = $(CXX) -xc 
 CXXFLAGS = --std=c++2a
 ifeq ($(AQ_DEBUG), 1)
 	OPTFLAGS = -g3 #-fsanitize=address 
@@ -17,7 +18,7 @@ COMPILER = $(strip $(_COMPILER))
 LIBTOOL = ar rcs
 USELIB_FLAG = -Wl,--whole-archive,libaquery.a -Wl,-no-whole-archive
 LIBAQ_SRC = server/monetdb_conn.cpp server/libaquery.cpp 
-LIBAQ_OBJ = monetdb_conn.o libaquery.o
+LIBAQ_OBJ = monetdb_conn.o libaquery.o monetdb_ext.o
 SEMANTIC_INTERPOSITION = -fno-semantic-interposition
 RANLIB = ranlib
 _LINKER_BINARY = $(shell `$(CXX) -print-prog-name=ld` -v 2>&1 | grep -q LLVM && echo lld || echo ld)
@@ -43,7 +44,7 @@ else
 		LIBTOOL = gcc-ar rcs
 	endif
 endif
-OPTFLAGS += $(SEMANTIC_INTERPOSITION)
+LINKFLAGS += $(SEMANTIC_INTERPOSITION)
 
 ifeq ($(PCH), 1)
 	PCHFLAGS = -include server/pch.hpp
@@ -82,7 +83,7 @@ else
 		MonetDB_INC += $(AQ_MONETDB_INC)
 		MonetDB_INC += -I/usr/local/include/monetdb -I/usr/include/monetdb 
 	endif
-	MonetDB_LIB += -lmonetdbe
+	MonetDB_LIB += -lmonetdbe -lmonetdbsql -lbat
 endif
 
 ifeq ($(THREADING),1)
@@ -128,6 +129,7 @@ pch:
 	$(CXX) -x c++-header server/pch.hpp $(FPIC) $(CXXFLAGS)
 libaquery:
 	$(CXX) -c $(FPIC) $(PCHFLAGS) $(LIBAQ_SRC) $(OS_SUPPORT) $(CXXFLAGS) &&\
+	$(CC) -c server/monetdb_ext.c $(OPTFLAGS) $(MonetDB_INC) &&\
 	$(LIBTOOL) libaquery.a $(LIBAQ_OBJ) &&\
 	$(RANLIB) libaquery.a
 

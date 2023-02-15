@@ -14,33 +14,34 @@ struct DT;
 class RandomForest{
 public:
 
-long noTree;
 long maxTree;
 long activeTree;
-long treePointer;
-long rotateTime;
-long timer;
-long retain;
-DecisionTree** DTrees = nullptr;
+long* allT;
+double tThresh;
+DecisionTree** DTrees;
+DecisionTree** backupTrees;
 
 long height;
-long Rebuild;
+bool bagging;
 long f;
 int* sparse;
 double forget;
-long maxFeature;
 long noClasses;
 Evaluation e;
+long lastT;
+long lastAll;
+int minF;
 
-
-RandomForest(long maxTree, long activeTree, long rotateTime, int height, long f, int* sparse, double forget, long maxFeature=0, long noClasses=2, Evaluation e=Evaluation::gini, long r=-1, long rb=2147483647);
+RandomForest(long maxTree, long f, int* sparse, double forget, long noClasses=2, Evaluation e=Evaluation::entropy, bool b=false, double tThresh=0.05);
 
 void fit(double** data, long* result, long size);
 
 long* fitThenPredict(double** trainData, long* trainResult, long trainSize, double** testData, long testSize);
 
-void Rotate();
+void Rotate(long stale);
 
 long Test(double* data);
+
+long Test(double* data, long result);
 };
 #endif

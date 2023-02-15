@@ -1,4 +1,5 @@
 #include "threading.h"
+#include "libaquery.h"
 #include <thread>
 #include <atomic>
 #include <mutex>
@@ -105,7 +106,8 @@ ThreadPool::ThreadPool(uint32_t n_threads)
     current_payload = new payload_t[n_threads];
 
     for (uint32_t i = 0; i < n_threads; ++i){
-        atomic_init(tf + i, static_cast<unsigned char>(0b10));
+        // atomic_init(tf + i, static_cast<unsigned char>(0b10));
+        tf[i] = static_cast<unsigned char>(0b10);
         th[i] = thread(&ThreadPool::daemon_proc, this, i);
     }
 
@@ -152,21 +154,50 @@ bool ThreadPool::busy(){
     return true;
 }
 
-Trigger::Trigger(ThreadPool* tp){
-    
+IntervalBasedTriggerHost::IntervalBasedTriggerHost(ThreadPool* tp){
+    this->tp = tp;
+    this->triggers = new vector_type<IntervalBasedTrigger>;
+    trigger_queue_lock = new mutex();
+    this->now = std::chrono::high_resolution_clock::now().time_since_epoch().count();
 }
 
-void IntervalBasedTrigger::timer::reset(){
+void IntervalBasedTriggerHost::add_trigger(StoredProcedure *p, uint32_t interval) {
+    auto tr = IntervalBasedTrigger{.interval = interval, .time_remaining = 0, .sp = p};
+    auto vt_triggers = static_cast<vector_type<IntervalBasedTrigger> *>(this->triggers);
+    trigger_queue_lock->lock();
+    vt_triggers->emplace_back(tr);
+    trigger_queue_lock->unlock();
+}
+
+void IntervalBasedTriggerHost::tick() {
+    const auto current_time = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+    const auto delta_t = static_cast<uint32_t>((current_time - now) / 1000000); // miliseconds precision
+    now = current_time;
+    auto vt_triggers = static_cast<vector_type<IntervalBasedTrigger> *>(this->triggers);
+    trigger_queue_lock->lock();
+    for(auto& t : *vt_triggers) {
+        if(t.tick(delta_t)) {
+            payload_t payload;
+            payload.f = execTriggerPayload;
+            payload.args = static_cast<void*>(new StoredProcedurePayload {t.sp, cxt});
+
+            tp->enqueue_task(payload);
+        }
+    }
+    trigger_queue_lock->unlock();
+}
+
+void IntervalBasedTrigger::reset() {
     time_remaining = interval;
 }
 
-bool IntervalBasedTrigger::timer::tick(uint32_t t){
-    if (time_remaining > t) {
-        time_remaining -= t;
-        return false;
-    }
-    else{
-        time_remaining = interval - t%interval;
-        return true;
-    }
+bool IntervalBasedTrigger::tick(uint32_t delta_t) {
+    bool ret = false; 
+    if (time_remaining <= delta_t) 
+        ret = true; 
+    if (auto curr_dt = delta_t % interval; time_remaining <= curr_dt) 
+        time_remaining = interval  + time_remaining - curr_dt;
+    else 
+        time_remaining = time_remaining - curr_dt;
+    return ret;
 }
