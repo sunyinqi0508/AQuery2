@@ -1,5 +1,5 @@
 #include "pch_msc.hpp"
-//#define TESTMAIN
+#define TESTMAIN
 #include <iostream>
 #include <string>
 #include <chrono>

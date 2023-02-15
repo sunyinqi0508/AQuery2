@@ -151,7 +151,7 @@ public:
 	}
 	 ColView<_Ty> operator [](vector_type<uint32_t>& idxs) const {
 	 	return ColView<_Ty>(*this, std::move(idxs));
-	 }
+	}
 	 ColView<_Ty> operator [](const vector_type<uint32_t>& idxs) const {
 	 	return ColView<_Ty>(*this, idxs);
 	 }

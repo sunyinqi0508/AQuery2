@@ -52,7 +52,7 @@ int gen_trade_data(int argc, char* argv[])
         printf("No parameter supplied. Use default frac=%f, N=%d? [Y/n]\n", frac, N);
         char buf[4096]; fgets(buf, 4095, stdin); 
         if((buf[0] != 'y' && buf[0] !='Y') && buf[0] != '\n') { 
-            const auto &getParams = [&](){ puts("Type: frac N [ENTER]");
+            const auto &getParams = [&](){ puts("Type: frac N n_rows [ENTER]");
                 for(int i = 0; i < 4096; ++i) if(buf[i] == '\n') {buf[i] = 0; break;}
                 char* _buf = buf; frac = getFloat(_buf); N = getInt(_buf); n_rows=getInt(_buf);
             }; getParams();
@@ -102,7 +102,7 @@ int gen_trade_data(int argc, char* argv[])
             current_price = new_price;
         }
         d[i]= {ss, i+1, (int)g_quantity(engine), current_price};
-        fprintf(fp, "s%d, %d, %d, %d\n", d[i].ss, d[i].t, d[i].q, d[i].p);
+        fprintf(fp, "%d, %d, %d, %d\n", d[i].ss, d[i].t, d[i].q, d[i].p);
         last_price[ss - 1] = current_price;
     }
     fclose(fp);
@@ -148,8 +148,9 @@ int gen_stock_data(int argc, char* argv[]){
         fprintf(fp, "%s,%s\n", IDs[i].c_str(), names[i].c_str());
     }
     fclose(fp);
+    return 0;
 }
 
 int main(int argc, char* argv[]){
-    return gen_stock_data(argc, argv);
+    return gen_trade_data(argc, argv);
 }

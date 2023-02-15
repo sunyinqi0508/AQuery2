@@ -219,6 +219,7 @@
       <AdditionalDependencies>..\libaquery.lib;$(ProjectDir)\..\monetdb\msvc\monetdbe.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DataExecutionPrevention>false</DataExecutionPrevention>
       <AdditionalOptions>/WHOLEARCHIVE:libaquery.lib %(AdditionalOptions)</AdditionalOptions>
+      <Profile>true</Profile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWDbgInf|Win32'">
@@ -319,6 +320,7 @@
       <AdditionalDependencies>..\libaquery.lib;$(ProjectDir)\..\monetdb\msvc\monetdbe.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DataExecutionPrevention>false</DataExecutionPrevention>
       <AdditionalOptions>/WHOLEARCHIVE:libaquery.lib %(AdditionalOptions)</AdditionalOptions>
+      <Profile>true</Profile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWDbgInf|x64'">
