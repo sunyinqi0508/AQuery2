@@ -1,7 +1,10 @@
 #pragma once
 #include <atomic>
+#ifndef QUERY_DECLSPEC
+#define QUERY_DECLSPEC
+#endif
 
-class ScratchSpace {
+class QUERY_DECLSPEC ScratchSpace {
 public:
 	void* ret;
 	char* scratchspace;
@@ -10,7 +13,7 @@ public:
 	size_t capacity;
 	size_t initial_capacity;
 	void* temp_memory_fractions;
-
+	
 	//uint8_t status; 
 	// record maximum size
 	constexpr static uint8_t Grow = 0x1;
@@ -36,7 +39,7 @@ public:
 
 
 #ifndef __AQ_USE_THREADEDGC__
-class GC {
+class QUERY_DECLSPEC GC {
 private:
 	size_t max_slots, 
 		   interval, forced_clean, 

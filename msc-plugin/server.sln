@@ -24,6 +24,10 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "testmain", "testmain.vcxproj", "{73BD0DDA-7E66-4318-B46B-B8207AFA6355}"
 	ProjectSection(ProjectDependencies) = postProject
 		{8081FDAA-4D13-4B7A-ADB2-8224AF7F1C81} = {8081FDAA-4D13-4B7A-ADB2-8224AF7F1C81}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "datagen", "datagen\datagen.vcxproj", "{5AA4E63C-CFF8-467C-8872-84206CEDE7A9}"
+	ProjectSection(ProjectDependencies) = postProject
 		{B52AACF7-16A6-4FCA-90AD-867D367BDA4F} = {B52AACF7-16A6-4FCA-90AD-867D367BDA4F}
 	EndProjectSection
 EndProject
@@ -169,6 +173,26 @@ Global
 		{73BD0DDA-7E66-4318-B46B-B8207AFA6355}.sharedlib|x64.Build.0 = sharedlib|x64
 		{73BD0DDA-7E66-4318-B46B-B8207AFA6355}.sharedlib|x86.ActiveCfg = sharedlib|Win32
 		{73BD0DDA-7E66-4318-B46B-B8207AFA6355}.sharedlib|x86.Build.0 = sharedlib|Win32
+		{5AA4E63C-CFF8-467C-8872-84206CEDE7A9}.Debug|x64.ActiveCfg = Debug|x64
+		{5AA4E63C-CFF8-467C-8872-84206CEDE7A9}.Debug|x64.Build.0 = Debug|x64
+		{5AA4E63C-CFF8-467C-8872-84206CEDE7A9}.Debug|x86.ActiveCfg = Debug|Win32
+		{5AA4E63C-CFF8-467C-8872-84206CEDE7A9}.Debug|x86.Build.0 = Debug|Win32
+		{5AA4E63C-CFF8-467C-8872-84206CEDE7A9}.Release|x64.ActiveCfg = Release|x64
+		{5AA4E63C-CFF8-467C-8872-84206CEDE7A9}.Release|x64.Build.0 = Release|x64
+		{5AA4E63C-CFF8-467C-8872-84206CEDE7A9}.Release|x86.ActiveCfg = Release|Win32
+		{5AA4E63C-CFF8-467C-8872-84206CEDE7A9}.Release|x86.Build.0 = Release|Win32
+		{5AA4E63C-CFF8-467C-8872-84206CEDE7A9}.RelWDbgInf|x64.ActiveCfg = Release|x64
+		{5AA4E63C-CFF8-467C-8872-84206CEDE7A9}.RelWDbgInf|x64.Build.0 = Release|x64
+		{5AA4E63C-CFF8-467C-8872-84206CEDE7A9}.RelWDbgInf|x86.ActiveCfg = Release|Win32
+		{5AA4E63C-CFF8-467C-8872-84206CEDE7A9}.RelWDbgInf|x86.Build.0 = Release|Win32
+		{5AA4E63C-CFF8-467C-8872-84206CEDE7A9}.shared|x64.ActiveCfg = Debug|x64
+		{5AA4E63C-CFF8-467C-8872-84206CEDE7A9}.shared|x64.Build.0 = Debug|x64
+		{5AA4E63C-CFF8-467C-8872-84206CEDE7A9}.shared|x86.ActiveCfg = Debug|Win32
+		{5AA4E63C-CFF8-467C-8872-84206CEDE7A9}.shared|x86.Build.0 = Debug|Win32
+		{5AA4E63C-CFF8-467C-8872-84206CEDE7A9}.sharedlib|x64.ActiveCfg = Debug|x64
+		{5AA4E63C-CFF8-467C-8872-84206CEDE7A9}.sharedlib|x64.Build.0 = Debug|x64
+		{5AA4E63C-CFF8-467C-8872-84206CEDE7A9}.sharedlib|x86.ActiveCfg = Debug|Win32
+		{5AA4E63C-CFF8-467C-8872-84206CEDE7A9}.sharedlib|x86.Build.0 = Debug|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

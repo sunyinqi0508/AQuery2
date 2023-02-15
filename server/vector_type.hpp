@@ -474,6 +474,7 @@ public:
 	explicit AQHashTable(uint32_t sz) 
 		: ankerl::unordered_dense::set<Key, Hash>{} {
 		this->reserve(sz);
+		this->m_values.reserve(sz);
 		reversemap = static_cast<uint32_t *>(malloc(sizeof(uint32_t) * sz * 2));
 		mapbase = reversemap + sz;
 		ht_base =  static_cast<uint32_t *>(calloc(sz, sizeof(uint32_t)));

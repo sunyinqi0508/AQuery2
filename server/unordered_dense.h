@@ -96,6 +96,9 @@
 #        define ANKERL_UNORDERED_DENSE_UNLIKELY(x) (x) // NOLINT(cppcoreguidelines-macro-usage)
 #    endif
 
+template<class Key, class Hash>
+class AQHashTable;
+
 namespace ankerl::unordered_dense {
 inline namespace ANKERL_UNORDERED_DENSE_NAMESPACE {
 
@@ -418,6 +421,7 @@ public:
     using iterator = typename value_container_type::iterator;
     using const_iterator = typename value_container_type::const_iterator;
     using bucket_type = Bucket;
+    friend class AQHashTable<Key, Hash>;
 
 private:
     using value_idx_type = decltype(Bucket::m_value_idx);
