@@ -1081,7 +1081,62 @@ class create_table(ast_node):
         self.sql += ')'
         if self.context.use_columnstore:
             self.sql += ' engine=ColumnStore'
-                    
+
+class create_trigger(ast_node):
+    name = 'create_trigger'
+    first_order = name
+    class Type (Enum):
+        Interval = auto()
+        Callback = auto()
+        
+    def produce(self, node):
+        from engine.utils import send_to_server, get_storedproc
+        node = node['create_trigger']
+        self.trigger_name = node['name']
+        self.action_name = node['action']
+        self.action = get_storedproc(self.action_name)
+        if self.trigger_name in self.context.triggers:
+            raise ValueError(f'trigger {self.trigger_name} exists')
+        elif self.action:
+            raise ValueError(f'Stored Procedure {self.action_name} do not exist')
+
+        if 'interval' in node: # executed periodically from server
+            self.type = self.Type.Interval
+            self.interval = node['interval']
+            send_to_server(f'TI{self.trigger_name}{self.action_name}{self.interval}')
+        else: # executed from sql backend
+            self.type = self.Type.Callback
+            self.query_name = node['query']
+            self.table_name = node['table']
+            self.procedure = get_storedproc(self.query_name)
+            if self.procedure and self.table_name in self.context.tables_byname:
+                self.table = self.context.tables_byname[self.table_name]
+                self.table.triggers.add(self)
+            else:
+                return
+        self.context.triggers[self.trigger_name] = self
+
+    # manually execute trigger
+    def register(self): 
+        if self.type != self.Type.Callback:
+            self.context.triggers.pop(self.trigger_name)
+            raise ValueError(f'Trigger {self.trigger_name} is not a callback based trigger')
+        self.context.triggers_active.add(self)
+
+    def execute(self): 
+        from engine.utils import send_to_server
+        send_to_server(f'TC{self.query_name}{self.action_name}')
+
+    def remove(self):
+        from engine.utils import send_to_server
+        send_to_server(f'TR{self.trigger_name}')
+
+class drop_trigger(ast_node):
+    name = 'create_trigger'
+    first_order = name
+    def produce(self, node):
+        ...
+
 class drop(ast_node):
     name = 'drop'
     first_order = name
@@ -1111,9 +1166,11 @@ class insert(ast_node):
             complex_query_kw = ['from', 'where', 'groupby', 'having', 'orderby', 'limit']
             if any([kw in values for kw in complex_query_kw]):
                 values['into'] = node['insert']
-                proj_cls = (select_distinct 
-                if 'select_distinct' in values 
-                else projection)
+                proj_cls = (
+                    select_distinct 
+                    if 'select_distinct' in values 
+                    else projection
+                )
                 proj_cls(None, values, self.context)
                 self.produce = lambda*_:None
                 self.spawn = lambda*_:None
@@ -1147,6 +1204,11 @@ class insert(ast_node):
             
         keys = f'({", ".join(keys)})' if keys else ''
         tbl = node['insert']
+        if tbl not in self.context.tables_byname:
+            print('Warning: {tbl} not registered in aquery compiler.')
+        tbl_obj = self.context.tables_byname[tbl]
+        for t in tbl_obj.triggers:
+            t.register()
         self.sql = f'INSERT INTO {tbl}{keys} VALUES'
         # if len(values) != table.n_cols:
         #     raise ValueError("Column Mismatch")
@@ -1161,7 +1223,7 @@ class insert(ast_node):
             list_values.append(f"({', '.join(inner_list_values)})")
             
         self.sql += ', '.join(list_values) 
-        
+
 
 class delete_from(ast_node):
     name = 'delete'
@@ -1624,6 +1686,11 @@ class passthru_sql(ast_node):
     seprator = re.compile(r'''((?:[^;"']|"[^"]*"|'[^']*')+)''')
     def __init__(self, _, node, context:Context):
         sqls = passthru_sql.seprator.split(node['sql'])
+        try:
+            if callable(context.parser):
+                parsed = context.parser(node['sql'])
+        except BaseException:
+            parsed = None
         for sql in sqls:
             sq = sql.strip(' \t\n\r;')
             if sq:

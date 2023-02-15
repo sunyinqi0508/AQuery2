@@ -86,12 +86,26 @@ extern "C" int __DLLEXPORT__ binary_info() {
 #endif
 }
 
-__AQEXPORT__(bool) have_hge(){
+__AQEXPORT__(bool) 
+have_hge() {
 #if defined(__MONETDB_CONN_H__)
     return Server::havehge();
 #else
     return false;
 #endif
+}
+
+__AQEXPORT__(StoredProcedure)
+get_procedure(Context* cxt, const char* name) {
+    auto res = cxt->stored_proc.find(name);
+    if (res == cxt->stored_proc.end())
+        return { .cnt = 0, 
+            .postproc_modules = 0, 
+            .queries = nullptr, 
+            .name = nullptr, 
+            .__rt_loaded_modules = nullptr
+        };
+    return res->second;
 }
 
 using prt_fn_t = char* (*)(void*, char*);

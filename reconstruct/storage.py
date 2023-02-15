@@ -64,12 +64,14 @@ class ColRef:
 
 class TableInfo:
     def __init__(self, table_name, cols, cxt:'Context'):
+        from reconstruct.ast import create_trigger
         # statics
         self.table_name : str = table_name
         self.contextname_cpp : str = ''
         self.alias : Set[str] = set([table_name])
         self.columns_byname : CaseInsensitiveDict[str, ColRef] = CaseInsensitiveDict() # column_name, type
         self.columns : List[ColRef] = []
+        self.triggers : Set[create_trigger] = set()
         self.cxt = cxt
         # keep track of temp vars
         self.rec = None 
@@ -83,7 +85,7 @@ class TableInfo:
     def add_cols(self, cols, new = True):
         for c in enlist(cols):
             self.add_col(c, new)
-            
+        
     def add_col(self, c, new = True):
         _ty = c['type']
         _ty_args = None
@@ -156,9 +158,11 @@ class Context:
         self.module_init_loc = 0
         self.special_gb = False
         self.has_dll = False
-         
+        self.triggers_active.clear()
+        
     def __init__(self):
-        self.tables_byname = dict()
+        from .ast import create_trigger
+        self.tables_byname : Dict[str, TableInfo] = dict()
         self.col_byname = dict()
         self.tables : Set[TableInfo] = set()
         self.cols = []
@@ -174,6 +178,9 @@ class Context:
         self.have_hge = False
         self.Error = lambda *args: print(*args)
         self.Info = lambda *_: None
+        self.triggers : Dict[str, create_trigger] = dict()
+        self.triggers_active = set()
+        self.stored_proceudres = dict()
         # self.new() called everytime new query batch is started
 
     def get_scan_var(self):
@@ -256,7 +263,14 @@ class Context:
         limit = limit.to_bytes(4, 'little').decode('latin-1')
         self.queries.append(
             'O' + limit + sep + end)
-    
+        
+    def remove_trigger(self, name : str):
+        from reconstruct.ast import create_trigger
+        val = self.triggers.pop(name, None)
+        if val.type == create_trigger.Type.Callback:
+            val.table.triggers.remove(val)
+        val.remove()
+
     def abandon_postproc(self):
         self.ccode = ''
         self.finalize_query()

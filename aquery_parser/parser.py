@@ -33,6 +33,7 @@ def common_parser():
 
     return parser(ansi_string | aquery_doublequote_string, combined_ident)
 
+    
 def parser(literal_string, ident):
     with Whitespace() as engine:
         engine.add_ignore(Literal("--") + restOfLine)
@@ -569,8 +570,26 @@ def parser(literal_string, ident):
             + index_type
             + index_column_names
             + index_options
-        )("create index")
+        )("create_index")
 
+        create_trigger = (
+            keyword("create trigger")
+            + var_name("name")
+            + ((
+                ON
+                + var_name("table")
+                + keyword("action") 
+                + var_name("action")
+                + WHEN
+                + var_name("query")            )  
+            | (
+                keyword("action")
+                + var_name("action")
+                + INTERVAL 
+                + int_num("interval")
+            ))
+        )("create_trigger")
+        
         cache_options = Optional((
             keyword("options").suppress()
             + LB
@@ -693,7 +712,7 @@ def parser(literal_string, ident):
         sql_stmts = delimited_list( (
             query
             | (insert | update | delete | load)
-            | (create_table | create_view | create_cache | create_index)
+            | (create_table | create_view | create_cache | create_index | create_trigger)
             | (drop_table | drop_view | drop_index)
         )("stmts"), ";")
 
@@ -707,6 +726,5 @@ def parser(literal_string, ident):
             |other_stmt
             | keyword(";").suppress() # empty stmt
         )
-        
         return stmts.finalize()
-
+    

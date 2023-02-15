@@ -119,6 +119,15 @@ class Backend_Type(enum.Enum):
 	BACKEND_MonetDB = 1
 	BACKEND_MariaDB = 2
 
+class StoredProcedure(ctypes.Structure):
+    _fields_ = [
+            ('cnt', ctypes.c_uint32), 
+            ('postproc_modules', ctypes.c_uint32), 
+            ('queries', ctypes.POINTER(ctypes.c_char_p)), 
+            ('name', ctypes.c_char_p), 
+            ('__rt_loaded_modules', ctypes.POINTER(ctypes.c_void_p)), 
+        ]
+
 @dataclass 
 class QueryStats:
     last_time : int = time.time()
@@ -229,6 +238,7 @@ class PromptState():
     server_bin = 'server.bin' if server_mode == RunType.IPC else 'server.so'
     wait_engine = lambda: None
     wake_engine = lambda: None
+    get_storedproc = lambda : StoredProcedure()
     set_ready = lambda: None
     get_ready = lambda: None
     server_status = lambda: False
@@ -322,6 +332,8 @@ def init_threaded(state : PromptState):
         state.send = server_so['receive_args']
         state.wait_engine = server_so['wait_engine']
         state.wake_engine = server_so['wake_engine']
+        state.get_storedproc = server_so['get_procedure']
+        state.get_storedproc.restype = StoredProcedure
         aquery_config.have_hge = server_so['have_hge']()
         if aquery_config.have_hge != 0:
             from engine.types import get_int128_support
@@ -330,9 +342,11 @@ def init_threaded(state : PromptState):
         state.th.start() 
 
 def init_prompt() -> PromptState:
+    from engine.utils import session_context
     aquery_config.init_config()
     
     state = PromptState()
+    session_context = state
     # if aquery_config.rebuild_backend:
     #     try:
     #         os.remove(state.server_bin) 
@@ -454,7 +468,7 @@ def prompt(running = lambda:True, next = lambda:input('> '), state : Optional[Pr
                 continue
             elif q.startswith('xexec') or q.startswith('exec'): # generate build and run (MonetDB Engine)
                 state.cfg.backend_type = Backend_Type.BACKEND_MonetDB.value
-                cxt = xengine.exec(state.stmts, cxt, keep)
+                cxt = xengine.exec(state.stmts, cxt, keep, parser.parse)
                 
                 this_udf = cxt.finalize_udf()
                 if this_udf:
@@ -613,11 +627,7 @@ def prompt(running = lambda:True, next = lambda:input('> '), state : Optional[Pr
             elif q.startswith('procedure'):
                 qs = re.split(r'[ \t\r\n]', q)
                 procedure_help = '''Usage: procedure <procedure_name> [record|stop|run|remove|save|load]'''
-                def send_to_server(payload : str): 
-                    state.payload = (ctypes.c_char_p*1)(ctypes.c_char_p(bytes(payload, 'utf-8')))
-                    state.cfg.has_dll = 0
-                    state.send(1, state.payload)
-                    state.set_ready()
+                from engine.utils import send_to_server
                 if len(qs) > 2:
                     if qs[2].lower() =='record':
                         if state.current_procedure is not None and state.current_procedure != qs[1]:             

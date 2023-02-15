@@ -8,7 +8,7 @@ nums = '0123456789'
 base62alp = nums + lower_alp + upper_alp
 
 reserved_monet = ['month']
-
+session_context = None
 
 class CaseInsensitiveDict(MutableMapping):
     def __init__(self, data=None, **kwargs):
@@ -158,3 +158,35 @@ def get_innermost(sl):
         return get_innermost(sl[0])
     else:
         return sl
+
+
+def send_to_server(payload : str):
+    from prompt import PromptState
+    cxt : PromptState = session_context
+    if cxt is None:
+        raise RuntimeError("Error! no session specified.")
+    else:
+        from ctypes import c_char_p
+        cxt.payload = (c_char_p*1)(c_char_p(bytes(payload, 'utf-8')))
+        cxt.cfg.has_dll = 0
+        cxt.send(1, cxt.payload)
+        cxt.set_ready()
+
+def get_storedproc(name : str):
+    from prompt import PromptState, StoredProcedure
+    cxt : PromptState = session_context
+    if cxt is None:
+        raise RuntimeError("Error! no session specified.")
+    else:
+        ret : StoredProcedure = cxt.get_storedproc(bytes(name, 'utf-8'))
+        if (
+            ret.name.value and 
+            ret.name.value.decode('utf-8') != name
+        ):
+            print(f'Procedure {name} mismatch in server {ret.name.value}')
+            return None
+        else:
+            return ret
+
+def execute_procedure(proc):
+    pass

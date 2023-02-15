@@ -18,10 +18,11 @@ def generate(ast, cxt):
         if k in ast_node.types.keys():
             ast_node.types[k](None, ast, cxt)
 
-def exec(stmts, cxt = None, keep = False):
+def exec(stmts, cxt = None, keep = False, parser = None):
     if 'stmts' not in stmts:
         return
     cxt = initialize(cxt, keep)
+    cxt.parser = parser
     stmts_stmts = stmts['stmts']
     if type(stmts_stmts) is list:
         for s in stmts_stmts:
