@@ -3,7 +3,14 @@
 
 // __AQ_NO_SESSION__
 #include "../server/table.h"
+
 #include "aquery.h"
+
+#include "./server/gc.h"
+__AQEXPORT__(void) __AQ_Init_GC__(Context* cxt) {
+    GC::gc_handle = static_cast<GC*>(cxt->gc);
+    GC::scratch_space = nullptr;
+}
 
 DecisionTree *dt = nullptr;
 RandomForest *rf = nullptr;
@@ -20,7 +27,7 @@ newtree(int height, long f, ColRef<int> X, double forget, long maxf, long noclas
 	if (maxf < 0)
 		maxf = f;
 	dt = new DecisionTree(f, X_cpy, forget, maxf, noclasses, e);
-	rf = new RandomForest(height, f, X_cpy, forget, noclasses, e)
+	rf = new RandomForest(height, f, X_cpy, forget, noclasses, e);
 	return true;
 }
 
@@ -43,6 +50,21 @@ newtree(int height, long f, ColRef<int> X, double forget, long maxf, long noclas
 // }
 
 __AQEXPORT__(bool)
+fit_inc(vector_type<vector_type<double>> v, vector_type<long> res)
+{
+	static uint32_t last_offset = 0;
+	double **data = (double **)malloc(v.size * sizeof(double *));
+	if(last_offset >= v.size) 
+		last_offset = 0;
+	for (int i = last_offset; i < v.size; ++i)
+		data[i] = v.container[i].container;
+	rf->fit(data, res.container, v.size);
+	free(data);
+	return true;
+}
+
+
+__AQEXPORT__(bool)
 fit(vector_type<vector_type<double>> v, vector_type<long> res)
 {
 	double **data = (double **)malloc(v.size * sizeof(double *));
@@ -53,14 +75,15 @@ fit(vector_type<vector_type<double>> v, vector_type<long> res)
 	return true;
 }
 
+
 __AQEXPORT__(vectortype_cstorage)
 predict(vector_type<vector_type<double>> v)
 {
 	int *result = (int *)malloc(v.size * sizeof(int));
 
-	for (long i = 0; i < v.size; i++)
+	for (uint32_t i = 0; i < v.size; i++)
 		//result[i] = dt->Test(v.container[i].container, dt->DTree);
-		result[i] = rf->Test(v.container, rf->DTrees);
+		result[i] = int(rf->Test(v[i].container));
 	auto container = (vector_type<int> *)malloc(sizeof(vector_type<int>));
 	container->size = v.size;
 	container->capacity = 0;

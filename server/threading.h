@@ -2,6 +2,8 @@
 #define _AQ_THREADING_H
 
 #include <stdint.h>
+#include <thread>
+#include <mutex>
 
 typedef int(*payload_fn_t)(void*);
 struct payload_t{
@@ -39,12 +41,11 @@ private:
 
 };
 
-#include <thread>
-#include <mutex>
+
 class A_Semphore;
 
 class TriggerHost { 
-protected:
+public:
     void* triggers;  
     std::thread* handle;
     ThreadPool *tp;
@@ -52,14 +53,15 @@ protected:
     std::mutex* trigger_queue_lock;
 
     virtual void tick() = 0;
-public:
     TriggerHost() = default;
     virtual ~TriggerHost() = default;
 };
 
 struct StoredProcedure;
 
-struct IntervalBasedTrigger {
+struct Trigger{};
+
+struct IntervalBasedTrigger : Trigger {
     uint32_t interval; // in milliseconds
     uint32_t time_remaining;
     StoredProcedure* sp; 
@@ -70,8 +72,8 @@ struct IntervalBasedTrigger {
 class IntervalBasedTriggerHost : public TriggerHost {
 public:
     explicit IntervalBasedTriggerHost(ThreadPool *tp);
-    void add_trigger(StoredProcedure* stored_procedure, uint32_t interval);
-    void remove_trigger(uint32_t tid);
+    void add_trigger(const char* name, StoredProcedure* stored_procedure, uint32_t interval);
+    void remove_trigger(const char* name);
 private:
     unsigned long long now;
     void tick() override;
@@ -79,6 +81,7 @@ private:
 
 class CallbackBasedTriggerHost : public TriggerHost {
 public:
+    explicit CallbackBasedTriggerHost(ThreadPool *tp);
     void add_trigger();
 private:
     void tick() override;

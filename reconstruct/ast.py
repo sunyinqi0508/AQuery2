@@ -281,11 +281,11 @@ class projection(ast_node):
         #     self.into_stub = f'{{INTOSTUB{base62uuid(20)}}}'
         #     self.add(self.into_stub, '')
             
-        def finialize(astnode:ast_node):
+        def finalize(astnode:ast_node):
             if(astnode is not None):
                 self.add(astnode.sql)
-        finialize(self.datasource)                
-        finialize(self.where)
+        finalize(self.datasource)                
+        finalize(self.where)
         if self.group_node and not self.group_node.use_sp_gb:
             self.add(self.group_node.sql)
 
@@ -1103,7 +1103,7 @@ class create_trigger(ast_node):
         if 'interval' in node: # executed periodically from server
             self.type = self.Type.Interval
             self.interval = node['interval']
-            send_to_server(f'TI{self.trigger_name}{self.action_name}{self.interval}')
+            send_to_server(f'TI{self.trigger_name}\0{self.action_name}\0{self.interval}')
         else: # executed from sql backend
             self.type = self.Type.Callback
             self.query_name = node['query']
@@ -1125,14 +1125,15 @@ class create_trigger(ast_node):
 
     def execute(self): 
         from engine.utils import send_to_server
-        send_to_server(f'TC{self.query_name}{self.action_name}')
+        send_to_server(f'TC{self.query_name}\0{self.action_name}')
 
     def remove(self):
         from engine.utils import send_to_server
         send_to_server(f'TR{self.trigger_name}')
 
+
 class drop_trigger(ast_node):
-    name = 'create_trigger'
+    name = 'drop_trigger'
     first_order = name
     def produce(self, node):
         ...

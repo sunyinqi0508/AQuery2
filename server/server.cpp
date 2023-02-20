@@ -559,6 +559,37 @@ start:
                                 }
                             }
                             break;
+                        case 'T': // triggers
+                        {
+                            switch(n_recvd[i][1]){
+                                case 'I': // register interval based trigger
+                                {
+                                    const char* action_name = n_recvd[i] + 2;
+                                    while(*action_name++);
+                                    if(auto p = get_procedure(cxt, action_name); p.name == nullptr) 
+                                        printf("Invalid action name: %s\n", action_name);
+                                    else {
+                                        auto action = AQ_DupObject(&p);
+                                        const char* interval = action_name;
+                                        while(*interval++);
+                                        const auto i_interval = getInt<uint32_t>(interval);
+                                        cxt->it_host->add_trigger(n_recvd[i] + 2, action, i_interval);
+                                    }
+                                }
+                                break;
+                                case 'C': // activate callback based trigger
+                                break;
+                                case 'R': // remove trigger
+                                {
+                                    cxt->it_host->remove_trigger(n_recvd[i] + 2);
+                                }
+                                break;
+                                default:
+                                printf("Corrupted message from prompt: %s\n", n_recvd[i]);
+                                break;
+                            }
+                        }
+                        break;
                         }
                     }
                     
@@ -618,7 +649,7 @@ int launcher(int argc, char** argv){
     str = std::string("cd ") + pwd + std::string("&& python3 ./prompt.py ") + str;
     return system(str.c_str());
 }
-#if !defined(TESTMAIN) && !( defined(_MSC_VER) && defined(_DEBUG) )
+#if true || !defined(TESTMAIN) && !( defined(_MSC_VER) && defined(_DEBUG) )
 extern "C" int __DLLEXPORT__ main(int argc, char** argv) {
 #ifdef __AQ_BUILD_LAUNCHER__
    return launcher(argc, argv);
@@ -631,6 +662,8 @@ extern "C" int __DLLEXPORT__ main(int argc, char** argv) {
 #ifdef THREADING
     auto tp = new ThreadPool();
     cxt->thread_pool = tp;
+    cxt->it_host = new IntervalBasedTriggerHost(tp);
+    cxt->ct_host = new CallbackBasedTriggerHost(tp);
 #endif
     
    const char* shmname;

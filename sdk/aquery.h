@@ -84,7 +84,9 @@ __AQEXPORT__(void) init_session(Context* cxt);
 #ifdef _WIN32
 #include <cstring>
 #else 
-void* memcpy(void*, const void*, unsigned long long);
+namespace std {
+	void* memcpy(void*, const void*, unsigned long long);
+}
 #endif
 
 struct vectortype_storage{
@@ -95,7 +97,7 @@ struct vectortype_storage{
 	vectortype_storage() = default;
 	template <class Ty, template <typename> class VT>
 	vectortype_storage(const VT<Ty>& vt) {
-		memcpy(this, &vt, sizeof(vectortype_storage));
+		std::memcpy(this, &vt, sizeof(vectortype_storage));
 	}
 };
 struct ColRef_storage {
@@ -108,7 +110,7 @@ struct ColRef_storage {
 	ColRef_storage() = default;
 	template <class Ty, template <typename> class VT>
 	ColRef_storage(const VT<Ty>& vt) {
-		memcpy(this, &vt, sizeof(ColRef_storage));
+		std::memcpy(this, &vt, sizeof(ColRef_storage));
 	}
 };
 #endif

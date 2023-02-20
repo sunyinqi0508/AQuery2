@@ -18,7 +18,7 @@
 #include "gc.h"
 #pragma pack(push, 1)
 
-struct vectortype_cstorage{
+struct vectortype_cstorage {
 	void* container;
 	unsigned int size, capacity;
 };
@@ -123,7 +123,7 @@ public:
 		_copy(vt);
 		return *this;
 	}
-	vector_type<_Ty>& operator =(vector_type<_Ty>&& vt) {
+	vector_type<_Ty>& operator =(vector_type<_Ty>&& vt) noexcept {
 		_move(std::move(vt));
 		return *this;
 	}
@@ -139,10 +139,10 @@ public:
 		
 		return *this;
 	}
-	inline std::unordered_set<value_t> distinct_common(){
+	inline std::unordered_set<value_t> distinct_common() {
 		return std::unordered_set<value_t>(container, container + size);
 	}
-	vector_type<_Ty>& distinct_inplace(){
+	vector_type<_Ty>& distinct_inplace() {
 		uint32_t i = 0;
 		for(const auto& v : distinct_common()){
 			container[i++] = v;

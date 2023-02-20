@@ -58,27 +58,6 @@ void print<bool>(const bool&v, const char* delimiter){
 }
 
 
-template<class T> 
-T getInt(const char*& buf){
-	T ret = 0;
-	while(*buf >= '0' and *buf <= '9'){
-		ret = ret*10 + *buf - '0';
-		buf++;
-	}
-	return ret;
-}
-
-template<class T> 
-char* intToString(T val, char* buf){
-
-	while (val > 0){
-		*--buf = val%10 + '0';
-		val /= 10;
-	}
-	
-	return buf;
-}
-
 void skip(const char*& buf){ 
 	while(*buf && (*buf >'9' || *buf < '0')) buf++; 
 }

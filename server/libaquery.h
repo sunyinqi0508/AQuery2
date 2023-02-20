@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <chrono>
 #include <filesystem>
+#include <cstring>
 class aq_timer {
 private:
 	std::chrono::high_resolution_clock::time_point now;
@@ -31,6 +32,27 @@ public:
 };
 
 #include "table.h"
+
+template<class T = int> 
+T getInt(const char*& buf){
+	T ret = 0;
+	while(*buf >= '0' and *buf <= '9'){
+		ret = ret*10 + *buf - '0';
+		buf++;
+	}
+	return ret;
+}
+
+template<class T> 
+char* intToString(T val, char* buf){
+
+	while (val > 0){
+		*--buf = val%10 + '0';
+		val /= 10;
+	}
+	
+	return buf;
+}
 
 
 enum Log_level {
@@ -72,7 +94,9 @@ struct StoredProcedure {
 	const char* name;
 	void **__rt_loaded_modules;
 };
-
+struct Trigger;
+struct IntervalBasedTriggerHost;
+struct CallbackBasedTriggerHost;
 
 struct Context {
     typedef int (*printf_type) (const char *format, ...);
@@ -113,6 +137,9 @@ struct Context {
 	std::unordered_map<std::string, void*> tables;
     std::unordered_map<std::string, uColRef *> cols;
     std::unordered_map<std::string, StoredProcedure> stored_proc;
+    std::unordered_map<std::string, Trigger> triggers;
+	IntervalBasedTriggerHost *it_host;
+	CallbackBasedTriggerHost *ct_host;
 };
 
 
@@ -174,6 +201,13 @@ typedef int (*code_snippet)(void*);
 template <class _This_Struct>
 inline void AQ_ZeroMemory(_This_Struct& __val) {
 	memset(&__val, 0, sizeof(_This_Struct));
+}
+
+template <typename _This_Type>
+inline _This_Type* AQ_DupObject(_This_Type* __val) {
+	auto ret = (_This_Type*)(malloc(sizeof(_This_Type)));
+	memcpy(ret, __val, sizeof(_This_Type));
+	return ret;
 }
 
 #ifdef __USE_STD_SEMAPHORE__

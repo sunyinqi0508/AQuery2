@@ -271,6 +271,11 @@ class Context:
             val.table.triggers.remove(val)
         val.remove()
 
+    def post_exec_triggers(self):
+        for t in self.triggers_active:
+            t.execute()
+        self.triggers_active.clear()
+
     def abandon_postproc(self):
         self.ccode = ''
         self.finalize_query()

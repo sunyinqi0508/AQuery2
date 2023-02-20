@@ -43,7 +43,7 @@ class orderby(ast_node):
     def merge(self, node):
         self.produce(node)
         
-    def finialize(self, references):
+    def finalize(self, references):
         self.order = [ o for o in self.order if o.name in references ]
     
     def result(self, sep:str = ','):

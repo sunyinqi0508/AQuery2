@@ -7,6 +7,12 @@
 #include "types.h"
 // #include "robin_hood.h"
 #include "unordered_dense.h"
+template<typename Key, typename Val>
+using aq_map = ankerl::unordered_dense::map<Key, Val>;
+
+template<typename Key>
+using aq_set = ankerl::unordered_dense::set<Key>;
+
 // only works for 64 bit systems
 namespace hasher_consts{
 	constexpr size_t _FNV_offset_basis = 14695981039346656037ULL;
@@ -19,7 +25,6 @@ inline size_t append_bytes(const unsigned char* _First) noexcept {
 		_Val ^= static_cast<size_t>(*_First);
 		_Val *= hasher_consts::_FNV_prime;
 	}
-	
 	return _Val;
 }
 
