@@ -2,7 +2,7 @@
 
 ## GLOBAL CONFIGURATION FLAGS
 
-version_string = '0.7.0a'
+version_string = '0.7.1a'
 add_path_to_ldpath = True
 rebuild_backend = False
 run_backend = True
@@ -62,7 +62,10 @@ def init_config():
                     build_driver = 'Makefile'
             # print("adding path")
         else:
-            import readline
+            try:
+                import readline
+            except ImportError:
+                print("Warning: Readline module not present")
             if build_driver == 'Auto':
                 build_driver = 'Makefile'
             if os_platform == 'cygwin':

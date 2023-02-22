@@ -136,6 +136,7 @@ void Server::exec(const char* q){
 
 bool Server::haserror(){
     if (last_error){
+        puts(last_error);
         last_error = nullptr;
         return true;
     }
@@ -218,6 +219,50 @@ void* Server::getCol(int col_idx){
     return nullptr;
 }
 
+#define AQ_MONETDB_FETCH(X) case monetdbe_##X: \
+    return (long long)((X *)(_ret_col->data))[0]; 
+long long Server::getFirstElement() {
+    if(!this->haserror() && res) {
+        auto _res = static_cast<monetdbe_result*>(this->res);
+        auto err_msg = monetdbe_result_fetch(_res, 
+            reinterpret_cast<monetdbe_column**>(&ret_col), 0);
+        if(err_msg == nullptr)
+        { 
+            auto _ret_col = static_cast<monetdbe_column*>(this->ret_col);
+            cnt = _ret_col->count;
+            if(cnt > 0) { 
+                switch(_ret_col->type) {
+                    AQ_MONETDB_FETCH(bool)
+                    AQ_MONETDB_FETCH(int8_t)
+                    AQ_MONETDB_FETCH(int16_t)
+                    AQ_MONETDB_FETCH(int32_t)
+                    AQ_MONETDB_FETCH(int64_t)
+#ifdef HAVE_HGE
+                case monetdbe_int128_t: 
+                    return (long long)((__int128_t *)(_ret_col->data))[0]; 
+#endif
+                    AQ_MONETDB_FETCH(size_t)
+                    AQ_MONETDB_FETCH(float)
+                    AQ_MONETDB_FETCH(double)
+                    case monetdbe_str:
+                        return ((const char **)(_ret_col->data))[0][0] == '\0';
+                    default:
+                        printf("Error, non-primitive result: Getting col %s, type: %s\n", 
+                    _ret_col->name, monetdbe_type_str[_ret_col->type]);
+                        return 0;                    
+                }
+            }
+        }
+        else {
+            printf("Error fetching result: %s\n", err_msg);
+        }
+    }
+    else {
+        puts("Error: No result.");
+    }
+    return 0;
+}
+
 Server::~Server(){
     close();
 }
@@ -233,19 +278,23 @@ bool Server::havehge() {
 }
 
 
-void ExecuteStoredProcedureEx(const StoredProcedure *p, Context* cxt){
+int ExecuteStoredProcedureEx(const StoredProcedure *p, Context* cxt){
     auto server = static_cast<Server*>(cxt->alt_server);
+    int ret = 0;
+    bool return_from_procedure = false;
     void* handle = nullptr;
     uint32_t procedure_module_cursor = 0;
     for(uint32_t i = 0; i < p->cnt; ++i) {
         switch(p->queries[i][0]){
+            puts(p->queries[i]);
             case 'Q': {
-                server->exec(p->queries[i]);
+                server->exec(p->queries[i] + 1);
+                ret = int(server->getFirstElement());
             } 
             break;
             case 'P': {
-                auto c = code_snippet(dlsym(handle, p->queries[i]+1));
-                c(cxt);
+                auto c = code_snippet(dlsym(handle, p->queries[i] + 1));
+                ret = c(cxt);
             }
             break;
             case 'N': {
@@ -266,11 +315,25 @@ void ExecuteStoredProcedureEx(const StoredProcedure *p, Context* cxt){
                     i, p->queries[i][0]);
         }
     }
+    
+    return ret;
 }
 
 int execTriggerPayload(void* args) {
     auto spp = (StoredProcedurePayload*)(args);
-    ExecuteStoredProcedureEx(spp->p, spp->cxt);
+    puts("exec trigger");
+    auto ret = ExecuteStoredProcedureEx(spp->p, spp->cxt);
     delete spp;
-    return 0;
+    return ret;
+}
+
+int execTriggerPayloadCond(void* args) {
+    int ret = 0;
+    auto spp = (StoredProcedurePayloadCond*)(args); 
+    if(ExecuteStoredProcedureEx(spp->condition, spp->cxt) != 0) 
+        ret = ExecuteStoredProcedureEx(spp->action, spp->cxt);
+    free(spp->condition);
+    free(spp->action);
+    delete spp;
+    return ret;
 }

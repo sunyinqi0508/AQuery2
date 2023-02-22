@@ -19,6 +19,7 @@ struct Server{
     void connect(Context* cxt);
     void exec(const char* q);
     void *getCol(int col_idx);
+    long long getFirstElement();
     void close();
     bool haserror();
     static bool havehge();

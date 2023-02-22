@@ -590,6 +590,8 @@ def parser(literal_string, ident):
             ))
         )("create_trigger")
         
+        drop_trigger = (keyword("drop trigger") + var_name("name")) ("drop_trigger")
+        
         cache_options = Optional((
             keyword("options").suppress()
             + LB
@@ -713,7 +715,7 @@ def parser(literal_string, ident):
             query
             | (insert | update | delete | load)
             | (create_table | create_view | create_cache | create_index | create_trigger)
-            | (drop_table | drop_view | drop_index)
+            | (drop_table | drop_view | drop_index | drop_trigger)
         )("stmts"), ";")
 
         other_stmt = (

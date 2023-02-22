@@ -94,8 +94,8 @@ have_hge() {
     return false;
 #endif
 }
-
-__AQEXPORT__(StoredProcedure)
+Context* _g_cxt;
+StoredProcedure
 get_procedure(Context* cxt, const char* name) {
     auto res = cxt->stored_proc.find(name);
     if (res == cxt->stored_proc.end())
@@ -107,7 +107,10 @@ get_procedure(Context* cxt, const char* name) {
         };
     return res->second;
 }
-
+__AQEXPORT__(StoredProcedure)
+get_procedure_ex(const char* name){
+    return get_procedure(_g_cxt, name);
+}
 using prt_fn_t = char* (*)(void*, char*);
 
 // This function contains heap allocations, free after use
@@ -490,7 +493,7 @@ start:
                                         puts(p.queries[j-1]);
                                     }
                                     fclose(fp);
-                                    p.__rt_loaded_modules = 0;
+                                    p.__rt_loaded_modules = nullptr;
                                     return load_modules(p);
                                 };
                                 switch(n_recvd[i][1]){
@@ -561,6 +564,7 @@ start:
                             break;
                         case 'T': // triggers
                         {
+                            puts(n_recvd[i]);
                             switch(n_recvd[i][1]){
                                 case 'I': // register interval based trigger
                                 {
@@ -578,6 +582,23 @@ start:
                                 }
                                 break;
                                 case 'C': // activate callback based trigger
+                                {
+                                    const char* query_name = n_recvd[i] + 2;
+                                    const char* action_name = query_name;
+                                    while(*action_name++);
+                                    if(auto q = get_procedure(cxt, query_name), 
+                                            a = get_procedure(cxt, action_name); 
+                                            q.name == nullptr || a.name == nullptr
+                                    )
+                                        printf("Warning: Invalid query or action name: %s %s", 
+                                            query_name, action_name);
+                                    else{
+                                        auto query = AQ_DupObject(&q);
+                                        auto action = AQ_DupObject(&a);
+
+                                        cxt->ct_host->execute_trigger(query, action);
+                                    }
+                                }
                                 break;
                                 case 'R': // remove trigger
                                 {
@@ -656,14 +677,15 @@ extern "C" int __DLLEXPORT__ main(int argc, char** argv) {
 #endif
    // puts("running");
    Context* cxt = new Context();
+   _g_cxt = cxt;
    cxt->aquery_root_path = to_lpstr(std::filesystem::current_path().string());
    // cxt->log("%d %s\n", argc, argv[1]);
 
 #ifdef THREADING
     auto tp = new ThreadPool();
     cxt->thread_pool = tp;
-    cxt->it_host = new IntervalBasedTriggerHost(tp);
-    cxt->ct_host = new CallbackBasedTriggerHost(tp);
+    cxt->it_host = new IntervalBasedTriggerHost(tp, cxt);
+    cxt->ct_host = new CallbackBasedTriggerHost(tp, cxt);
 #endif
     
    const char* shmname;

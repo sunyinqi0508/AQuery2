@@ -180,8 +180,8 @@ def get_storedproc(name : str):
     else:
         ret : StoredProcedure = cxt.get_storedproc(bytes(name, 'utf-8'))
         if (
-            ret.name.value and 
-            ret.name.value.decode('utf-8') != name
+            ret.name and 
+            ret.name.decode('utf-8') != name
         ):
             print(f'Procedure {name} mismatch in server {ret.name.value}')
             return None

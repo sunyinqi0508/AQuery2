@@ -11,7 +11,7 @@ constexpr static bool cpp_17 = false;
 #endif
 
 template <class T>
-inline const char* str(const T& v) {
+inline const char* str([[maybe_unused]] const T& v) {
 	return "";
 }
 

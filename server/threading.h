@@ -71,18 +71,19 @@ struct IntervalBasedTrigger : Trigger {
 
 class IntervalBasedTriggerHost : public TriggerHost {
 public:
-    explicit IntervalBasedTriggerHost(ThreadPool *tp);
+    explicit IntervalBasedTriggerHost(ThreadPool *tp, Context* cxt);
     void add_trigger(const char* name, StoredProcedure* stored_procedure, uint32_t interval);
     void remove_trigger(const char* name);
 private:
     unsigned long long now;
+    bool running;
     void tick() override;
 };
 
 class CallbackBasedTriggerHost : public TriggerHost {
 public:
-    explicit CallbackBasedTriggerHost(ThreadPool *tp);
-    void add_trigger();
+    explicit CallbackBasedTriggerHost(ThreadPool *tp, Context *cxt);
+    void execute_trigger(StoredProcedure* query, StoredProcedure* action);
 private:
     void tick() override;
 };

@@ -1088,7 +1088,13 @@ class create_trigger(ast_node):
     class Type (Enum):
         Interval = auto()
         Callback = auto()
-        
+    def init(self, _):
+        # overload init to prevent automatic sql generation
+        pass
+    def consume(self, _):
+        # overload consume to prevent automatic sqlend action
+        pass
+    
     def produce(self, node):
         from engine.utils import send_to_server, get_storedproc
         node = node['create_trigger']
@@ -1097,7 +1103,7 @@ class create_trigger(ast_node):
         self.action = get_storedproc(self.action_name)
         if self.trigger_name in self.context.triggers:
             raise ValueError(f'trigger {self.trigger_name} exists')
-        elif self.action:
+        elif not self.action:
             raise ValueError(f'Stored Procedure {self.action_name} do not exist')
 
         if 'interval' in node: # executed periodically from server

@@ -332,7 +332,7 @@ def init_threaded(state : PromptState):
         state.send = server_so['receive_args']
         state.wait_engine = server_so['wait_engine']
         state.wake_engine = server_so['wake_engine']
-        state.get_storedproc = server_so['get_procedure']
+        state.get_storedproc = server_so['get_procedure_ex']
         state.get_storedproc.restype = StoredProcedure
         aquery_config.have_hge = server_so['have_hge']()
         if aquery_config.have_hge != 0:
@@ -342,11 +342,10 @@ def init_threaded(state : PromptState):
         state.th.start() 
 
 def init_prompt() -> PromptState:
-    from engine.utils import session_context
     aquery_config.init_config()
     
     state = PromptState()
-    session_context = state
+    engine.utils.session_context = state
     # if aquery_config.rebuild_backend:
     #     try:
     #         os.remove(state.server_bin) 
@@ -504,6 +503,9 @@ def prompt(running = lambda:True, next = lambda:input('> '), state : Optional[Pr
                 state.currstats.compile_time = state.currstats.stop()
                 if build_this:
                     state.set_ready()
+                while state.get_ready():
+                    state.wait_engine()
+                cxt.post_exec_triggers()
                 state.currstats.need_print = True
                 continue
             

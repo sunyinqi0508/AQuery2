@@ -154,11 +154,14 @@ bool ThreadPool::busy(){
     return true;
 }
 
-IntervalBasedTriggerHost::IntervalBasedTriggerHost(ThreadPool* tp){
+IntervalBasedTriggerHost::IntervalBasedTriggerHost(ThreadPool* tp, Context* cxt){
+    this->cxt = cxt;
     this->tp = tp;
     this->triggers = new aq_map<std::string, IntervalBasedTrigger>;
     trigger_queue_lock = new mutex();
     this->now = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+    this->running = true;
+    this->handle = new thread(&IntervalBasedTriggerHost::tick, this);
 }
 
 void IntervalBasedTriggerHost::add_trigger(const char* name, StoredProcedure *p, uint32_t interval) {
@@ -171,21 +174,28 @@ void IntervalBasedTriggerHost::add_trigger(const char* name, StoredProcedure *p,
 }
 
 void IntervalBasedTriggerHost::tick() {
-    const auto current_time = std::chrono::high_resolution_clock::now().time_since_epoch().count();
-    const auto delta_t = static_cast<uint32_t>((current_time - now) / 1000000); // miliseconds precision
+    auto current_time = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+    auto delta_t = static_cast<uint32_t>((current_time - now) / 1000000); // miliseconds precision
     now = current_time;
     auto vt_triggers = static_cast<aq_map<std::string, IntervalBasedTrigger> *>(this->triggers);
-    trigger_queue_lock->lock();
-    for(auto& [_, t] : vt_triggers->values()) {
-        if(t.tick(delta_t)) {
-            payload_t payload;
-            payload.f = execTriggerPayload;
-            payload.args = static_cast<void*>(new StoredProcedurePayload {t.sp, cxt});
+    fflush(stdout);
+    while(this->running) {
+        std::this_thread::sleep_for(50ms);
+        current_time = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+        delta_t = static_cast<uint32_t>((current_time - now) / 1000000); // miliseconds precision
+        now = current_time;
+        trigger_queue_lock->lock();
+        for(auto& [_, t] : vt_triggers->values()) {
+            if(t.tick(delta_t)) {
+                payload_t payload;
+                payload.f = execTriggerPayload;
+                payload.args = static_cast<void*>(new StoredProcedurePayload {t.sp, cxt});
 
-            tp->enqueue_task(payload);
+                tp->enqueue_task(payload);
+            }
         }
+        trigger_queue_lock->unlock();
     }
-    trigger_queue_lock->unlock();
 }
 
 void IntervalBasedTriggerHost::remove_trigger(const char* name) {
@@ -199,6 +209,7 @@ void IntervalBasedTrigger::reset() {
 
 bool IntervalBasedTrigger::tick(uint32_t delta_t) {
     bool ret = false; 
+    // printf("%d %d\n",delta_t, time_remaining);
     if (time_remaining <= delta_t) 
         ret = true; 
     if (auto curr_dt = delta_t % interval; time_remaining <= curr_dt) 
@@ -208,8 +219,19 @@ bool IntervalBasedTrigger::tick(uint32_t delta_t) {
     return ret;
 }
 
-CallbackBasedTriggerHost::CallbackBasedTriggerHost(ThreadPool *tp) {
+CallbackBasedTriggerHost::CallbackBasedTriggerHost(ThreadPool *tp, Context *cxt) {
     this->tp = tp;
+    this->cxt = cxt;
+}
+
+void CallbackBasedTriggerHost::execute_trigger(StoredProcedure* query, StoredProcedure* action) {
+    payload_t payload;
+    payload.f = execTriggerPayloadCond;
+    payload.args = static_cast<void*>(
+        new StoredProcedurePayloadCond {query, action, cxt}
+    );
+
+    this->tp->enqueue_task(payload);
 }
 
 void CallbackBasedTriggerHost::tick() {}

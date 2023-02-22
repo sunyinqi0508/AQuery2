@@ -43,16 +43,24 @@ def read(cmd : str):
                 clip += q + '\n'
     if rc and not input('copy to clipboard?').lower().startswith('n'):
         import pyperclip
-        pyperclip.copy(clip)    
-        
+        pyperclip.copy(clip)
+
 if __name__ == '__main__':
+    import os
+    files = os.listdir('./procedures/')
     while True:
         cmd = input("r for read, rc to read c_str, w for write: ")
-        if cmd.lower().startswith('r'):
+        if cmd.lower().startswith('ra'):
+            for f in files:
+                if f.endswith('.aqp'):
+                    name = f[:-4]
+                    read('r')
+                    input('press any key to continue')
+        elif cmd.lower().startswith('r'):
             read(cmd.lower())
             break
         elif cmd.lower().startswith('w'):
-            write()    
+            write()
             break
         elif cmd.lower().startswith('q'):
             break

@@ -148,7 +148,14 @@ struct StoredProcedurePayload {
 	Context* cxt;
 };
 
+struct StoredProcedurePayloadCond {
+	StoredProcedure *condition;
+	StoredProcedure *action;
+	Context* cxt;
+};
+
 int execTriggerPayload(void*);
+int execTriggerPayloadCond(void*);
 
 #ifdef _WIN32
 #define __DLLEXPORT__  __declspec(dllexport) __stdcall 

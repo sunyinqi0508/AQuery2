@@ -1,0 +1,8 @@
+procedure one run
+procedure two run
+
+create table t(a int);
+exec
+create trigger a on t action one when two;
+exec
+insert into t(a) values (1);
