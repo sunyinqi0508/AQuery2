@@ -472,7 +472,7 @@ start:
                                     auto fp = fopen(config_name.c_str(), "rb");
                                     if(fp == nullptr){
                                         puts("ERROR: Procedure not found on disk.");
-                                        return false;
+                                        return true;
                                     }
                                     fread(&p.cnt, sizeof(p.cnt), 1, fp);
                                     fread(&p.postproc_modules, sizeof(p.postproc_modules), 1, fp);

@@ -75,7 +75,7 @@ class build_manager:
                    'build.py', 'Makefile', 
                    'server/server.cpp', 'server/libaquery.cpp',  
                    'server/monetdb_conn.cpp', 'server/threading.cpp', 
-                   'server/winhelper.cpp' 
+                   'server/winhelper.cpp', 'server/monetdb_ext.c'
                    ]
     headerfiles = ['server/aggregations.h', 'server/hasher.h', 'server/io.h', 
                    'server/libaquery.h', 'server/monetdb_conn.h', 'server/pch.hpp', 

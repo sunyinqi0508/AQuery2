@@ -211,7 +211,7 @@ public:
 	iterator_t erase(iterator_t _it) {
 #ifdef DEBUG 
 		// Do bound checks 
-		if (!(size && capicity && container &&
+		if (!(size && capacity && container &&
 			_it >= container && (_it - container) < size))
 			return 0;
 #endif

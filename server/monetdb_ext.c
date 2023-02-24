@@ -69,10 +69,13 @@ monetdbe_get_size(monetdbe_database dbhdl, const char *table_name)
 	monetdbe_database_internal* hdl = (monetdbe_database_internal*)dbhdl;
 	backend* be = ((backend *)(((monetdbe_database_internal*)dbhdl)->c->sqlcontext));
 	mvc *m = be->mvc;
+    //mvc_trans(m);
 	sql_table *t = find_table_or_view_on_scope(m, NULL, "sys", table_name, "CATALOG", false);
+	if (!t) return 0;
 	sql_column *col = ol_first_node(t->columns)->data;
 	sqlstore* store = m->store;
 	size_t sz = store->storage_api.count_col(m->session->tr, col, QUICK);
+	//mvc_cancel_session(m); 
 	return sz; 
 }
 
@@ -81,10 +84,13 @@ monetdbe_get_col(monetdbe_database dbhdl, const char *table_name, uint32_t col_i
     monetdbe_database_internal* hdl = (monetdbe_database_internal*)dbhdl;
 	backend* be = ((backend *)(((monetdbe_database_internal*)dbhdl)->c->sqlcontext));
 	mvc *m = be->mvc;
+    //mvc_trans(m);
 	sql_table *t = find_table_or_view_on_scope(m, NULL, "sys", table_name, "CATALOG", false);
+	if (!t) return 0;
 	sql_column *col = ol_fetch(t->columns, col_id);
 	sqlstore* store = m->store;
 	BAT *b = store->storage_api.bind_col(m->session->tr, col, QUICK);
 	BATiter iter = bat_iterator(b);
+	//mvc_cancel_session(m); 
     return iter.base;
 }
