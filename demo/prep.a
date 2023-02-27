@@ -1,0 +1,13 @@
+create table source(x vecdouble, y int64);
+LOAD MODULE FROM "./libirf.so"  FUNCTIONS (
+    newtree(height:int, f:int64, sparse:vecint, forget:double, maxf:int64, noclasses:int64, e:int) -> bool,
+    fit_inc(X:vecvecdouble, y:vecint64) -> bool,
+    predict(X:vecvecdouble) -> vecint  
+);
+
+create table elec_sparse(v int);    
+
+insert into elec_sparse values (0), (1), (1), (1), (1), (1), (1);
+
+select newtree(30, 7, elec_sparse.v, 0, 4, 2, 1) from elec_sparse
+

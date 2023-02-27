@@ -86,7 +86,7 @@ monetdbe_get_col(monetdbe_database dbhdl, const char *table_name, uint32_t col_i
 	mvc *m = be->mvc;
     //mvc_trans(m);
 	sql_table *t = find_table_or_view_on_scope(m, NULL, "sys", table_name, "CATALOG", false);
-	if (!t) return 0;
+	if (!t) return NULL;
 	sql_column *col = ol_fetch(t->columns, col_id);
 	sqlstore* store = m->store;
 	BAT *b = store->storage_api.bind_col(m->session->tr, col, QUICK);

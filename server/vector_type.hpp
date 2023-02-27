@@ -172,15 +172,25 @@ public:
 	inline void grow(uint32_t sz = 0) {
 		if constexpr (_grow)
 			sz = this->size;
-		if (sz >= capacity) { // geometric growth
+		if (sz >= capacity) { // geometric growth 
+			bool reallocate = true;
+			if (capacity == 0 && sz > 0) 
+				[[unlikely]]
+				reallocate = false;
 			uint32_t new_capacity;
 			if constexpr (_grow)
 				new_capacity = size + 1 + (size >> 1);
 			else	
 				new_capacity = sz;
-
-			_Ty* n_container = (_Ty*)realloc(container, new_capacity * sizeof(_Ty));
-			// memcpy(n_container, container, sizeof(_Ty) * size);
+			
+			_Ty* n_container;
+			if (reallocate) {
+				n_container = (_Ty*)realloc(container, new_capacity * sizeof(_Ty));
+			}
+			else {
+				n_container = (_Ty*)malloc(new_capacity * sizeof(_Ty));
+				memcpy(n_container, container, sizeof(_Ty) * size);
+			}
 			memset(n_container + size, 0, sizeof(_Ty) * (new_capacity - size));
 			// if (capacity)
 			// 	free(container);

@@ -6,7 +6,10 @@
 
 #include "aquery.h"
 
-#include "./server/gc.h"
+#include "../server/gc.h"
+
+inline GC* GC::gc_handle = nullptr;
+inline ScratchSpace* GC::scratch_space = nullptr;
 __AQEXPORT__(void) __AQ_Init_GC__(Context* cxt) {
     GC::gc_handle = static_cast<GC*>(cxt->gc);
     GC::scratch_space = nullptr;
@@ -16,18 +19,18 @@ DecisionTree *dt = nullptr;
 RandomForest *rf = nullptr;
 
 __AQEXPORT__(bool)
-newtree(int height, long f, ColRef<int> X, double forget, long maxf, long noclasses, Evaluation e, long r, long rb)
+newtree(int ntree, long f, ColRef<int> sparse, double forget, long maxf, long nclasses, Evaluation e)
 {
-	if (X.size != f)
+	if (sparse.size != f)
 		return false;
 	int *X_cpy = (int *)malloc(f * sizeof(int));
 	
-	memcpy(X_cpy, X.container, f);
+	memcpy(X_cpy, sparse.container, f);
 
 	if (maxf < 0)
 		maxf = f;
-	dt = new DecisionTree(f, X_cpy, forget, maxf, noclasses, e);
-	rf = new RandomForest(height, f, X_cpy, forget, noclasses, e);
+	// dt = new DecisionTree(f, X_cpy, forget, maxf, noclasses, e);
+	rf = new RandomForest(ntree, f, X_cpy, forget, nclasses, e, true);
 	return true;
 }
 
@@ -53,14 +56,20 @@ __AQEXPORT__(bool)
 fit_inc(vector_type<vector_type<double>> v, vector_type<long> res)
 {
 	static uint32_t last_offset = 0;
-	double **data = (double **)malloc(v.size * sizeof(double *));
-	if(last_offset >= v.size) 
+	if(last_offset > v.size) 
 		last_offset = 0;
-	for (int i = last_offset; i < v.size; ++i)
-		data[i] = v.container[i].container;
-	rf->fit(data, res.container, v.size);
-	free(data);
-	return true;
+	const auto curr_size = (v.size - last_offset);
+	if(curr_size > 0) {
+		double **data = (double **)malloc( curr_size * sizeof(double *));
+		for (uint32_t i = last_offset; i < v.size; ++i)
+			data[i - last_offset] = v.container[i].container;
+		rf->fit(data, res.container + last_offset, curr_size);
+		
+		last_offset = v.size;
+		free(data);
+		return true;
+	}
+	return false;
 }
 
 

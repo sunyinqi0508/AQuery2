@@ -291,5 +291,6 @@ inline _This_Type* AQ_DupObject(_This_Type* __val) {
 #endif //__USE_STD_SEMAPHORE__
 
 void print_monetdb_results(void* _srv, const char* sep, const char* end, uint32_t limit);
+void activate_callback_based_trigger(Context* context, const char* cmd);
 
 #endif

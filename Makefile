@@ -5,7 +5,7 @@ Defines =
 CC = $(CXX) -xc 
 CXXFLAGS = --std=c++2a
 ifeq ($(AQ_DEBUG), 1)
-	OPTFLAGS = -g3 #-fsanitize=address 
+	OPTFLAGS = -g3 #-static-libasan -fsanitize=address 
 	LINKFLAGS = 
 else
 	OPTFLAGS = -Ofast -DNDEBUG -fno-stack-protector 

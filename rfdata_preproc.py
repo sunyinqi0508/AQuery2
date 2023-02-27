@@ -3,7 +3,7 @@ import os
 sep = os.sep
 
 # toggles
-dataset = 'power' # [covtype, electricity, mixed, phishing, power]
+dataset = 'electricity' # [covtype, electricity, mixed, phishing, power]
 use_threadpool = False # True
 
 # environments

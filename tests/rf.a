@@ -1,0 +1,16 @@
+LOAD MODULE FROM "./libirf.so"  FUNCTIONS (      newtree(height:int, f:int64, sparse:vecint, forget:double, maxf:int64, noclasses:int64, e:int) -> bool,      fit(X:vecvecdouble, y:vecint64) -> bool,      predict(X:vecvecdouble) -> vecint  );
+
+create table source(x vecdouble, y int64);
+-- Create trigger 1 ~~ to predict whenever sz(source > ?)
+-- Create trigger 2 ~~ to auto feed ~
+load complex data infile "data/electricity/electricity1.csv" into table source fields terminated by ',' element terminated by ';';
+
+create table elec_sparse(v int);    
+insert into elec_sparse values (0), (1), (1), (1), (1), (1), (1);
+
+select newtree(30, 7, elec_sparse.v, 0, 4, 2, 1) from elec_sparse
+
+select fit(x, y) from source
+
+-- select pack(x1, x2, x3, x4) from source
+select predict(x) from source

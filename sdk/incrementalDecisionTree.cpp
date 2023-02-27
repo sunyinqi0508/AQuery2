@@ -14,7 +14,7 @@ std::mt19937 g(rd());
 
 struct minEval{
 	double value;
-	int* values;
+	int* values = nullptr;
 
 	double eval;
 	long left; // how many on its left
@@ -825,7 +825,10 @@ void DecisionTree::IncrementalUpdate(double** data, long* result, long size, DT*
 		for(i=low;i<low+size;i++){
 			t[resultNew[i]]++;
 		}
-		if(cMin.values!=nullptr)free(cMin.values);
+		if(cMin.values!=nullptr){
+			free(cMin.values);
+			cMin.values = nullptr;
+		}
 		current->result = std::distance(t, std::max_element(t, t+classes));
 		free(index);
 		free(current->dataRecord);
@@ -989,13 +992,17 @@ void DecisionTree::Update(double** data, long* result, long size, DT* current){
 		}
 		if(c.eval<cMin.eval){
 			cMin.eval = c.eval;
-			if(cMin.values!=nullptr)free(cMin.values);
+			if(cMin.values!=nullptr){
+				free(cMin.values);
+				cMin.values = nullptr;
+			}
 			cMin.values = c.values;
 			cMin.value = c.value;
 			cFeature = col;
 			left = c.left;
 		}else if(c.values!=nullptr){
 			free(c.values);
+			c.values = nullptr;
 		}
 	}
 

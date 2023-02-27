@@ -28,20 +28,33 @@ struct Session{
     void* memory_map;
 };
 
-struct Context{
+struct Trigger;
+struct IntervalBasedTriggerHost;
+struct CallbackBasedTriggerHost;
+
+struct Context {
     typedef int (*printf_type) (const char *format, ...);
-	void* module_function_maps = 0;
+
+	void* module_function_maps = nullptr;
 	Config* cfg;
 
 	int n_buffers, *sz_bufs;
 	void **buffers;
 
-	void* alt_server;
+	void* alt_server = nullptr;
 	Log_level log_level = LOG_INFO;
 
 	Session current;
-
-
+	const char* aquery_root_path;
+#ifdef THREADING
+	void* thread_pool;
+#endif	
+#ifndef __AQ_USE_THREADEDGC__
+	void* gc;
+#endif
+	printf_type print;
+	Context();
+	virtual ~Context();
 	template <class ...Types>
 	void log(Types... args) {
 		if (log_level == LOG_INFO)

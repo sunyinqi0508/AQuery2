@@ -80,10 +80,28 @@ private:
     void tick() override;
 };
 
+struct CallbackBasedTrigger : Trigger {
+    const char* trigger_name;
+    const char* table_name;
+    union {
+        StoredProcedure* query;
+        const char* query_name;
+    };
+    union {
+        StoredProcedure* action;
+        const char* action_name;
+    };
+    bool materialized;
+};
+
 class CallbackBasedTriggerHost : public TriggerHost {
 public:
     explicit CallbackBasedTriggerHost(ThreadPool *tp, Context *cxt);
     void execute_trigger(StoredProcedure* query, StoredProcedure* action);
+    void execute_trigger(const char* trigger_name);
+    void add_trigger(const char* trigger_name, const char* table_name, 
+        const char* query_name, const char* action_name);
+
 private:
     void tick() override;
 };

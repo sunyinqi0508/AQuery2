@@ -24,6 +24,7 @@ def write():
             fp.write(q.encode('utf-8'))
             if q.startswith('Q'):
                 fp.write(b'\n ')
+            
             fp.write(b'\x00')
         
 

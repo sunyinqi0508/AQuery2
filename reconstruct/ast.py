@@ -1118,6 +1118,11 @@ class create_trigger(ast_node):
             if self.procedure and self.table_name in self.context.tables_byname:
                 self.table = self.context.tables_byname[self.table_name]
                 self.table.triggers.add(self)
+                send_to_server(
+                    f'TC{self.trigger_name}\0{self.table_name}\0'
+                    f'{self.query_name}\0{self.action_name}'
+                )
+                
             else:
                 return
         self.context.triggers[self.trigger_name] = self
@@ -1131,7 +1136,7 @@ class create_trigger(ast_node):
 
     def execute(self): 
         from engine.utils import send_to_server
-        send_to_server(f'TC{self.query_name}\0{self.action_name}')
+        send_to_server(f'TA{self.query_name}\0{self.action_name}')
 
     def remove(self):
         from engine.utils import send_to_server

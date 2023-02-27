@@ -1,0 +1,3 @@
+create table test(x vecdouble, y int64);
+load complex data infile "data/electricity/electricity872.csv" into table test fields terminated by ',' element terminated by ';';
+select predict(x) from test

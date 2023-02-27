@@ -277,6 +277,84 @@ bool Server::havehge() {
 #endif
 }
 
+using prt_fn_t = char* (*)(void*, char*);
+constexpr prt_fn_t monetdbe_prtfns[] = {
+	aq_to_chars<bool>, aq_to_chars<int8_t>, aq_to_chars<int16_t>, aq_to_chars<int32_t>, 
+	aq_to_chars<int64_t>,
+#if __SIZEOF_INT128__
+	aq_to_chars<__int128_t>, 
+#endif
+	aq_to_chars<size_t>, aq_to_chars<float>, aq_to_chars<double>,
+	aq_to_chars<char*>, aq_to_chars<std::nullptr_t>,
+	aq_to_chars<types::date_t>, aq_to_chars<types::time_t>, aq_to_chars<types::timestamp_t>,
+
+	// should be last:
+	aq_to_chars<std::nullptr_t>
+};
+
+
+constexpr uint32_t output_buffer_size = 65536;
+void print_monetdb_results(void* _srv, const char* sep = " ", const char* end = "\n", 
+    uint32_t limit = std::numeric_limits<uint32_t>::max()) {
+    auto srv = static_cast<Server *>(_srv);
+    if (!srv->haserror() && srv->cnt && limit) {
+        char buffer[output_buffer_size];
+        auto _res = static_cast<monetdbe_result*> (srv->res);
+        const auto ncols = _res->ncols;
+        monetdbe_column** cols = static_cast<monetdbe_column**>(malloc(sizeof(monetdbe_column*) * ncols));
+        prt_fn_t *prtfns = (prt_fn_t*) alloca(sizeof(prt_fn_t) * ncols);
+        char** col_data = static_cast<char**> (alloca(sizeof(char*) * ncols));
+        uint8_t* szs = static_cast<uint8_t*>(alloca(ncols));
+        std::string header_string = "";
+        const char* err_msg = nullptr;
+        const size_t l_sep = strlen(sep);
+        const size_t l_end = strlen(end);
+        char* _buffer = buffer;
+        const auto cnt = srv->cnt < limit? srv->cnt : limit;
+
+        for(uint32_t i = 0; i < ncols; ++i){
+            err_msg = monetdbe_result_fetch(_res, &cols[i], i);
+            if(err_msg) { goto cleanup; }
+            col_data[i] = static_cast<char *>(cols[i]->data);
+            prtfns[i] = monetdbe_prtfns[cols[i]->type];
+            szs [i] = monetdbe_type_szs[cols[i]->type];
+            header_string = header_string + cols[i]->name + sep + '|' + sep;
+        }
+
+        if(l_sep > 512 || l_end > 512) {
+            puts("Error: separator or end string too long");
+            goto cleanup;
+        }
+		if (header_string.size() >= l_sep + 1)
+			header_string.resize(header_string.size() - l_sep - 1);
+        header_string += end + std::string(header_string.size(), '=') + end;
+        fputs(header_string.c_str(), stdout);
+        for(uint64_t i = 0; i < cnt; ++i){
+            for(uint32_t j = 0; j < ncols; ++j){
+                //copy the field to buf
+                _buffer = prtfns[j](col_data[j], _buffer);
+                if (j != ncols - 1){
+                    memcpy(_buffer, sep, l_sep);
+                    _buffer += l_sep;
+                }
+                col_data[j] += szs[j];
+            }
+            memcpy(_buffer, end, l_end);
+            _buffer += l_end;
+            if(output_buffer_size - (_buffer - buffer) <= 1024){
+                fwrite(buffer, 1, _buffer - buffer, stdout);
+                _buffer = buffer;
+            }
+        }
+        memcpy(_buffer, end, l_end);
+        _buffer += l_end;
+        if (_buffer != buffer)
+            fwrite(buffer, 1, _buffer - buffer, stdout);
+cleanup:        
+        free(cols);
+    }
+}
+
 
 int ExecuteStoredProcedureEx(const StoredProcedure *p, Context* cxt){
     auto server = static_cast<Server*>(cxt->alt_server);
@@ -300,6 +378,12 @@ int ExecuteStoredProcedureEx(const StoredProcedure *p, Context* cxt){
             case 'N': {
                 if(procedure_module_cursor < p->postproc_modules)
                     handle = p->__rt_loaded_modules[procedure_module_cursor++];
+            }
+            break;
+            case 'T' : {
+                if (p->queries[i][1] == 'N') {
+                    cxt->ct_host->execute_trigger(p->queries[i] + 2, cxt);
+                }
             }
             break;
             case 'O': {

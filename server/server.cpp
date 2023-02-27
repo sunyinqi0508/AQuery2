@@ -94,7 +94,9 @@ have_hge() {
     return false;
 #endif
 }
+
 Context* _g_cxt;
+
 StoredProcedure
 get_procedure(Context* cxt, const char* name) {
     auto res = cxt->stored_proc.find(name);
@@ -107,11 +109,11 @@ get_procedure(Context* cxt, const char* name) {
         };
     return res->second;
 }
+
 __AQEXPORT__(StoredProcedure)
 get_procedure_ex(const char* name){
     return get_procedure(_g_cxt, name);
 }
-using prt_fn_t = char* (*)(void*, char*);
 
 // This function contains heap allocations, free after use
 template<class String_T>
@@ -128,19 +130,6 @@ char* copy_lpstr(const char* str){
     return ret;
 }
 
-constexpr prt_fn_t monetdbe_prtfns[] = {
-	aq_to_chars<bool>, aq_to_chars<int8_t>, aq_to_chars<int16_t>, aq_to_chars<int32_t>, 
-	aq_to_chars<int64_t>,
-#if __SIZEOF_INT128__
-	aq_to_chars<__int128_t>, 
-#endif
-	aq_to_chars<size_t>, aq_to_chars<float>, aq_to_chars<double>,
-	aq_to_chars<char*>, aq_to_chars<std::nullptr_t>,
-	aq_to_chars<types::date_t>, aq_to_chars<types::time_t>, aq_to_chars<types::timestamp_t>,
-
-	// should be last:
-	aq_to_chars<std::nullptr_t>
-};
 
 #ifndef __AQ_USE_THREADEDGC__
 void aq_init_gc(void *handle, Context* cxt)
@@ -156,87 +145,6 @@ void aq_init_gc(void *handle, Context* cxt)
 #else //__AQ_USE_THREADEDGC__
 #define aq_init_gc(h, c) 
 #endif //__AQ_USE_THREADEDGC__
-
-#include "monetdbe.h"
-#undef max
-#undef min
-inline constexpr static unsigned char monetdbe_type_szs[] = {
-    sizeof(monetdbe_column_bool::null_value), sizeof(monetdbe_column_int8_t::null_value), 
-    sizeof(monetdbe_column_int16_t::null_value), sizeof(monetdbe_column_int32_t::null_value), 
-    sizeof(monetdbe_column_int64_t::null_value),
-#ifdef __SIZEOF_INT128__
-    sizeof(monetdbe_column_int128_t::null_value),
-#endif
-    sizeof(monetdbe_column_size_t::null_value), sizeof(monetdbe_column_float::null_value),
-    sizeof(monetdbe_column_double::null_value),
-    sizeof(monetdbe_column_str::null_value), sizeof(monetdbe_column_blob::null_value),
-    sizeof(monetdbe_data_date), sizeof(monetdbe_data_time), sizeof(monetdbe_data_timestamp),
-
-    // should be last:
-    1
-};
-constexpr uint32_t output_buffer_size = 65536;
-void print_monetdb_results(void* _srv, const char* sep = " ", const char* end = "\n", 
-    uint32_t limit = std::numeric_limits<uint32_t>::max()) {
-    auto srv = static_cast<Server *>(_srv);
-    if (!srv->haserror() && srv->cnt && limit) {
-        char buffer[output_buffer_size];
-        auto _res = static_cast<monetdbe_result*> (srv->res);
-        const auto ncols = _res->ncols;
-        monetdbe_column** cols = static_cast<monetdbe_column**>(malloc(sizeof(monetdbe_column*) * ncols));
-        prt_fn_t *prtfns = (prt_fn_t*) alloca(sizeof(prt_fn_t) * ncols);
-        char** col_data = static_cast<char**> (alloca(sizeof(char*) * ncols));
-        uint8_t* szs = static_cast<uint8_t*>(alloca(ncols));
-        std::string header_string = "";
-        const char* err_msg = nullptr;
-        const size_t l_sep = strlen(sep);
-        const size_t l_end = strlen(end);
-        char* _buffer = buffer;
-        const auto cnt = srv->cnt < limit? srv->cnt : limit;
-
-        for(uint32_t i = 0; i < ncols; ++i){
-            err_msg = monetdbe_result_fetch(_res, &cols[i], i);
-            if(err_msg) { goto cleanup; }
-            col_data[i] = static_cast<char *>(cols[i]->data);
-            prtfns[i] = monetdbe_prtfns[cols[i]->type];
-            szs [i] = monetdbe_type_szs[cols[i]->type];
-            header_string = header_string + cols[i]->name + sep + '|' + sep;
-        }
-
-        if(l_sep > 512 || l_end > 512) {
-            puts("Error: separator or end string too long");
-            goto cleanup;
-        }
-		if (header_string.size() >= l_sep + 1)
-			header_string.resize(header_string.size() - l_sep - 1);
-        header_string += end + std::string(header_string.size(), '=') + end;
-        fputs(header_string.c_str(), stdout);
-        for(uint64_t i = 0; i < cnt; ++i){
-            for(uint32_t j = 0; j < ncols; ++j){
-                //copy the field to buf
-                _buffer = prtfns[j](col_data[j], _buffer);
-                if (j != ncols - 1){
-                    memcpy(_buffer, sep, l_sep);
-                    _buffer += l_sep;
-                }
-                col_data[j] += szs[j];
-            }
-            memcpy(_buffer, end, l_end);
-            _buffer += l_end;
-            if(output_buffer_size - (_buffer - buffer) <= 1024){
-                fwrite(buffer, 1, _buffer - buffer, stdout);
-                _buffer = buffer;
-            }
-        }
-        memcpy(_buffer, end, l_end);
-        _buffer += l_end;
-        if (_buffer != buffer)
-            fwrite(buffer, 1, _buffer - buffer, stdout);
-cleanup:        
-        free(cols);
-    }
-}
-
 
 void initialize_module(const char* module_name, void* module_handle, Context* cxt){
     auto _init_module = reinterpret_cast<module_init_fn>(dlsym(module_handle, "init_session"));
@@ -581,24 +489,23 @@ start:
                                     }
                                 }
                                 break;
-                                case 'C': // activate callback based trigger
+                                case 'C' : //register callback based trigger
                                 {
-                                    const char* query_name = n_recvd[i] + 2;
+                                    const char* trigger_name = n_recvd[i] + 2;
+                                    const char* table_name = trigger_name;
+                                    while(*table_name++);
+                                    const char* query_name = table_name;
+                                    while(*query_name++);
                                     const char* action_name = query_name;
                                     while(*action_name++);
-                                    if(auto q = get_procedure(cxt, query_name), 
-                                            a = get_procedure(cxt, action_name); 
-                                            q.name == nullptr || a.name == nullptr
-                                    )
-                                        printf("Warning: Invalid query or action name: %s %s", 
-                                            query_name, action_name);
-                                    else{
-                                        auto query = AQ_DupObject(&q);
-                                        auto action = AQ_DupObject(&a);
-
-                                        cxt->ct_host->execute_trigger(query, action);
-                                    }
+                                    cxt->ct_host->add_trigger(trigger_name, table_name, query_name, action_name);
                                 }
+                                break;
+                                case 'A': // activate callback based trigger
+                                activate_callback_based_trigger(cxt, n_recvd[i]);
+                                break;
+                                case 'N':
+                                cxt->ct_host->execute_trigger(n_recvd[i] + 2);
                                 break;
                                 case 'R': // remove trigger
                                 {

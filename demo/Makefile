@@ -1,0 +1,9 @@
+all:
+	$(CXX) -include ../server/pch.hpp putdata.cpp ../libaquery.a -shared -fPIC --std=c++2a -Ofast -DNDEBUG -fno-stack-protector  -march=native  -DTHREADING -D__AQUERY_ITC_USE_SEMPH__  -I/usr/local/opt/monetdb/include/monetdb -flto -s -fno-semantic-interposition -L/usr/local/opt/monetdb/lib  -lmonetdbe -lmonetdbsql -lbat -o ../procedures/demoi0.so
+	$(CXX) -include ../server/pch.hpp action.cpp ../libaquery.a -shared -fPIC --std=c++2a -Ofast -DNDEBUG -fno-stack-protector  -march=native  -DTHREADING -D__AQUERY_ITC_USE_SEMPH__  -I/usr/local/opt/monetdb/include/monetdb -flto -s -fno-semantic-interposition -L/usr/local/opt/monetdb/lib  -lmonetdbe -lmonetdbsql -lbat -o ../procedures/democa0.so
+	$(CXX) -include ../server/pch.hpp query.cpp ../libaquery.a -shared -fPIC --std=c++2a -Ofast -DNDEBUG -fno-stack-protector  -march=native  -DTHREADING -D__AQUERY_ITC_USE_SEMPH__  -I/usr/local/opt/monetdb/include/monetdb -flto -s -fno-semantic-interposition -L/usr/local/opt/monetdb/lib  -lmonetdbe -lmonetdbsql -lbat -o ../procedures/democq0.so
+
+dbg:
+	$(CXX) -include ../server/pch.hpp putdata.cpp -g3 -march=native ../libaquery.a -shared -fPIC --std=c++2a -D_DEBUG -DTHREADING -D__AQUERY_ITC_USE_SEMPH__ -I/usr/local/opt/monetdb/include/monetdb -L/usr/local/opt/monetdb/lib -lmonetdbe -lmonetdbsql -lbat -o ../procedures/demoi0.so
+	$(CXX) -include ../server/pch.hpp action.cpp -g3 -march=native ../libaquery.a -shared -fPIC --std=c++2a -D_DEBUG -DTHREADING -D__AQUERY_ITC_USE_SEMPH__ -I/usr/local/opt/monetdb/include/monetdb -L/usr/local/opt/monetdb/lib -lmonetdbe -lmonetdbsql -lbat -o ../procedures/democa0.so
+	$(CXX) -include ../server/pch.hpp query.cpp -g3 -march=native ../libaquery.a -shared -fPIC --std=c++2a -D_DEBUG -DTHREADING -D__AQUERY_ITC_USE_SEMPH__ -I/usr/local/opt/monetdb/include/monetdb -L/usr/local/opt/monetdb/lib -lmonetdbe -lmonetdbsql -lbat -o ../procedures/democq0.so

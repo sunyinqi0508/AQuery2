@@ -5,7 +5,7 @@
 
 struct minEval{
         double value;
-        int* values;
+        int* values = nullptr;
 
 	double eval;
         long left; // how many on its left
