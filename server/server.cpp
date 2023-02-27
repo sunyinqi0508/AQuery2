@@ -97,23 +97,30 @@ have_hge() {
 
 Context* _g_cxt;
 
-StoredProcedure
-get_procedure(Context* cxt, const char* name) {
-    auto res = cxt->stored_proc.find(name);
-    if (res == cxt->stored_proc.end())
-        return { .cnt = 0, 
-            .postproc_modules = 0, 
-            .queries = nullptr, 
-            .name = nullptr, 
-            .__rt_loaded_modules = nullptr
-        };
-    return res->second;
-}
-
 __AQEXPORT__(StoredProcedure)
 get_procedure_ex(const char* name){
     return get_procedure(_g_cxt, name);
 }
+
+void activate_callback_based_trigger(Context* context, const char* cmd)
+{
+	const char* query_name = cmd + 2;
+	const char* action_name = query_name;
+	while (*action_name++);
+	if(auto q = get_procedure(context, query_name), 
+			a = get_procedure(context, action_name); 
+			q.name == nullptr || a.name == nullptr
+	)
+		printf("Warning: Invalid query or action name: %s %s", 
+			query_name, action_name);
+	else {
+		auto query = AQ_DupObject(&q);
+		auto action = AQ_DupObject(&a);
+
+		context->ct_host->execute_trigger(query, action);
+	}
+}
+
 
 // This function contains heap allocations, free after use
 template<class String_T>

@@ -1109,7 +1109,7 @@ class create_trigger(ast_node):
         if 'interval' in node: # executed periodically from server
             self.type = self.Type.Interval
             self.interval = node['interval']
-            send_to_server(f'TI{self.trigger_name}\0{self.action_name}\0{self.interval}')
+            self.context.queries.append(f'TI{self.trigger_name}\0{self.action_name}\0{self.interval}')
         else: # executed from sql backend
             self.type = self.Type.Callback
             self.query_name = node['query']
@@ -1118,11 +1118,10 @@ class create_trigger(ast_node):
             if self.procedure and self.table_name in self.context.tables_byname:
                 self.table = self.context.tables_byname[self.table_name]
                 self.table.triggers.add(self)
-                send_to_server(
+                self.context.queries.append(
                     f'TC{self.trigger_name}\0{self.table_name}\0'
                     f'{self.query_name}\0{self.action_name}'
-                )
-                
+                )                
             else:
                 return
         self.context.triggers[self.trigger_name] = self
@@ -1136,11 +1135,11 @@ class create_trigger(ast_node):
 
     def execute(self): 
         from engine.utils import send_to_server
-        send_to_server(f'TA{self.query_name}\0{self.action_name}')
+        self.context.queries.append(f'TA{self.query_name}\0{self.action_name}')
 
     def remove(self):
         from engine.utils import send_to_server
-        send_to_server(f'TR{self.trigger_name}')
+        self.context.queries.append(f'TR{self.trigger_name}')
 
 
 class drop_trigger(ast_node):

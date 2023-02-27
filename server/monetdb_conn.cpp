@@ -382,7 +382,7 @@ int ExecuteStoredProcedureEx(const StoredProcedure *p, Context* cxt){
             break;
             case 'T' : {
                 if (p->queries[i][1] == 'N') {
-                    cxt->ct_host->execute_trigger(p->queries[i] + 2, cxt);
+                    cxt->ct_host->execute_trigger(p->queries[i] + 2);
                 }
             }
             break;

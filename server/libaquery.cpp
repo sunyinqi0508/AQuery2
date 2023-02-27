@@ -621,21 +621,15 @@ vector_type<std::string_view>::vector_type(const uint32_t size, void* data) :
 	//std::cout<<size << container[1];
 }
 
-void activate_callback_based_trigger(Context* context, const char* cmd)
-{
-	const char* query_name = cmd + 2;
-	const char* action_name = query_name;
-	while (*action_name++);
-	if(auto q = get_procedure(cxt, query_name), 
-			a = get_procedure(cxt, action_name); 
-			q.name == nullptr || a.name == nullptr
-	)
-		printf("Warning: Invalid query or action name: %s %s", 
-			query_name, action_name);
-	else {
-		auto query = AQ_DupObject(&q);
-		auto action = AQ_DupObject(&a);
-
-		cxt->ct_host->execute_trigger(query, action);
-	}
+StoredProcedure
+get_procedure(Context* cxt, const char* name) {
+    auto res = cxt->stored_proc.find(name);
+    if (res == cxt->stored_proc.end())
+        return { .cnt = 0, 
+            .postproc_modules = 0, 
+            .queries = nullptr, 
+            .name = nullptr, 
+            .__rt_loaded_modules = nullptr
+        };
+    return res->second;
 }

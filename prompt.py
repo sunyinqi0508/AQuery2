@@ -501,11 +501,11 @@ def prompt(running = lambda:True, next = lambda:input('> '), state : Optional[Pr
                 else:
                     state.cfg.has_dll = 0
                 state.currstats.compile_time = state.currstats.stop()
+                cxt.post_exec_triggers()
                 if build_this:
                     state.set_ready()
-                while state.get_ready():
-                    state.wait_engine()
-                cxt.post_exec_triggers()
+                    # while state.get_ready():
+                    #     state.wait_engine()
                 state.currstats.need_print = True
                 continue
             

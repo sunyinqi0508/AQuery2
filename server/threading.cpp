@@ -235,14 +235,14 @@ void CallbackBasedTriggerHost::execute_trigger(StoredProcedure* query, StoredPro
     this->tp->enqueue_task(payload);
 }
 
-void execute_trigger(const char* trigger_name) {
+void CallbackBasedTriggerHost::execute_trigger(const char* trigger_name) {
     auto vt_triggers = static_cast<aq_map<std::string, CallbackBasedTrigger> *>(this->triggers);
     auto ptr = vt_triggers->find(trigger_name);
     if (ptr != vt_triggers->end()) {
         auto& tr = ptr->second;
         if (!tr.materialized) {
-            tr.query = new CallbackBasedTrigger(get_procedure(cxt, tr.query_name));
-            tr.action = new CallbackBasedTrigger(get_procedure(cxt, tr.action_name));
+            tr.query = new StoredProcedure(get_procedure(cxt, tr.query_name));
+            tr.action = new StoredProcedure(get_procedure(cxt, tr.action_name));
             tr.materialized = true;
         }
         this->execute_trigger(AQ_DupObject(tr.query), AQ_DupObject(tr.action));

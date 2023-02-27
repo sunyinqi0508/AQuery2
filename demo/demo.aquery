@@ -1,0 +1,17 @@
+#!aquery
+
+f demo/prep.a
+exec
+
+procedure demoi run
+procedure democq run
+procedure democa run
+
+create trigger t action demoi interval 15000
+exec
+
+create trigger c on source action democa when democq
+exec
+
+# f demo/test.a
+# exec
