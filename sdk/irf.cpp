@@ -19,7 +19,7 @@ DecisionTree *dt = nullptr;
 RandomForest *rf = nullptr;
 
 __AQEXPORT__(bool)
-newtree(int ntree, long f, ColRef<int> sparse, double forget, long maxf, long nclasses, Evaluation e)
+newtree(int ntree, long f, ColRef<int> sparse, double forget, long nclasses, Evaluation e)
 {
 	if (sparse.size != f)
 		return false;
@@ -27,8 +27,6 @@ newtree(int ntree, long f, ColRef<int> sparse, double forget, long maxf, long nc
 	
 	memcpy(X_cpy, sparse.container, f);
 
-	if (maxf < 0)
-		maxf = f;
 	// dt = new DecisionTree(f, X_cpy, forget, maxf, noclasses, e);
 	rf = new RandomForest(ntree, f, X_cpy, forget, nclasses, e, true);
 	return true;
@@ -99,4 +97,23 @@ predict(vector_type<vector_type<double>> v)
 	container->container = result;
 	auto ret = vectortype_cstorage{.container = container, .size = 1, .capacity = 0};
 	return ret;
+}
+template <typename T>
+constexpr T sq(const T x) {
+	return x * x;
+}
+__AQEXPORT__(double)
+test(vector_type<vector_type<double>> x, vector_type<long> y) {
+	int result = 0;
+	printf("y_hat = (");
+	double err = 0.;
+	for (uint32_t i = 0; i < x.size; i++) {
+		//result[i] = dt->Test(v.container[i].container, dt->DTree);
+		result = int(rf->Test(x[i].container));
+		err += sq(result - y.container[i]);
+		printf("%d ", result);
+	}
+	puts(")");
+	printf("error: %lf\n", err/=double(x.size));
+	return err;
 }

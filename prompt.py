@@ -238,7 +238,7 @@ class PromptState():
     server_bin = 'server.bin' if server_mode == RunType.IPC else 'server.so'
     wait_engine = lambda: None
     wake_engine = lambda: None
-    get_storedproc = lambda : StoredProcedure()
+    get_storedproc = lambda *_: StoredProcedure()
     set_ready = lambda: None
     get_ready = lambda: None
     server_status = lambda: False

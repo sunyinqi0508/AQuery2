@@ -42,14 +42,14 @@ void TableInfo<Ts ...>::monetdb_append_table(void* srv, const char* alt_name) {
 	uint32_t i = 0;
 	constexpr auto n_vecs = count_vector_type((tuple_type*)(0));
 	void* gc_vecs[1 + n_vecs];
-	puts("getcols...");
+	// puts("getcols...");
 	uint32_t cnt = 0;
 	const auto get_col = [&monetdbe_cols, &i, *this, &gc_vecs, &cnt](auto v) {
 		// printf("%d %d\n", i, (ColRef<void>*)v - colrefs);
 		monetdbe_cols[i++] = (monetdbe_column*)v->monetdb_get_col(gc_vecs, cnt);
 	};
 	(get_col((ColRef<Ts>*)(colrefs + i)), ...);
-	puts("getcols done");
+	//puts("getcols done");
 	// for(int i = 0; i < sizeof...(Ts); ++i)
 	// {
 	// 	printf("no:%d name: %s count:%d data: %p type:%d \n", 
@@ -68,8 +68,8 @@ void TableInfo<Ts ...>::monetdb_append_table(void* srv, const char* alt_name) {
 	if (last_comma != static_cast<decltype(last_comma)>(-1)) {
 		create_table_str[last_comma] = ')';
 		Server* server = (Server*)srv;
-		puts("create table...");
-		puts(create_table_str.c_str());
+		// puts("create table...");
+		// puts(create_table_str.c_str());
 		server->exec(create_table_str.c_str());
 		if (!server->last_error) {
 			auto err = monetdbe_append(*((monetdbe_database*)server->server), "sys", alt_name, monetdbe_cols, sizeof...(Ts));

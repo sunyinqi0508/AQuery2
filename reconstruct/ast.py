@@ -1336,11 +1336,11 @@ class load(ast_node):
         self.context.postproc_begin(self.postproc_fname)
         
         table:TableInfo = self.context.tables_byname[node['table']]
-        self.sql = F"SELECT {', '.join([c.name for c in table.columns])} FROM {table.table_name};"
-        self.emit(self.sql+';\n')
-        self.context.sql_end()
-        length_name = 'len_' + base62uuid(6)
-        self.context.emitc(f'auto {length_name} = server->cnt;')
+        # self.sql = F"SELECT {', '.join([c.name for c in table.columns])} FROM {table.table_name};"
+        # self.emit(self.sql+';\n')
+        # self.context.sql_end()
+        # length_name = 'len_' + base62uuid(6)
+        # self.context.emitc(f'auto {length_name} = server->cnt;')
         
         out_typenames = [t.type.cname for t in table.columns]
         outtable_col_nameslist = ', '.join([f'"{c.name}"' for c in table.columns])
@@ -1353,7 +1353,8 @@ class load(ast_node):
         for i, c in enumerate(table.columns):
             c.cxt_name = 'c_' + base62uuid(6) 
             self.context.emitc(f'decltype(auto) {c.cxt_name} = {self.out_table}->get_col<{i}>();')
-            self.context.emitc(f'{c.cxt_name}.initfrom({length_name}, server->getCol({i}), "{table.columns[i].name}");')
+            self.context.emitc(f'{c.cxt_name}.init("{table.columns[i].name}");')
+            #self.context.emitc(f'{c.cxt_name}.initfrom({length_name}, server->getCol({i}), "{table.columns[i].name}");')
         csv_reader_name = 'csv_reader_' + base62uuid(6)
         col_types = [c.type.cname for c in table.columns]
         col_tmp_names = ['tmp_'+base62uuid(8) for _ in range(len(table.columns))]

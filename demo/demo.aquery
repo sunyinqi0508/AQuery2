@@ -3,15 +3,15 @@
 f demo/prep.a
 exec
 
-procedure demoi run
-procedure democq run
-procedure democa run
+procedure demoi load
+procedure democq load
+procedure democa load
 
-create trigger t action demoi interval 15000
+create trigger t action demoi interval 5000
 exec
 
 create trigger c on source action democa when democq
 exec
 
-# f demo/test.a
-# exec
+f demo/test.a
+exec

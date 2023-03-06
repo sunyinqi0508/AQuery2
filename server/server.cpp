@@ -460,6 +460,7 @@ start:
                                     case 'S': // save procedure
                                     break;
                                     case 'L': // load procedure
+                                    current_procedure.name = copy_lpstr(proc_name);
                                     if (!load_proc_fromfile(current_procedure)) {
                                         cxt->stored_proc.insert_or_assign(proc_name, current_procedure);
                                     }

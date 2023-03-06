@@ -13,14 +13,14 @@ enum Backend_Type {
 	BACKEND_MariaDB
 };
 
-struct Config{
+struct Config {
     int running, new_query, server_mode,
 	 	backend_type, has_dll, n_buffers;
     int buffer_sizes[];
 };
 
-struct Session{
-    struct Statistic{
+struct Session {
+    struct Statistic {
         unsigned long long total_active;
         unsigned long long cnt_object;
         unsigned long long total_alloc;
@@ -102,7 +102,7 @@ namespace std {
 }
 #endif
 
-struct vectortype_storage{
+struct vectortype_storage {
 	void* container = nullptr;
 	unsigned int size = 0, capacity = 0;
 	vectortype_storage(void* container, unsigned int size, unsigned int capacity) :

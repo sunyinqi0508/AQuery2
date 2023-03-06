@@ -27,6 +27,7 @@ class checksums:
                     aquery_config.build_driver + 
                     compiler_name + 
                     aquery_config.version_string
+                    + str(os.environ['AQ_DEBUG'] == '1')
                 )
         for key in self.__dict__.keys():
             try:

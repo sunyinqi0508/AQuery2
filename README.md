@@ -1,4 +1,7 @@
 # AQuery++ Database
+## News:
+**Demo workflow for Triggers now available** See [**DEMO**](/demo/README.md)
+
 ## Introduction
 
 AQuery++ Database is a cross-platform, In-Memory Column-Store Database that incorporates compiled query execution. (**Note**: If you encounter any problems, feel free to contact me via ys3540@nyu.edu)
