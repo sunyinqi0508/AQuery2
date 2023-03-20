@@ -81,6 +81,11 @@ struct Config{
     int buffer_sizes[];
 };
 
+struct AQQueryResult {
+	void* res;
+	uint32_t ref;
+};
+
 struct Session{
     struct Statistic{
         size_t total_active;

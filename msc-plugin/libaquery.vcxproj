@@ -345,10 +345,12 @@
   <ItemGroup>
     <ClInclude Include="..\csv.h" />
     <ClInclude Include="..\server\aggregations.h" />
+    <ClInclude Include="..\server\duckdb_conn.h" />
     <ClInclude Include="..\server\gc.h" />
     <ClInclude Include="..\server\hasher.h" />
     <ClInclude Include="..\server\io.h" />
     <ClInclude Include="..\server\libaquery.h" />
+    <ClInclude Include="..\server\monetdb_conn.h" />
     <ClInclude Include="..\server\priority_vector.hpp" />
     <ClInclude Include="..\server\table.h" />
     <ClInclude Include="..\server\types.h" />
@@ -361,6 +363,7 @@
     <None Include="..\server\cpp.hint" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\server\duckdb_conn.cpp" />
     <ClCompile Include="..\server\monetdb_ext.c" />
     <ClCompile Include="..\server\server.cpp" />
     <ClCompile Include="..\server\threading.cpp" />
