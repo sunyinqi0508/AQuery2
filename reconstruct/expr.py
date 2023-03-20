@@ -1,6 +1,6 @@
 from typing import Optional, Set
 
-from engine.types import *
+from common.types import *
 from reconstruct.ast import ast_node
 from reconstruct.storage import ColRef, Context
 
@@ -95,7 +95,7 @@ class expr(ast_node):
                              'stddev']
         
     def produce(self, node):
-        from engine.utils import enlist
+        from common.utils import enlist
         from reconstruct.ast import udf, projection
         
         if type(node) is dict:
@@ -412,7 +412,7 @@ class expr(ast_node):
                             exec(f'loc["{b}"] = lambda : "{b}"')
                 
             x = self.c_code if c_code is None else c_code
-            from engine.utils import escape_qoutes
+            from common.utils import escape_qoutes
             if decltypestr:
                 return eval('f\'' + escape_qoutes(self.udf_decltypecall) + '\'')
             self.sql.replace("'", "\\'")
@@ -447,7 +447,7 @@ class fastscan(expr):
                 self.requested_lens.add(segs[0])
         
     def produce(self, node):
-        from engine.utils import enlist
+        from common.utils import enlist
         if type(node) is dict:
             for key, val in node.items():
                 if key in self.operators:
@@ -468,7 +468,7 @@ class getrefs(expr):
         self.rec = None
         
     def produce(self, node):
-        from engine.utils import enlist
+        from common.utils import enlist
         if type(node) is dict:
             for key, val in node.items():
                 if key in self.operators:

@@ -101,12 +101,12 @@ import numpy as np
 from mo_parsing import ParseException
 
 import aquery_parser as parser
-import engine
-import engine.ddl
-import engine.projection
+import common
+import common.ddl
+import common.projection
 import reconstruct as xengine
 from build import build_manager
-from engine.utils import add_dll_dir, base62uuid, nullstream, ws
+from common.utils import add_dll_dir, base62uuid, nullstream, ws
 
 
 ## CLASSES BEGIN
@@ -336,7 +336,7 @@ def init_threaded(state : PromptState):
         state.get_storedproc.restype = StoredProcedure
         aquery_config.have_hge = server_so['have_hge']()
         if aquery_config.have_hge != 0:
-            from engine.types import get_int128_support
+            from common.types import get_int128_support
             get_int128_support()
         state.th = threading.Thread(target=server_so['main'], args=(-1, ctypes.POINTER(ctypes.c_char_p)(state.cfg.c)), daemon=True)
         state.th.start() 
@@ -345,7 +345,7 @@ def init_prompt() -> PromptState:
     aquery_config.init_config()
     
     state = PromptState()
-    engine.utils.session_context = state
+    common.utils.session_context = state
     # if aquery_config.rebuild_backend:
     #     try:
     #         os.remove(state.server_bin) 
@@ -412,7 +412,7 @@ def prompt(running = lambda:True, next = lambda:input('> '), state : Optional[Pr
     q = ''
     payload = None
     keep = True
-    cxt = engine.initialize()
+    cxt = common.initialize()
     parser.parse('SELECT "**** WELCOME TO AQUERY++! ****";')
     
     # state.currstats = QueryStats()
@@ -442,7 +442,7 @@ def prompt(running = lambda:True, next = lambda:input('> '), state : Optional[Pr
                 continue
             if False and q == 'exec': # generate build and run (AQuery Engine)
                 state.cfg.backend_type = Backend_Type.BACKEND_AQuery.value
-                cxt = engine.exec(state.stmts, cxt, keep)
+                cxt = common.exec(state.stmts, cxt, keep)
                 if state.buildmgr.build_dll() == 0:
                     state.set_ready()
                 continue
@@ -588,7 +588,7 @@ def prompt(running = lambda:True, next = lambda:input('> '), state : Optional[Pr
                     qs = qs[1]
                 with open(qs) as file:
                     qs = file.readline()
-                    from engine.utils import _Counter
+                    from common.utils import _Counter
                     lst_tell = -1
                     while(qs):
                         while(not ws.sub('', qs) or qs.strip().startswith('#')):
@@ -629,7 +629,7 @@ def prompt(running = lambda:True, next = lambda:input('> '), state : Optional[Pr
             elif q.startswith('procedure'):
                 qs = re.split(r'[ \t\r\n]', q)
                 procedure_help = '''Usage: procedure <procedure_name> [record|stop|run|remove|save|load]'''
-                from engine.utils import send_to_server
+                from common.utils import send_to_server
                 if len(qs) > 2:
                     if qs[2].lower() =='record':
                         if state.current_procedure is not None and state.current_procedure != qs[1]:             
@@ -722,7 +722,7 @@ if __name__ == '__main__':
     if nextcmd or check_param(['-s', '--script']):
         with open(nextcmd) as file:
             nextcmd = file.readline()
-            from engine.utils import _Counter
+            from common.utils import _Counter
             if file.name.endswith('aquery') or nextcmd.strip() == '#!aquery':
                 state = init_prompt()
                 while(nextcmd):

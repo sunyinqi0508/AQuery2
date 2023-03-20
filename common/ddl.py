@@ -1,9 +1,9 @@
 # code-gen for data decl languages
 
-from engine.orderby import orderby
-from engine.ast import ColRef, TableInfo, ast_node, Context, include
-from engine.scan import scan
-from engine.utils import base62uuid
+from common.orderby import orderby
+from common.ast import ColRef, TableInfo, ast_node, Context, include
+from common.scan import scan
+from common.utils import base62uuid
 
 class create_table(ast_node):
     name = 'create_table'

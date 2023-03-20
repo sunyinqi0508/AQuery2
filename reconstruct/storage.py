@@ -1,7 +1,7 @@
 from typing import Dict, List, Set
 
-from engine.types import *
-from engine.utils import CaseInsensitiveDict, base62uuid, enlist
+from common.types import *
+from common.utils import CaseInsensitiveDict, base62uuid, enlist
 
 
 class ColRef:
@@ -152,6 +152,7 @@ class Context:
         self.sql = ''  
         self.finalized = False
         self.udf = None
+        self.module_stubs = ''
         self.scans = []
         self.procs = []
         self.queries = []
@@ -167,7 +168,6 @@ class Context:
         self.tables : Set[TableInfo] = set()
         self.cols = []
         self.datasource = None
-        self.module_stubs = ''
         self.module_map = {}
         self.udf_map = dict()
         self.udf_agg_map = dict()
@@ -281,8 +281,14 @@ class Context:
         self.finalize_query()
     
     def finalize_udf(self):
-        if self.udf is not None:
-            return (Context.udf_head 
+        if self.udf:
+            self.udf += '\n'.join([
+                u.ccode for u in self.udf_map.values()
+            ])
+            self.module_stubs = '\n'.join(
+                [m for m in self.module_map.values()
+            ])
+            return (Context.udf_head
                 + self.module_stubs
                 + self.get_init_func()
                 + self.udf

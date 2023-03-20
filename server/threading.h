@@ -43,7 +43,7 @@ private:
 
 
 class A_Semphore;
-
+struct Context;
 class TriggerHost { 
 public:
     void* triggers;  

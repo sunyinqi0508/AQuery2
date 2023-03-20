@@ -1,0 +1,6 @@
+LOAD MODULE FROM "./libdraw.so" FUNCTIONS (draw(X:vecint, y:vecint) -> bool);
+ create table t(a int, b int);
+
+ insert into t(a, b) values (6,4), (8,8), (9,1), (5,6), (10,8), (1, 9), (4, 11);
+
+ select draw(a, b) from t;

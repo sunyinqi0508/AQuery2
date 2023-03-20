@@ -2,7 +2,7 @@
 
 ## GLOBAL CONFIGURATION FLAGS
 
-version_string = '0.7.1a'
+version_string = '0.7.5a'
 add_path_to_ldpath = True
 rebuild_backend = False
 run_backend = True
@@ -22,7 +22,7 @@ def init_config():
     #os_platform = 'unkown'
     #msbuildroot = 'd:/gg/vs22/MSBuild/Current/Bin'
     import os
-    from engine.utils import add_dll_dir
+    from common.utils import add_dll_dir
     # os.environ['CXX'] = 'C:/Program Files/LLVM/bin/clang.exe'
     os.environ['THREADING'] = '1'
     os.environ['AQUERY_ITC_USE_SEMPH'] = '1'

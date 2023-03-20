@@ -55,6 +55,7 @@ public:
 	_Ty* container;
 	uint32_t size, capacity;
 	typedef _Ty* iterator_t;
+	typedef const _Ty* const_iterator;
 	typedef std::conditional_t<is_cstr<_Ty>(), astring_view, _Ty> value_t;
 	explicit vector_type(const uint32_t& size) : size(size), capacity(size) {
 		if (GC::scratch_space != nullptr) {
@@ -67,7 +68,7 @@ public:
 		}
 		// TODO: calloc for objects. 
 	}
-	explicit constexpr vector_type(std::initializer_list<_Ty> _l) {
+	constexpr vector_type(std::initializer_list<_Ty> _l) {
 		size = capacity = _l.size();
 		this->container = (_Ty*)malloc(sizeof(_Ty) * capacity);
 		_Ty* _container = this->container;
@@ -525,5 +526,14 @@ vector_type<std::string_view>::vector_type(const uint32_t size, void* data);
 template <>
 vector_type<std::string_view>::vector_type(const char** container, uint32_t len, 
 		typename std::enable_if_t<true>*) noexcept;
+
+template<class T>
+struct vector_type_std : vector_type<T> {
+    vector_type_std() = default;
+    vector_type_std(vector_type<T> v) : vector_type<T>(v) {}
+    uint32_t size() const {
+        return vector_type<T>::size;
+    }
+};
 
 #endif

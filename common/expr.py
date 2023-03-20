@@ -1,4 +1,4 @@
-from engine.ast import ast_node, ColRef
+from common.ast import ast_node, ColRef
 start_expr = 'f"'
 index_expr = '{\'\' if x is None and y is None else f\'[{x}]\'}'
 end_expr = '"'
@@ -57,7 +57,7 @@ class expr(ast_node):
         ast_node.__init__(self, parent, node, None)
 
     def init(self, _):
-        from engine.projection import projection
+        from common.projection import projection
         parent = self.parent
         self.isvector = parent.isvector if type(parent) is expr else False
         self.is_compound = parent.is_compound if type(parent) is expr else False

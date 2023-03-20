@@ -89,3 +89,5 @@ saved_procedures/**
 procedures/**
 .mypy_cache
 __pycache__
+deps/**
+*.bsc

@@ -1,4 +1,4 @@
-from engine.ast import ast_node
+from common.ast import ast_node
 
 
 class join(ast_node):

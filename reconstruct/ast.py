@@ -3,8 +3,8 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Dict, List, Optional, Set, Tuple, Union
 
-from engine.types import *
-from engine.utils import (base62alp, base62uuid, enlist, 
+from common.types import *
+from common.utils import (base62alp, base62uuid, enlist, 
                           get_innermost, get_legal_name)
 from reconstruct.storage import ColRef, Context, TableInfo
 
@@ -1096,7 +1096,7 @@ class create_trigger(ast_node):
         pass
     
     def produce(self, node):
-        from engine.utils import send_to_server, get_storedproc
+        from common.utils import send_to_server, get_storedproc
         node = node['create_trigger']
         self.trigger_name = node['name']
         self.action_name = node['action']
@@ -1134,11 +1134,11 @@ class create_trigger(ast_node):
         self.context.triggers_active.add(self)
 
     def execute(self): 
-        from engine.utils import send_to_server
+        from common.utils import send_to_server
         self.context.queries.append(f'TA{self.query_name}\0{self.action_name}')
 
     def remove(self):
-        from engine.utils import send_to_server
+        from common.utils import send_to_server
         self.context.queries.append(f'TR{self.trigger_name}')
 
 
@@ -1443,7 +1443,7 @@ class udf(ast_node):
         all = ('_builtin_len', '_builtin_ret')
         
     def decltypecall(self, c_code = False, *args):
-        from engine.types import fn_behavior
+        from common.types import fn_behavior
         class dummy:
             def __init__(self, name):
                 self.cname = name + '_gettype'
@@ -1451,7 +1451,7 @@ class udf(ast_node):
         return fn_behavior(dummy(self.cname), c_code, *args)
     
     def __call__(self, c_code = False, *args):
-        from engine.types import fn_behavior
+        from common.types import fn_behavior
         builtin_args = [f'{{{n}()}}' for n, v in self.builtin.items() if v.enabled]
         return fn_behavior(self, c_code, *args, *builtin_args)
     
@@ -1465,6 +1465,7 @@ class udf(ast_node):
                 255, name = 'generic_ref', cname = 'auto&'
             ))
         }
+        self.ccode = ''
         self.var_table = {}
         self.args = []
         udf.try_init_udf(self.context)
@@ -1486,7 +1487,7 @@ class udf(ast_node):
                 
         
     def produce(self, node):
-        from engine.utils import check_legal_name, get_legal_name
+        from common.utils import check_legal_name, get_legal_name
         node = node[self.name]
         # register udf
         self.agg = 'Agg' in node
@@ -1581,7 +1582,7 @@ class udf(ast_node):
                     
                     
     def consume(self, node):
-        from engine.utils import check_legal_name, get_legal_name
+        from common.utils import check_legal_name, get_legal_name
         node = node[self.name]
                     
         if 'params' in node:
@@ -1669,14 +1670,14 @@ class udf(ast_node):
         process_recursion(front)
         ccode += builtin_argstr + ') {\n'
         process_recursion(self.code_list)
-        self.context.udf += ccode + '\n'
+        self.ccode += ccode + '\n'
         ccode = ''
         if self.return_pattern == udf.ReturnPattern.elemental_return:
             ccode += f'auto {self.cname}_gettype = []('
             process_recursion(front[1:], True)
             ccode += ') {\n\tuint32_t _builtin_len = 0;\n' 
             process_recursion(self.code_list, True)
-            self.context.udf += ccode + '\n'
+            self.ccode += ccode + '\n'
             
     class ReturnPattern(Enum):
         bulk_return = auto()

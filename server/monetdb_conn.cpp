@@ -11,6 +11,9 @@
 
 #ifdef _WIN32
     #include "winhelper.h"
+    #include "threading.h"
+    #undef min
+    #undef max
 #else 
     #include <dlfcn.h>
     #include <fcntl.h>

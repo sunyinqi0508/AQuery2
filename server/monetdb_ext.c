@@ -1,3 +1,4 @@
+#include "pch_msc.hpp"
 // Non-standard Extensions for MonetDBe, may break concurrency control!
 
 #include "monetdbe.h"

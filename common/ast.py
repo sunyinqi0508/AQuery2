@@ -1,4 +1,4 @@
-from engine.utils import base62uuid
+from common.utils import base62uuid
 from copy import copy
 from typing import *
 # replace column info with this later.
@@ -181,7 +181,7 @@ class TableInfo:
                 raise ValueError(f'Table name/alias not defined{parsedColExpr[0]}')
             else:
                 ret = datasource.parse_col_names(parsedColExpr[1], raw)
-        from engine.expr import index_expr
+        from common.expr import index_expr
         string = ret.reference() + index_expr
         if self.groupinfo is not None and ret and ret in self.groupinfo.raw_groups:
             string = f'get<{self.groupinfo.raw_groups.index(ret)}>({{y}})'
@@ -208,7 +208,7 @@ class Context:
     LOG_INFO = 'INFO'
     LOG_ERROR = 'ERROR'
     LOG_SILENT = 'SILENT'
-    from engine.types import Types
+    from common.types import Types
     type_table : Dict[str, Types] = dict()
     
     def new(self):
@@ -258,7 +258,7 @@ class Context:
         return tbl
 
     def gen_tmptable(self):
-        from engine.utils import base62uuid
+        from common.utils import base62uuid
         return f't{base62uuid(7)}'
     def reg_tmp(self, name, f):
         self.tmp_names.add(name)

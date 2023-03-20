@@ -1,3 +1,4 @@
+#include "pch_msc.hpp"
 #include "threading.h"
 #include "libaquery.h"
 #include <thread>

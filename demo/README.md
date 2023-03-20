@@ -23,6 +23,6 @@ This folder contains a demo workflow for the two types of triggers.
   - Create an Interval-based Trigger that executes payload `demoi` every 5 seconds
   - Create a Conditional Trigger that executes payload `democa` whenever condition `democq` returns a true. While condition `democq` is tested every time new data is inserted to table `source`.
   - Loads test data by running [demo/test.a](/demo/test.a)
-  - Use query `select predict(x) from test` to get predictions of the test data from current random forest.
-    - In AQuery prompt, an extra `exec` command after the query is needed to execute the query.
-  - Use query `select test(x, y) from test` will also calculate l2 error.
+- Use query `select predict(x) from test` to get predictions of the test data from current random forest.
+  - In AQuery prompt, an extra `exec` command after the query is needed to execute the query.
+- Use query `select test(x, y) from test` will also calculate l2 error.

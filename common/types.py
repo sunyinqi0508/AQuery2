@@ -2,7 +2,7 @@ from copy import deepcopy
 from typing import Dict, List
 
 from aquery_config import have_hge
-from engine.utils import base62uuid, defval
+from common.utils import base62uuid, defval
 
 type_table: Dict[str, "Types"] = {}
 

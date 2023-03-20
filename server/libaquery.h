@@ -5,7 +5,9 @@
 	#define __AQUERY_ITC_USE_SEMPH__
 	#define THREADING
 #endif
-
+#ifdef THREADING
+	#include "threading.h"
+#endif
 #include <unordered_map>
 #include <chrono>
 #include <filesystem>
@@ -235,17 +237,7 @@ inline _This_Type* AQ_DupObject(_This_Type* __val) {
 		~A_Semaphore() { }
 	};
 #else
-	#ifdef _WIN32
-		class A_Semaphore {
-		private:
-			void* native_handle;
-		public:
-			A_Semaphore(bool);
-			void acquire();
-			void release();
-			~A_Semaphore();
-		};
-	#else
+	#ifndef _WIN32
 		#ifdef __APPLE__
 			#include <dispatch/dispatch.h>
 			class A_Semaphore {

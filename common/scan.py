@@ -1,7 +1,7 @@
 from xmlrpc.client import Boolean
-from engine.ast import ColRef, TableInfo, View, ast_node, Context
-from engine.utils import base62uuid
-from engine.expr import expr
+from common.ast import ColRef, TableInfo, View, ast_node, Context
+from common.utils import base62uuid
+from common.expr import expr
 
 class scan(ast_node):
     name = 'scan'
