@@ -345,6 +345,7 @@
   <ItemGroup>
     <ClInclude Include="..\csv.h" />
     <ClInclude Include="..\server\aggregations.h" />
+    <ClInclude Include="..\server\DataSource_conn.h" />
     <ClInclude Include="..\server\duckdb_conn.h" />
     <ClInclude Include="..\server\gc.h" />
     <ClInclude Include="..\server\hasher.h" />

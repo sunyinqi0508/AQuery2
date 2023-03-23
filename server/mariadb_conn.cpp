@@ -9,7 +9,7 @@ inline size_t my_strlen(const char* str){
     return ret;
 }
 
-void Server::connect(
+void MariadbServer::connect(
     Context* cxt, const char* host, const char* user, const char* passwd, 
         const char* db_name, const unsigned int port, 
         const char* unix_socket, const unsigned long client_flag
@@ -35,12 +35,12 @@ void Server::connect(
     this->status = true;
 }
 
-void Server::exec(const char*q){
+void MariadbServer::exec(const char*q){
     auto res = mysql_real_query(server, q, my_strlen(q));
     if(res) printf("Execution Error: %d, %s\n", res, mysql_error(server)); 
 }
 
-void Server::close(){
+void MariadbServer::close(){
     if(this->status && this->server){
         mysql_close(server);
         server = 0;

@@ -16,7 +16,7 @@ __AQEXPORT__(void) __AQ_Init_GC__(Context* cxt) {
 __AQEXPORT__(int) query(Context* cxt) {
 	using namespace std;
 	using namespace types;
-    auto server = static_cast<Server*>(cxt->alt_server);
+    auto server = static_cast<DataSource*>(cxt->alt_server);
     static uint32_t old_sz = 0;
     constexpr static uint32_t min_delta = 200;
     auto newsz = monetdbe_get_size(*(void**) server->server, "source");

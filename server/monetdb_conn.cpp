@@ -71,16 +71,17 @@ namespace types{
     };
 }
 
-Server::Server(Context* cxt){
+MonetdbServer::MonetdbServer(Context* cxt) {
+    this->DataSourceType = BACKEND_MonetDB;
     if (cxt){
         connect(cxt);
     } 
 }
 
-void Server::connect(Context *cxt){
+void MonetdbServer::connect(Context *cxt){
     auto server = static_cast<monetdbe_database*>(this->server);
     if (cxt){
-        cxt->alt_server = this;
+        cxt->alt_server[DataSourceType] = this;
         this->cxt = cxt;
     }
     else{
@@ -89,7 +90,7 @@ void Server::connect(Context *cxt){
     }
 
     if (server){
-        printf("Error: Server %p already connected. Restart? (Y/n). \n", server);
+        printf("Error: MonetdbServer %p already connected. Restart? (Y/n). \n", server);
         char c[50];
         std::cin.getline(c, 49);
         for(int i = 0; i < 50; ++i) {
@@ -122,7 +123,7 @@ void Server::connect(Context *cxt){
     }
 }
 
-void Server::exec(const char* q){
+void MonetdbServer::exec(const char* q){
     auto server = static_cast<monetdbe_database*>(this->server);
     auto _res = static_cast<monetdbe_result*>(this->res);
     monetdbe_cnt _cnt = 0;
@@ -137,7 +138,7 @@ void Server::exec(const char* q){
     }
 }
 
-bool Server::haserror(){
+bool MonetdbServer::haserror(){
     if (last_error){
         puts(last_error);
         last_error = nullptr;
@@ -149,7 +150,7 @@ bool Server::haserror(){
 }
 
 
-void Server::print_results(const char* sep, const char* end){
+void MonetdbServer::print_results(const char* sep, const char* end){
 
     if (!haserror()){
         auto _res = static_cast<monetdbe_result*> (res);
@@ -190,7 +191,7 @@ void Server::print_results(const char* sep, const char* end){
     }
 }
 
-void Server::close(){
+void MonetdbServer::close(){
     if(this->server){
         auto server = static_cast<monetdbe_database*>(this->server);
         monetdbe_close(*server);
@@ -199,7 +200,7 @@ void Server::close(){
     }
 }
 
-void* Server::getCol(int col_idx){
+void* MonetdbServer::getCol(int col_idx, int){
     if(res){
         auto _res = static_cast<monetdbe_result*>(this->res);
         auto err_msg = monetdbe_result_fetch(_res, 
@@ -224,7 +225,7 @@ void* Server::getCol(int col_idx){
 
 #define AQ_MONETDB_FETCH(X) case monetdbe_##X: \
     return (long long)((X *)(_ret_col->data))[0]; 
-long long Server::getFirstElement() {
+long long MonetdbServer::getFirstElement() {
     if(!this->haserror() && res) {
         auto _res = static_cast<monetdbe_result*>(this->res);
         auto err_msg = monetdbe_result_fetch(_res, 
@@ -266,11 +267,11 @@ long long Server::getFirstElement() {
     return 0;
 }
 
-Server::~Server(){
+MonetdbServer::~MonetdbServer(){
     close();
 }
 
-bool Server::havehge() {
+bool MonetdbServer::havehge() {
 #if defined(_MONETDBE_LIB_) and defined(HAVE_HGE)
     // puts("true");
     return HAVE_HGE;
@@ -299,7 +300,7 @@ constexpr prt_fn_t monetdbe_prtfns[] = {
 constexpr uint32_t output_buffer_size = 65536;
 void print_monetdb_results(void* _srv, const char* sep = " ", const char* end = "\n", 
     uint32_t limit = std::numeric_limits<uint32_t>::max()) {
-    auto srv = static_cast<Server *>(_srv);
+    auto srv = static_cast<MonetdbServer *>(_srv);
     if (!srv->haserror() && srv->cnt && limit) {
         char buffer[output_buffer_size];
         auto _res = static_cast<monetdbe_result*> (srv->res);
@@ -360,7 +361,7 @@ cleanup:
 
 
 int ExecuteStoredProcedureEx(const StoredProcedure *p, Context* cxt){
-    auto server = static_cast<Server*>(cxt->alt_server);
+    auto server = static_cast<MonetdbServer*>(cxt->alt_server[BACKEND_MonetDB]);
     int ret = 0;
     bool return_from_procedure = false;
     void* handle = nullptr;

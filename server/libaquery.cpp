@@ -633,3 +633,5 @@ get_procedure(Context* cxt, const char* name) {
         };
     return res->second;
 }
+
+void* CreateNULLServer(Context*) { return nullptr; }

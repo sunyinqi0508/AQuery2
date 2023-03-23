@@ -229,6 +229,7 @@ class Context:
         self.removing_scan = False
 
     def __init__(self): 
+        from prompt import PromptState
         self.tables:list[TableInfo] = []
         self.tables_byname = dict()
         self.ccols_byname = dict()
@@ -252,6 +253,9 @@ class Context:
         self.ds_stack = []
         self.scans = []
         self.removing_scan = False
+        self.force_compiled = True
+        self.system_state: Optional[PromptState] = None
+        
     def add_table(self, table_name, cols):
         tbl = TableInfo(table_name, cols, self)
         self.tables.append(tbl)

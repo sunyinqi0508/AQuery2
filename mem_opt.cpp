@@ -17,7 +17,7 @@ __AQEXPORT__(void) __AQ_Init_GC__(Context* cxt) {
 __AQEXPORT__(int) dll_2Cxoox(Context* cxt) {
 	using namespace std;
 	using namespace types;
-	auto server = static_cast<Server*>(cxt->alt_server);
+	auto server = static_cast<DataSource*>(cxt->alt_server);
 auto len_4ycjiV = server->cnt;
 auto mont_8AE = ColRef<const char*>(len_4ycjiV, server->getCol(0));
 auto sales_2RB = ColRef<int>(len_4ycjiV, server->getCol(1));

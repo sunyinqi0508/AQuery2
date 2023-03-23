@@ -6,7 +6,7 @@ from typing import Dict, List, Optional, Set, Tuple, Union
 from common.types import *
 from common.utils import (base62alp, base62uuid, enlist, 
                           get_innermost, get_legal_name)
-from reconstruct.storage import ColRef, Context, TableInfo
+from engine.storage import ColRef, Context, TableInfo
 
 class ast_node:
     header = []
@@ -51,7 +51,7 @@ class ast_node:
             self.emit(self.sql+';\n')
             self.context.sql_end()
         
-from reconstruct.expr import expr, fastscan
+from engine.expr import expr, fastscan
 class SubqType(Enum):
     WITH = auto()
     FROM = auto()
@@ -328,7 +328,7 @@ class projection(ast_node):
         for v, idx in self.var_table.items():
             vname = get_legal_name(v) + '_' + base62uuid(3)
             self.pyname2cname[v] = vname
-            self.context.emitc(f'auto {vname} = ColRef<{typenames[idx].cname}>({length_name}, server->getCol({idx}));')
+            self.context.emitc(f'auto {vname} = ColRef<{typenames[idx].cname}>({length_name}, server->getCol({idx}, {typenames[idx].ctype_name}));')
             vid2cname[idx] = vname
         # Create table into context
         out_typenames = [None] * len(proj_map)
@@ -463,7 +463,7 @@ class select_into(ast_node):
             raise Exception('No out_table found.')
         else:
             self.context.headers.add('"./server/table_ext_monetdb.hpp"')
-            self.ccode = f'{self.parent.out_table.contextname_cpp}->monetdb_append_table(cxt->alt_server, \"{node.lower()}\");'
+            self.ccode = f'{self.parent.out_table.contextname_cpp}->monetdb_append_table(cxt->curr_server, \"{node.lower()}\");'
             
     def produce_sql(self, node):
         self.context.sql = self.context.sql.replace(
@@ -1252,6 +1252,7 @@ class load(ast_node):
     name="load"
     first_order = name
     def init(self, node):
+        from prompt import Backend_Type
         self.module = False
         if node['load']['file_type'] == 'module':
             self.produce = self.produce_module
@@ -1259,8 +1260,10 @@ class load(ast_node):
         elif 'complex' in node['load']:
             self.produce = self.produce_cpp
             self.consume = lambda *_: None
-        elif self.context.dialect == 'MonetDB':
+        elif self.context.system_state.cfg.backend_type == Backend_Type.BACKEND_MonetDB.value:
             self.produce = self.produce_monetdb
+        elif self.context.system_state.cfg.backend_type == Backend_Type.BACKEND_DuckDB.value:
+            self.produce = self.produce_duckdb
         else: 
             self.produce = self.produce_aq
         if self.parent is None:
@@ -1327,7 +1330,16 @@ class load(ast_node):
         self.sql = f'{s1} \'{p}\' {s2} '
         if 'term' in node:
             self.sql += f' {s3} \'{node["term"]["literal"]}\''
-            
+    
+    def produce_duckdb(self, node):
+        node = node['load']
+        s1 = f'COPY {node["table"]} FROM '
+        import os
+        p = os.path.abspath(node['file']['literal']).replace('\\', '/')
+        s2 = f" DELIMITER '{node['term']['literal']}', " if 'term' in node else ''
+        self.sql = f'{s1} \'{p}\' ( {s2}HEADER )'
+        
+    
     def produce_cpp(self, node):
         self.context.has_dll = True
         self.context.headers.add('"csv.h"')
@@ -1374,7 +1386,7 @@ class load(ast_node):
             
         self.context.emitc('}')
         # self.context.emitc(f'print(*{self.out_table});')
-        self.context.emitc(f'{self.out_table}->monetdb_append_table(cxt->alt_server, "{table.table_name}");')
+        self.context.emitc(f'{self.out_table}->monetdb_append_table(cxt->curr_server, "{table.table_name}");')
         
         self.context.postproc_end(self.postproc_fname)
 
@@ -1424,7 +1436,11 @@ class outfile(ast_node):
         file_pointer = 'fp_' + base62uuid(6)
         self.addc(f'FILE* {file_pointer} = fopen("{filename}", "wb");')
         self.addc(f'{self.parent.out_table.contextname_cpp}->printall("{sep}", "\\n", nullptr, {file_pointer});')
-        self.addc(f'fclose({file_pointer});')  
+        if self.context.use_gc:
+            self.addc(f'GC::gc_handle->reg({file_pointer}, 65536, [](void* fp){{fclose((FILE*)fp);}});')
+        else:
+            self.addc(f'fclose({file_pointer});')  
+            
         self.context.ccode += self.ccode
 
 class udf(ast_node):

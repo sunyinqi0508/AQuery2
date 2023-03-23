@@ -5,7 +5,7 @@ Defines =
 CC = $(CXX) -xc 
 CXXFLAGS = --std=c++2a
 ifeq ($(AQ_DEBUG), 1)
-	OPTFLAGS = -g3 #-static-libasan -fsanitize=address 
+	OPTFLAGS = -g3 #-static-libsan -fsanitize=address 
 	LINKFLAGS = 
 else
 	OPTFLAGS = -Ofast -DNDEBUG -fno-stack-protector 
@@ -17,12 +17,15 @@ _COMPILER = $(shell $(CXX) --version | grep -q clang && echo clang|| echo gcc)
 COMPILER = $(strip $(_COMPILER))
 LIBTOOL = ar rcs
 USELIB_FLAG = -Wl,--whole-archive,libaquery.a -Wl,-no-whole-archive
-LIBAQ_SRC = server/monetdb_conn.cpp server/libaquery.cpp 
-LIBAQ_OBJ = monetdb_conn.o libaquery.o monetdb_ext.o
+LIBAQ_SRC = server/monetdb_conn.cpp server/duckdb_conn.cpp server/libaquery.cpp 
+LIBAQ_OBJ = monetdb_conn.o duckdb_conn.o libaquery.o monetdb_ext.o
 SEMANTIC_INTERPOSITION = -fno-semantic-interposition
 RANLIB = ranlib
 _LINKER_BINARY = $(shell `$(CXX) -print-prog-name=ld` -v 2>&1 | grep -q LLVM && echo lld || echo ld)
 LINKER_BINARY = $(strip $(_LINKER_BINARY))
+DuckDB_LIB = -Ldeps -lduckdb
+DuckDB_INC = -Ideps
+
 ifeq ($(LINKER_BINARY), ld)
 	LINKER_FLAGS = -Wl,--allow-multiple-definition
 else
@@ -58,6 +61,7 @@ ifeq ($(OS),Windows_NT)
 	LIBAQ_OBJ += winhelper.o
 	MonetDB_LIB += msc-plugin/monetdbe.dll 
 	MonetDB_INC +=  -Imonetdb/msvc
+	
 	LIBTOOL = gcc-ar rcs
 	ifeq ($(COMPILER), clang)
 		FPIC =
@@ -96,8 +100,8 @@ ifeq ($(AQUERY_ITC_USE_SEMPH), 1)
 	Defines += -D__AQUERY_ITC_USE_SEMPH__
 endif
 
-CXXFLAGS += $(OPTFLAGS) $(Defines) $(MonetDB_INC) 
-BINARYFLAGS = $(CXXFLAGS) $(LINKFLAGS) $(MonetDB_LIB)
+CXXFLAGS += $(OPTFLAGS) $(Defines) $(MonetDB_INC) $(DuckDB_INC) 
+BINARYFLAGS = $(CXXFLAGS) $(LINKFLAGS) $(MonetDB_LIB) $(DuckDB_LIB)
 SHAREDFLAGS += $(FPIC) $(BINARYFLAGS)
 
 info:

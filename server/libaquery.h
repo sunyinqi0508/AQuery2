@@ -63,11 +63,17 @@ enum Log_level {
 	LOG_SILENT
 };
 
+#ifndef __AQBACKEND_TYPE__
+#define __AQBACKEND_TYPE__ 1
 enum Backend_Type {
 	BACKEND_AQuery,
 	BACKEND_MonetDB,
-	BACKEND_MariaDB
+	BACKEND_MariaDB, 
+	BACKEND_DuckDB,
+	BACKEND_SQLite,
+	BACKEND_TOTAL
 };
+#endif
 
 struct QueryStats{
 	long long monet_time;
@@ -81,10 +87,14 @@ struct Config{
     int buffer_sizes[];
 };
 
+#ifndef __AQQueryResult__
+#define __AQQueryResult__ 1
 struct AQQueryResult {
-	void* res;
-	uint32_t ref;
+    void* res;
+    unsigned ref;
 };
+#endif
+
 
 struct Session{
     struct Statistic{
@@ -114,7 +124,8 @@ struct Context {
 	int n_buffers, *sz_bufs;
 	void **buffers;
 
-	void* alt_server = nullptr;
+	void* curr_server;
+	void* alt_server[BACKEND_TOTAL] = {nullptr};
 	Log_level log_level = LOG_INFO;
 
 	Session current;

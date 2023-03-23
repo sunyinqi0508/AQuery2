@@ -169,7 +169,7 @@ public:
 			return distinct_copy();
 	}
 	// TODO: think of situations where this is a temp!! (copy on write!!!)
-	template <bool _grow = true>
+	template <bool _grow = true, bool _resize = false>
 	inline void grow(uint32_t sz = 0) {
 		if constexpr (_grow)
 			sz = this->size;
@@ -192,6 +192,8 @@ public:
 				n_container = (_Ty*)malloc(new_capacity * sizeof(_Ty));
 				memcpy(n_container, container, sizeof(_Ty) * size);
 			}
+			if constexpr(_resize) 
+				size = sz;
 			memset(n_container + size, 0, sizeof(_Ty) * (new_capacity - size));
 			// if (capacity)
 			// 	free(container);
@@ -200,8 +202,7 @@ public:
 		}
 	}
 	inline void resize(const uint32_t sz){
-		size = sz;
-		grow<false>(sz);
+		grow<false, true>(sz);
 	}
 	inline void reserve(const uint32_t sz){
 		grow<false>(sz);

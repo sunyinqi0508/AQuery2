@@ -3,7 +3,7 @@
 #include "DataSource_conn.h"
 
 struct DuckdbServer : DataSource {
-    explicit DuckdbServer(Context* cxt = nullptr);
+    explicit DuckdbServer(Context* cxt);
     void connect(Context* cxt);
     void exec(const char* q);
     void* getCol(int col_idx, int type);

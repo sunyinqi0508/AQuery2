@@ -1,4 +1,4 @@
-from typing import Dict, List, Set
+from typing import Dict, List, Optional, Set
 
 from common.types import *
 from common.utils import CaseInsensitiveDict, base62uuid, enlist
@@ -64,7 +64,7 @@ class ColRef:
 
 class TableInfo:
     def __init__(self, table_name, cols, cxt:'Context'):
-        from reconstruct.ast import create_trigger
+        from engine.ast import create_trigger
         # statics
         self.table_name : str = table_name
         self.contextname_cpp : str = ''
@@ -161,8 +161,10 @@ class Context:
         self.has_dll = False
         self.triggers_active.clear()
         
-    def __init__(self):
+    def __init__(self, state = None):
+        from prompt import PromptState
         from .ast import create_trigger
+        from aquery_config import compile_use_gc
         self.tables_byname : Dict[str, TableInfo] = dict()
         self.col_byname = dict()
         self.tables : Set[TableInfo] = set()
@@ -181,6 +183,10 @@ class Context:
         self.triggers : Dict[str, create_trigger] = dict()
         self.triggers_active = set()
         self.stored_proceudres = dict()
+        self.force_compiled = False
+        self.use_gc = compile_use_gc 
+        self.system_state: Optional[PromptState] = state 
+
         # self.new() called everytime new query batch is started
 
     def get_scan_var(self):
@@ -206,7 +212,7 @@ class Context:
     function_head = ('(Context* cxt) {\n' +
         '\tusing namespace std;\n' +
         '\tusing namespace types;\n' + 
-        '\tauto server = static_cast<Server*>(cxt->alt_server);\n')
+        '\tauto server = static_cast<DataSource*>(cxt->curr_server);\n')
     
     udf_head = ('#pragma once\n'
         '#include \"./server/libaquery.h\"\n'
@@ -265,7 +271,7 @@ class Context:
             'O' + limit + sep + end)
         
     def remove_trigger(self, name : str):
-        from reconstruct.ast import create_trigger
+        from engine.ast import create_trigger
         val = self.triggers.pop(name, None)
         if val.type == create_trigger.Type.Callback:
             val.table.triggers.remove(val)

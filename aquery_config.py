@@ -2,7 +2,7 @@
 
 ## GLOBAL CONFIGURATION FLAGS
 
-version_string = '0.7.5a'
+version_string = '0.7.6a'
 add_path_to_ldpath = True
 rebuild_backend = False
 run_backend = True
@@ -12,6 +12,8 @@ msbuildroot = ''
 os_platform = 'unknown'
 build_driver = 'Auto'
 compilation_output = True
+compile_use_gc = True
+compile_use_threading = True
 
 ## END GLOBAL CONFIGURATION FLAGS
 

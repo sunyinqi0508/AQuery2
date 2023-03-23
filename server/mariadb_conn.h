@@ -5,7 +5,7 @@
 #endif
 struct Context;
 
-struct Server{
+struct MariadbServer{
     MYSQL *server = nullptr;
     Context *cxt = nullptr;
     bool status = false;
@@ -20,5 +20,5 @@ struct Server{
     );
     void exec(const char* q);
     void close();
-    ~Server();
+    ~MariadbServer();
 };

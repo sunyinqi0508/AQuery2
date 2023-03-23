@@ -80,7 +80,6 @@ if __name__ == '__main__':
     if check_param(['-h', '--help'], True):
         print(help_message)
         exit()
-    
 
     
 import atexit
@@ -95,7 +94,7 @@ import sys
 import threading
 import time
 from dataclasses import dataclass
-from typing import Callable, List, Optional
+from typing import Callable, List, Optional, Union
 
 import numpy as np
 from mo_parsing import ParseException
@@ -104,10 +103,10 @@ import aquery_parser as parser
 import common
 import common.ddl
 import common.projection
-import reconstruct as xengine
+import engine as xengine
 from build import build_manager
 from common.utils import add_dll_dir, base62uuid, nullstream, ws
-
+from enum import auto
 
 ## CLASSES BEGIN
 class RunType(enum.Enum):
@@ -115,9 +114,19 @@ class RunType(enum.Enum):
     IPC = 1
 
 class Backend_Type(enum.Enum):
-	BACKEND_AQuery = 0
-	BACKEND_MonetDB = 1
-	BACKEND_MariaDB = 2
+    BACKEND_AQuery = 0
+    BACKEND_MonetDB = 1
+    BACKEND_MariaDB = 2
+    BACKEND_DuckDB = 3
+    BACKEND_SQLite = 4
+    BACKEND_TOTAL = 5
+backend_strings = {
+    'aquery': Backend_Type.BACKEND_AQuery,
+    'monetdb': Backend_Type.BACKEND_MonetDB,
+    'mariadb': Backend_Type.BACKEND_MariaDB,
+    'duckdb': Backend_Type.BACKEND_DuckDB,
+    'sqlite': Backend_Type.BACKEND_SQLite,
+}
 
 class StoredProcedure(ctypes.Structure):
     _fields_ = [
@@ -242,7 +251,7 @@ class PromptState():
     set_ready = lambda: None
     get_ready = lambda: None
     server_status = lambda: False
-    cfg : Config = None
+    cfg : Optional[Config] = None
     shm : str = ''
     server : subprocess.Popen = None
     basecmd : List[str] = None
@@ -257,6 +266,26 @@ class PromptState():
     currstats : Optional[QueryStats] = None
     buildmgr : Optional[build_manager]= None
     current_procedure : Optional[str] = None
+    _force_compiled : bool = False
+    _cxt : Optional[Union[xengine.Context, common.Context]] = None
+    @property 
+    def force_compiled(self):
+        return self._force_compiled
+
+    @force_compiled.setter 
+    def force_compiled(self, new_val): 
+        self.cxt.force_compiled = new_val
+        self._force_compiled = new_val
+        
+    @property 
+    def cxt(self):
+        return self._cxt
+
+    @cxt.setter 
+    def cxt(self, cxt):
+        cxt.force_compiled = self.force_compiled
+        self._cxt = cxt
+        self._cxt.system_state = self
 ## CLASSES END
 
 ## FUNCTIONS BEGIN
@@ -412,7 +441,8 @@ def prompt(running = lambda:True, next = lambda:input('> '), state : Optional[Pr
     q = ''
     payload = None
     keep = True
-    cxt = common.initialize()
+    
+    state.cxt = cxt = xengine.initialize()
     parser.parse('SELECT "**** WELCOME TO AQUERY++! ****";')
     
     # state.currstats = QueryStats()
@@ -442,7 +472,7 @@ def prompt(running = lambda:True, next = lambda:input('> '), state : Optional[Pr
                 continue
             if False and q == 'exec': # generate build and run (AQuery Engine)
                 state.cfg.backend_type = Backend_Type.BACKEND_AQuery.value
-                cxt = common.exec(state.stmts, cxt, keep)
+                state.cxt = cxt = common.exec(state.stmts, cxt, keep)
                 if state.buildmgr.build_dll() == 0:
                     state.set_ready()
                 continue
@@ -466,8 +496,8 @@ def prompt(running = lambda:True, next = lambda:input('> '), state : Optional[Pr
                     print(prompt_help)
                 continue
             elif q.startswith('xexec') or q.startswith('exec'): # generate build and run (MonetDB Engine)
-                state.cfg.backend_type = Backend_Type.BACKEND_MonetDB.value
-                cxt = xengine.exec(state.stmts, cxt, keep, parser.parse)
+                #state.cfg.backend_type = Backend_Type.BACKEND_MonetDB.value
+                state.cxt = cxt = xengine.exec(state.stmts, cxt, keep, parser.parse)
                 
                 this_udf = cxt.finalize_udf()
                 if this_udf:
@@ -658,6 +688,20 @@ def prompt(running = lambda:True, next = lambda:input('> '), state : Optional[Pr
                         send_to_server(f'Rd\0')
                 else:
                     print(procedure_help)
+                continue
+            elif q.startswith('force'):
+                splits = q.split()
+                if len(splits > 1) and splits[1] == 'compiled': 
+                    state.force_compiled = True
+                    cxt.force_compiled = True
+                continue
+            elif q.startswith('backend'):
+                splits = q.split()
+                if len(splits) > 1 and splits[1] in backend_strings:
+                    state.cfg.backend_type = backend_strings[splits[1]].value
+                else:
+                    cxt.Error('Not a valid backend type.')
+                print('External Engine is set to', Backend_Type(state.cfg.backend_type).name)
                 continue
             trimed = ws.sub(' ', og_q).split(' ') 
             if len(trimed) > 1 and trimed[0].lower().startswith('fi') or trimed[0].lower() == 'f':

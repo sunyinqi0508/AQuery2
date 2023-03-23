@@ -23,7 +23,7 @@ __AQEXPORT__(int) ld(Context* cxt) {
 	else
 		++cnt;
 	char data_name[] = "data/electricity/electricity       ";
-	auto server = static_cast<Server*>(cxt->alt_server);
+	auto server = static_cast<DataSource*>(cxt->alt_server);
 	const char* names_fZrv[] = {"x", "y"};
 	auto tbl_6erF = new TableInfo<vector_type<double>,int64_t>("source", names_fZrv);
 	decltype(auto) c_31ju0e = tbl_6erF->get_col<0>();

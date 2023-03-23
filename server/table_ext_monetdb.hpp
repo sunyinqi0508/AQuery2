@@ -67,7 +67,7 @@ void TableInfo<Ts ...>::monetdb_append_table(void* srv, const char* alt_name) {
 	auto last_comma = create_table_str.find_last_of(',');
 	if (last_comma != static_cast<decltype(last_comma)>(-1)) {
 		create_table_str[last_comma] = ')';
-		Server* server = (Server*)srv;
+		MonetdbServer* server = (MonetdbServer*)srv;
 		// puts("create table...");
 		// puts(create_table_str.c_str());
 		server->exec(create_table_str.c_str());

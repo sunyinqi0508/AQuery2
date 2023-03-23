@@ -7,6 +7,16 @@
 
 #include "libaquery.h"
 #include "monetdb_conn.h"
+#include "duckdb_conn.h"
+
+constexpr  create_server_t get_server[] = {
+    CreateNULLServer, 
+    [](Context* cxt) -> void*{ return new MonetdbServer(cxt); }, 
+    CreateNULLServer, 
+    [](Context* cxt) -> void*{ return new DuckdbServer(cxt); }, 
+    CreateNULLServer, 
+};
+
 #pragma region misc
 #ifdef THREADING
 #include "threading.h"
@@ -89,7 +99,7 @@ extern "C" int __DLLEXPORT__ binary_info() {
 __AQEXPORT__(bool) 
 have_hge() {
 #if defined(__MONETDB_CONN_H__)
-    return Server::havehge();
+    return MonetdbServer::havehge();
 #else
     return false;
 #endif
@@ -205,13 +215,20 @@ int dll_main(int argc, char** argv, Context* cxt){
     cxt->cfg = cfg;
     cxt->n_buffers = cfg->n_buffers;
     cxt->sz_bufs = buf_szs;
-    if (cfg->backend_type == BACKEND_MonetDB && cxt->alt_server == nullptr)
-    {
-        auto alt_server = new Server(cxt);
-        alt_server->exec("SELECT '**** WELCOME TO AQUERY++! ****';");
-        puts(*(const char**)(alt_server->getCol(0)));
-        cxt->alt_server = alt_server;
-    }
+
+    
+    const auto& update_backend = [&cxt, &cfg](){
+        auto& curr_server = cxt->alt_server[cfg->backend_type];
+        if (curr_server == nullptr) {
+            curr_server = get_server[cfg->backend_type](cxt);
+            cxt->alt_server[cfg->backend_type] = curr_server;
+            static_cast<DataSource*>(curr_server)->exec("SELECT '**** WELCOME TO AQUERY++! ****';");
+            puts(*(const char**)(static_cast<DataSource*>(curr_server)->getCol(0, types::Types<const char*>::getType())));
+        }
+        cxt->curr_server = curr_server;
+    };
+    update_backend();
+
     while(cfg->running){
         ENGINE_ACQUIRE();
         if (cfg->new_query) {
@@ -221,10 +238,11 @@ start:
 
             void *handle = nullptr;
             void *user_module_handle = nullptr;
-            if (cfg->backend_type == BACKEND_MonetDB){
-                if (cxt->alt_server == nullptr)
-                    cxt->alt_server = new Server(cxt);
-                Server* server = reinterpret_cast<Server*>(cxt->alt_server);
+            if (cfg->backend_type == BACKEND_MonetDB||
+                cfg->backend_type == BACKEND_DuckDB
+            ) {
+                update_backend();
+                auto server = reinterpret_cast<DataSource*>(cxt->curr_server);
                 if(n_recv > 0){
                     if (cfg->backend_type == BACKEND_AQuery || cfg->has_dll) {
                         const char* proc_name = "./dll.so";

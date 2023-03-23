@@ -11,7 +11,8 @@ void DuckdbServer::connect(Context* cxt) {
 		static_cast<duckdb_database*>(malloc(sizeof(duckdb_database)));
 	this->handle = db_handle;
 	bool status = duckdb_open(nullptr, db_handle);
-	duckdb_connection* conn_handle;
+	duckdb_connection* conn_handle = 
+		static_cast<duckdb_connection*>(malloc(sizeof(duckdb_connection)));;
 	status = status || duckdb_connect(*db_handle, conn_handle);
 	this->server = conn_handle;
 	if (status != 0) {
@@ -20,6 +21,7 @@ void DuckdbServer::connect(Context* cxt) {
 }
 
 DuckdbServer::DuckdbServer(Context* cxt) {
+	this->DataSourceType = BACKEND_DuckDB;
 	this->cxt = cxt;
 	connect(cxt);
 }
