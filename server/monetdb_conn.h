@@ -11,7 +11,8 @@ struct MonetdbServer : DataSource {
     void close() override;
     bool haserror() override;
     static bool havehge();
-    void print_results(const char* sep = " ", const char* end = "\n");
+    void print_results(const char* sep = " ", const char* end = "\n", 
+        uint32_t limit = std::numeric_limits<uint32_t>::max()) override;
     friend void print_monetdb_results(void* _srv, const char* sep, const char* end, int limit);
     ~MonetdbServer() override;
 };

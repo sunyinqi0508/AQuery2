@@ -190,3 +190,19 @@ def get_storedproc(name : str):
 
 def execute_procedure(proc):
     pass
+
+import enum
+class Backend_Type(enum.Enum):
+    BACKEND_AQuery = 0
+    BACKEND_MonetDB = 1
+    BACKEND_MariaDB = 2
+    BACKEND_DuckDB = 3
+    BACKEND_SQLite = 4
+    BACKEND_TOTAL = 5
+backend_strings = {
+    'aquery': Backend_Type.BACKEND_AQuery,
+    'monetdb': Backend_Type.BACKEND_MonetDB,
+    'mariadb': Backend_Type.BACKEND_MariaDB,
+    'duckdb': Backend_Type.BACKEND_DuckDB,
+    'sqlite': Backend_Type.BACKEND_SQLite,
+}

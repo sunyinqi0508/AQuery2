@@ -1,3 +1,4 @@
+#include "pch_msc.hpp"
 #include "duckdb_conn.h"
 #include "../deps/duckdb.hpp"
 #include "libaquery.h"

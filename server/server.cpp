@@ -174,7 +174,7 @@ void initialize_module(const char* module_name, void* module_handle, Context* cx
 }
 
 #pragma endregion
-int dll_main(int argc, char** argv, Context* cxt){
+int threaded_main(int argc, char** argv, Context* cxt){
     aq_timer timer;
     Config *cfg = reinterpret_cast<Config *>(argv[0]);
     std::unordered_map<std::string, void*> user_module_map;
@@ -218,7 +218,11 @@ int dll_main(int argc, char** argv, Context* cxt){
 
     
     const auto& update_backend = [&cxt, &cfg](){
-        auto& curr_server = cxt->alt_server[cfg->backend_type];
+        auto backend_type = cfg->backend_type;
+        if (backend_type == Backend_Type::BACKEND_AQuery) {
+            backend_type = Backend_Type::BACKEND_MonetDB;
+        }
+        auto& curr_server = cxt->alt_server[backend_type];
         if (curr_server == nullptr) {
             curr_server = get_server[cfg->backend_type](cxt);
             cxt->alt_server[cfg->backend_type] = curr_server;
@@ -239,7 +243,8 @@ start:
             void *handle = nullptr;
             void *user_module_handle = nullptr;
             if (cfg->backend_type == BACKEND_MonetDB||
-                cfg->backend_type == BACKEND_DuckDB
+                cfg->backend_type == BACKEND_DuckDB ||
+                cfg->backend_type == BACKEND_AQuery 
             ) {
                 update_backend();
                 auto server = reinterpret_cast<DataSource*>(cxt->curr_server);
@@ -559,11 +564,11 @@ start:
             }
             
             // puts(cfg->has_dll ? "true" : "false");
-            if (cfg->backend_type == BACKEND_AQuery) {
-                handle = dlopen("./dll.so", RTLD_NOW);
-                code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, "dllmain"));
-                c(cxt);
-            }
+            // if (cfg->backend_type == BACKEND_AQuery) {
+            //     handle = dlopen("./dll.so", RTLD_NOW);
+            //     code_snippet c = reinterpret_cast<code_snippet>(dlsym(handle, "dllmain"));
+            //     c(cxt);
+            // }
             if (handle && 
                 !procedure_replaying && !procedure_recording) { 
                 printf("Destroy %p\n", handle);
@@ -580,8 +585,8 @@ start:
     
     return 0;
 }
-
-int launcher(int argc, char** argv){
+#ifdef __AQ_BUILD_LAUNCHER__
+int main(int argc, char** argv){
 #ifdef _WIN32
     constexpr char sep = '\\';
 #else
@@ -603,11 +608,9 @@ int launcher(int argc, char** argv){
     str = std::string("cd ") + pwd + std::string("&& python3 ./prompt.py ") + str;
     return system(str.c_str());
 }
-#if true || !defined(TESTMAIN) && !( defined(_MSC_VER) && defined(_DEBUG) )
-extern "C" int __DLLEXPORT__ main(int argc, char** argv) {
-#ifdef __AQ_BUILD_LAUNCHER__
-   return launcher(argc, argv);
 #endif
+
+extern "C" int __DLLEXPORT__ dllmain(int argc, char** argv) {
    // puts("running");
    Context* cxt = new Context();
    _g_cxt = cxt;
@@ -623,7 +626,7 @@ extern "C" int __DLLEXPORT__ main(int argc, char** argv) {
     
    const char* shmname;
    if (argc < 0)
-        return dll_main(argc, argv, cxt);
+        return threaded_main(argc, argv, cxt);
    else
        shmname = argv[1];
    SharedMemory shm = SharedMemory(shmname);
@@ -657,4 +660,3 @@ extern "C" int __DLLEXPORT__ main(int argc, char** argv) {
    return 0;
 }
 
-#endif // MSCDBG

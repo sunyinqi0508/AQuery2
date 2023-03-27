@@ -105,28 +105,13 @@ import common.ddl
 import common.projection
 import engine as xengine
 from build import build_manager
-from common.utils import add_dll_dir, base62uuid, nullstream, ws
+from common.utils import add_dll_dir, base62uuid, nullstream, ws, Backend_Type, backend_strings
 from enum import auto
 
 ## CLASSES BEGIN
 class RunType(enum.Enum):
     Threaded = 0
     IPC = 1
-
-class Backend_Type(enum.Enum):
-    BACKEND_AQuery = 0
-    BACKEND_MonetDB = 1
-    BACKEND_MariaDB = 2
-    BACKEND_DuckDB = 3
-    BACKEND_SQLite = 4
-    BACKEND_TOTAL = 5
-backend_strings = {
-    'aquery': Backend_Type.BACKEND_AQuery,
-    'monetdb': Backend_Type.BACKEND_MonetDB,
-    'mariadb': Backend_Type.BACKEND_MariaDB,
-    'duckdb': Backend_Type.BACKEND_DuckDB,
-    'sqlite': Backend_Type.BACKEND_SQLite,
-}
 
 class StoredProcedure(ctypes.Structure):
     _fields_ = [
@@ -367,7 +352,7 @@ def init_threaded(state : PromptState):
         if aquery_config.have_hge != 0:
             from common.types import get_int128_support
             get_int128_support()
-        state.th = threading.Thread(target=server_so['main'], args=(-1, ctypes.POINTER(ctypes.c_char_p)(state.cfg.c)), daemon=True)
+        state.th = threading.Thread(target=server_so['dllmain'], args=(-1, ctypes.POINTER(ctypes.c_char_p)(state.cfg.c)), daemon=True)
         state.th.start() 
 
 def init_prompt() -> PromptState:
@@ -695,12 +680,12 @@ def prompt(running = lambda:True, next = lambda:input('> '), state : Optional[Pr
                     state.force_compiled = True
                     cxt.force_compiled = True
                 continue
-            elif q.startswith('backend'):
+            elif q.startswith('engine'):
                 splits = q.split()
                 if len(splits) > 1 and splits[1] in backend_strings:
                     state.cfg.backend_type = backend_strings[splits[1]].value
                 else:
-                    cxt.Error('Not a valid backend type.')
+                    cxt.Error('Not a valid engine type.')
                 print('External Engine is set to', Backend_Type(state.cfg.backend_type).name)
                 continue
             trimed = ws.sub(' ', og_q).split(' ') 

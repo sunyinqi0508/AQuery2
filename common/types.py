@@ -290,6 +290,16 @@ def pack_behavior(op: OperatorBase, c_code, *x):
     else:
         return f'decltype({x[0]})::pack({len(x)}, {", ".join([f"{xx}.s()" for xx in x])})'
     
+def subvec_behavior(op: OperatorBase, c_code, *x):
+    if len(x) < 1 :
+        raise ValueError('At least 1 parameters in subvec')
+    if len(x) == 1:
+        return f'{x[0]}'
+    if not c_code:
+        return f'{op.sqlname}({", ".join([f"{xx}" for xx in x])})'
+    else:
+        return f'{x[0]}.subvec({x[1]}{f", {x[2]}" if len(x) == 2 else ""})'
+    
 # arithmetic 
 opadd = OperatorBase('add', 2, auto_extension, cname = '+', sqlname = '+', call = binary_op_behavior)
 # monetdb wont extend int division to fp type
@@ -322,10 +332,12 @@ fnlast = OperatorBase('last', 1, as_is, cname = 'last', sqlname = 'LAST', call =
 fnfirst = OperatorBase('first', 1, as_is, cname = 'frist', sqlname = 'FRIST', call = fn_behavior)
 #fnsum = OperatorBase('sum', 1, ext(auto_extension), cname = 'sum', sqlname = 'SUM', call = fn_behavior)
 #fnavg = OperatorBase('avg', 1, fp(ext(auto_extension)), cname = 'avg', sqlname = 'AVG', call = fn_behavior)
+fnmedian = OperatorBase('median', 1, as_is, cname = 'median', sqlname = 'MEDIAN', call = fn_behavior)
 fnsum = OperatorBase('sum', 1, long_return, cname = 'sum', sqlname = 'SUM', call = fn_behavior)
 fnavg = OperatorBase('avg', 1, lfp_return, cname = 'avg', sqlname = 'AVG', call = fn_behavior)
-fnvar = OperatorBase('var', 1, lfp_return, cname = 'var', sqlname = 'VAR_POP', call = fn_behavior)
-fnstd = OperatorBase('stddev', 1, lfp_return, cname = 'stddev', sqlname = 'STDDEV_POP', call = fn_behavior)
+fnvar = OperatorBase('var', 1, lfp_return, cname = 'var', sqlname = 'VAR', call = fn_behavior)
+fnstd = OperatorBase('stddev', 1, lfp_return, cname = 'stddev', sqlname = 'STDDEV', call = fn_behavior)
+fncorr = OperatorBase('corr', 1, lfp_return, cname = 'corr', sqlname = 'CORR', call = fn_behavior)
 fnmaxs = OperatorBase('maxs', [1, 2], ty_clamp(as_is, -1), cname = 'maxs', sqlname = 'MAXS', call = windowed_fn_behavor)
 fnmins = OperatorBase('mins', [1, 2], ty_clamp(as_is, -1), cname = 'mins', sqlname = 'MINS', call = windowed_fn_behavor)
 fnsums = OperatorBase('sums', [1, 2], ext(ty_clamp(auto_extension, -1)), cname = 'sums', sqlname = 'SUMS', call = windowed_fn_behavor)
@@ -334,6 +346,7 @@ fnvars = OperatorBase('vars', [1, 2], fp(ext(ty_clamp(auto_extension, -1))), cna
 fnstds = OperatorBase('stddevs', [1, 2], fp(ext(ty_clamp(auto_extension, -1))), cname = 'stddevs', sqlname = 'STDDEVS', call = windowed_fn_behavor)
 fncnt = OperatorBase('count', 1, int_return, cname = 'count', sqlname = 'COUNT', call = count_behavior)
 fnpack = OperatorBase('pack', -1, pack_return, cname = 'pack', sqlname = 'PACK', call = pack_behavior)
+fnsubvec = OperatorBase('subvec', [1, 2, 3], as_is, cname = 'subvec', sqlname = 'SUBVEC', call = subvec_behavior)
 # special
 def is_null_call_behavior(op:OperatorBase, c_code : bool, x : str):
     if c_code : 
@@ -366,8 +379,8 @@ builtin_unary_arith = _op_make_dict(opneg)
 builtin_unary_special = _op_make_dict(spnull, opdistinct)
 # functions 
 builtin_cstdlib = _op_make_dict(fnsqrt, fnlog, fnsin, fncos, fntan, fnpow)
-builtin_aggfunc = _op_make_dict(fnmax, fnmin, fnsum, fnavg, 
-                                fnlast, fnfirst, fncnt, fnvar, fnstd)
+builtin_aggfunc = _op_make_dict(fnmedian, fnsubvec, fnmax, fnmin, fnsum, fnavg, 
+                                fnlast, fnfirst, fncnt, fnvar, fnstd, fncorr)
 builtin_vecfunc = _op_make_dict(fnmaxs, 
                              fnmins, fndeltas, fnratios, fnsums, fnavgs, 
                              fnpack, fntrunc, fnprev, fnnext, fnvars, fnstds)

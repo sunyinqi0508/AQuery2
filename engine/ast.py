@@ -5,7 +5,8 @@ from typing import Dict, List, Optional, Set, Tuple, Union
 
 from common.types import *
 from common.utils import (base62alp, base62uuid, enlist, 
-                          get_innermost, get_legal_name)
+                          get_innermost, get_legal_name, 
+                          Backend_Type, backend_strings)
 from engine.storage import ColRef, Context, TableInfo
 
 class ast_node:
@@ -72,7 +73,10 @@ class projection(ast_node):
                  force_use_spgb : bool = False,
                  subq_type: SubqType = SubqType.NONE
                 ):
-        self.force_use_spgb = force_use_spgb
+        self.force_use_spgb = ( 
+            force_use_spgb | 
+            context.system_state.cfg.backend_type == Backend_Type.BACKEND_AQuery.value
+        )
         self.subq_type = subq_type
         super().__init__(parent, node, context)
         
@@ -426,6 +430,7 @@ class projection(ast_node):
     def finalize(self, node):
         self.deal_with_into(node)
         self.context.emitc(f'puts("done.");')
+        self.context.emitc('printf("done: %lld\\n", (chrono::high_resolution_clock::now() - timer).count());timer = chrono::high_resolution_clock::now();')
 
         if self.parent is None:
             self.context.sql_end()
@@ -575,6 +580,7 @@ class groupby_c(ast_node):
         g_contents = ', '.join(
             [f'{c}[{scanner_itname}]' for c in g_contents_list]
         )
+        self.context.emitc('printf("init_time: %lld\\n", (chrono::high_resolution_clock::now() - timer).count()); timer = chrono::high_resolution_clock::now();')
         self.context.emitc(f'typedef record<{",".join(g_contents_decltype)}> {self.group_type};')
         self.context.emitc(f'AQHashTable<{self.group_type}, '
             f'transTypes<{self.group_type}, hasher>> {self.group} {{{self.total_sz}}};')
@@ -602,7 +608,7 @@ class groupby_c(ast_node):
                 self.context.emitc(f'auto buf_{c} = static_cast<{typename.cname} *>(calloc({self.total_sz}, sizeof({typename.cname})));')
                 tovec_columns.add(c)
             else:
-                self.context.emitc(f'{c}.reserve({self.group}.size());')
+                self.context.emitc(f'{c}.resize({self.group}.size());')
                 
         self.arr_len = 'arrlen_' + base62uuid(3)
         self.arr_values = 'arrvals_' + base62uuid(3)
@@ -621,7 +627,7 @@ class groupby_c(ast_node):
                 )
             preproc_scanner.finalize()
         
-        self.context.emitc(f'GC::scratch_space = GC::gc_handle ? &(GC::gc_handle->scratch) : nullptr;')
+        self.context.emitc('GC::scratch_space = GC::gc_handle ? &(GC::gc_handle->scratch) : nullptr;')
         # gscanner = scan(self, self.group, loop_style = 'for_each')
         gscanner = scan(self, self.arr_len)
         key_var = 'key_'+base62uuid(7)
@@ -674,7 +680,7 @@ class groupby_c(ast_node):
                     materialize_builtin['_builtin_len'] = len_var
                 if '_builtin_ret' in ex.udf_called.builtin_used:
                     define_len_var()
-                    gscanner.add(f'{ce[0]}.emplace_back({len_var});\n')
+                    gscanner.add(f'{ce[0]}[{gscanner.it_var}] = {len_var};\n')
                     materialize_builtin['_builtin_ret'] = f'{ce[0]}.back()'
                     gscanner.add(f'{ex.eval(c_code = True, y=get_var_names, materialize_builtin = materialize_builtin)};\n')
                     continue
@@ -684,12 +690,14 @@ class groupby_c(ast_node):
                 else:
                     gscanner.add(f'{ce[0]}[{gscanner.it_var}] = {get_var_names_ex(ex)};\n')
             else:
-                gscanner.add(f'{ce[0]}.emplace_back({get_var_names_ex(ex)});\n')
+                gscanner.add(f'{ce[0]}[{gscanner.it_var}] = ({get_var_names_ex(ex)});\n')
         
         gscanner.add(f'GC::scratch_space->release();')
+        self.context.emitc('printf("ht_construct: %lld\\n", (chrono::high_resolution_clock::now() - timer).count());timer = chrono::high_resolution_clock::now();')
         
         gscanner.finalize()
         self.context.emitc(f'GC::scratch_space = nullptr;')
+        self.context.emitc('printf("agg: %lld\\n", (chrono::high_resolution_clock::now() - timer).count());timer = chrono::high_resolution_clock::now();')
         
         self.datasource.groupinfo = None
 
@@ -698,7 +706,7 @@ class groupby(ast_node):
     name = 'group by'
     
     @staticmethod
-    def check_special(parent, node):
+    def check_special(parent : projection, node):
         node = enlist(node)
         for g in node:
             if ('value' in g and 
@@ -1252,7 +1260,7 @@ class load(ast_node):
     name="load"
     first_order = name
     def init(self, node):
-        from prompt import Backend_Type
+        from common.utils import Backend_Type
         self.module = False
         if node['load']['file_type'] == 'module':
             self.produce = self.produce_module

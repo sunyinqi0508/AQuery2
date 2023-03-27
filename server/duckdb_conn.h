@@ -10,7 +10,9 @@ struct DuckdbServer : DataSource {
     long long getFirstElement();
     void close();
     bool haserror();
-    void print_results(const char* sep = " ", const char* end = "\n");
+    void print_results(const char* sep = " ", const char* end = "\n",
+        uint32_t limit = std::numeric_limits<uint32_t>::max()) {}
+
     ~DuckdbServer();
 };
 #endif //__DUCKDB_CONN_H__

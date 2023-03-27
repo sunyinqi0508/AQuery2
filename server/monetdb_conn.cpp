@@ -150,7 +150,7 @@ bool MonetdbServer::haserror(){
 }
 
 
-void MonetdbServer::print_results(const char* sep, const char* end){
+void MonetdbServer::print_results(const char* sep, const char* end, uint32_t) {
 
     if (!haserror()){
         auto _res = static_cast<monetdbe_result*> (res);

@@ -212,7 +212,10 @@ class Context:
     function_head = ('(Context* cxt) {\n' +
         '\tusing namespace std;\n' +
         '\tusing namespace types;\n' + 
-        '\tauto server = static_cast<DataSource*>(cxt->curr_server);\n')
+        '\tauto server = static_cast<DataSource*>(cxt->curr_server);\n'
+        '\tauto timer = chrono::high_resolution_clock::now();\n'
+        
+        )
     
     udf_head = ('#pragma once\n'
         '#include \"./server/libaquery.h\"\n'

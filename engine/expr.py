@@ -3,6 +3,7 @@ from typing import Optional, Set
 from common.types import *
 from engine.ast import ast_node
 from engine.storage import ColRef, Context
+from common.utils import Backend_Type
 
 # TODO: Decouple expr and upgrade architecture
 # C_CODE : get ccode/sql code?
@@ -180,6 +181,8 @@ class expr(ast_node):
                                         and
                                     self.root.parent.force_use_spgb
                                 )
+                                    or
+                                self.context.system_state.cfg.backend_type == Backend_Type.BACKEND_AQuery.value
                            ):
                             special_func = [*special_func, *self.ext_aggfuncs]
                             

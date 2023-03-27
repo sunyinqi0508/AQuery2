@@ -1,5 +1,7 @@
 #ifndef __DATASOURCE_CONN_H__
 #define __DATASOURCE_CONN_H__
+#include <limits>
+#include <cstdint>
 struct Context;
 
 #ifndef __AQQueryResult__
@@ -45,7 +47,8 @@ struct DataSource {
     // virtual long long getFirstElement() = 0;
     virtual void close() = 0;
     virtual bool haserror() = 0;
-    // virtual void print_results(const char* sep = " ", const char* end = "\n");
+    virtual void print_results(const char* sep = " ", const char* end = "\n",
+        uint32_t limit = std::numeric_limits<uint32_t>::max()) {};
     virtual ~DataSource() {};
 };
 // TODO: replace with super class

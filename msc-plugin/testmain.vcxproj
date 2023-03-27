@@ -192,8 +192,9 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>..\libaquery.lib;$(ProjectDir)\..\monetdb\msvc\monetdbe.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>bat.lib;monetdbsql.lib;duckdb.lib;..\libaquery.lib;$(ProjectDir)\..\monetdb\msvc\monetdbe.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/WHOLEARCHIVE:libaquery.lib %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalLibraryDirectories>../deps/;../monetdb/msvc</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -216,10 +217,11 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>false</GenerateDebugInformation>
-      <AdditionalDependencies>..\libaquery.lib;$(ProjectDir)\..\monetdb\msvc\monetdbe.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>bat.lib;monetdbsql.lib;duckdb.lib;..\libaquery.lib;$(ProjectDir)\..\monetdb\msvc\monetdbe.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DataExecutionPrevention>false</DataExecutionPrevention>
       <AdditionalOptions>/WHOLEARCHIVE:libaquery.lib %(AdditionalOptions)</AdditionalOptions>
       <Profile>true</Profile>
+      <AdditionalLibraryDirectories>../deps/;../monetdb/msvc</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWDbgInf|Win32'">
@@ -242,10 +244,11 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
-      <AdditionalDependencies>..\libaquery.lib;$(ProjectDir)\..\monetdb\msvc\monetdbe.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>bat.lib;monetdbsql.lib;duckdb.lib;..\libaquery.lib;$(ProjectDir)\..\monetdb\msvc\monetdbe.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DataExecutionPrevention>false</DataExecutionPrevention>
       <AdditionalOptions>/WHOLEARCHIVE:libaquery.lib %(AdditionalOptions)</AdditionalOptions>
       <AssemblyDebug>true</AssemblyDebug>
+      <AdditionalLibraryDirectories>../deps/;../monetdb/msvc</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='sharedlib|Win32'">
@@ -267,8 +270,9 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(ProjectDir)\..\monetdb\msvc\monetdbe.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>bat.lib;monetdbsql.lib;duckdb.lib;$(ProjectDir)\..\monetdb\msvc\monetdbe.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/WHOLEARCHIVE:libaquery.lib %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalLibraryDirectories>../deps/;../monetdb/msvc</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>copy $(OutDir)$(TargetName)$(TargetExt) $(ProjectDir)\..\server.so  /y</Command>
@@ -290,8 +294,9 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>..\libaquery.lib;$(ProjectDir)\..\monetdb\msvc\monetdbe.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>bat.lib;monetdbsql.lib;duckdb.lib;..\libaquery.lib;$(ProjectDir)\..\monetdb\msvc\monetdbe.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/WHOLEARCHIVE:libaquery.lib %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalLibraryDirectories>../deps/;../monetdb/msvc</AdditionalLibraryDirectories>
     </Link>
     <Bscmake>
       <PreserveSbr>true</PreserveSbr>
@@ -317,10 +322,11 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>false</GenerateDebugInformation>
-      <AdditionalDependencies>..\libaquery.lib;$(ProjectDir)\..\monetdb\msvc\monetdbe.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>bat.lib;monetdbsql.lib;duckdb.lib;..\libaquery.lib;$(ProjectDir)\..\monetdb\msvc\monetdbe.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DataExecutionPrevention>false</DataExecutionPrevention>
       <AdditionalOptions>/WHOLEARCHIVE:libaquery.lib %(AdditionalOptions)</AdditionalOptions>
       <Profile>true</Profile>
+      <AdditionalLibraryDirectories>../deps/;../monetdb/msvc</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWDbgInf|x64'">
@@ -343,10 +349,11 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
-      <AdditionalDependencies>..\libaquery.lib;$(ProjectDir)\..\monetdb\msvc\monetdbe.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>bat.lib;monetdbsql.lib;duckdb.lib;..\libaquery.lib;$(ProjectDir)\..\monetdb\msvc\monetdbe.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DataExecutionPrevention>false</DataExecutionPrevention>
       <AdditionalOptions>/WHOLEARCHIVE:libaquery.lib %(AdditionalOptions)</AdditionalOptions>
       <AssemblyDebug>true</AssemblyDebug>
+      <AdditionalLibraryDirectories>../deps/;../monetdb/msvc</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='sharedlib|x64'">
@@ -368,8 +375,9 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(ProjectDir)\..\monetdb\msvc\monetdbe.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>bat.lib;monetdbsql.lib;duckdb.lib;$(ProjectDir)\..\monetdb\msvc\monetdbe.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/WHOLEARCHIVE:libaquery.lib %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalLibraryDirectories>../deps/;../monetdb/msvc</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(OutDir)$(TargetName)$(TargetExt)" "$(ProjectDir)\..\server.so" /y</Command>
