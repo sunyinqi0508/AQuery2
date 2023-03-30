@@ -67,11 +67,11 @@ typedef void (*module_init_fn)(Context*);
 int n_recv = 0;
 char** n_recvd = nullptr;
 
-__AQEXPORT__(void) wait_engine(){
+__AQEXPORT__(void) wait_engine() {
     PROMPT_ACQUIRE();
 }
 
-__AQEXPORT__(void) wake_engine(){
+__AQEXPORT__(void) wake_engine() {
     ENGINE_RELEASE();
 }
 
@@ -108,7 +108,7 @@ have_hge() {
 Context* _g_cxt;
 
 __AQEXPORT__(StoredProcedure)
-get_procedure_ex(const char* name){
+get_procedure_ex(const char* name) {
     return get_procedure(_g_cxt, name);
 }
 
@@ -134,13 +134,13 @@ void activate_callback_based_trigger(Context* context, const char* cmd)
 
 // This function contains heap allocations, free after use
 template<class String_T>
-char* to_lpstr(const String_T& str){
+char* to_lpstr(const String_T& str) {
     auto ret = static_cast<char*>(malloc(str.size() + 1));
     memcpy(ret, str.c_str(), str.size());
     ret[str.size()] = '\0';
     return ret;
 }
-char* copy_lpstr(const char* str){
+char* copy_lpstr(const char* str) {
     auto len = strlen(str);
     auto ret = static_cast<char*>(malloc(len + 1));
     memcpy(ret, str, len + 1);
@@ -639,7 +639,7 @@ extern "C" int __DLLEXPORT__ dllmain(int argc, char** argv) {
    cxt->log("ready: %s\n", ready? "true":"false");
    while (running) {
        std::this_thread::sleep_for(1ms);
-       if(ready){
+       if(ready) {
            cxt->log("running: %s\n", running? "true":"false");
            cxt->log("ready: %s\n", ready? "true":"false");
            void* handle = dlopen("./dll.so", RTLD_NOW);

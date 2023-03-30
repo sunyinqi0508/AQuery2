@@ -36,7 +36,7 @@ public:
 	// reset scratch space to initial capacity.
 	void cleanup();
 };
-
+void fclose_gc(void*);
 
 #ifndef __AQ_USE_THREADEDGC__
 class QUERY_DECLSPEC GC {
@@ -103,7 +103,6 @@ public:
 	} 
     constexpr static void(*_free) (void*) = free;
 };
-
 #else
 class GC {
 public:

@@ -2,7 +2,7 @@
 
 ## GLOBAL CONFIGURATION FLAGS
 
-version_string = '0.7.6a'
+version_string = '0.7.7a'
 add_path_to_ldpath = True
 rebuild_backend = False
 run_backend = True
@@ -28,7 +28,8 @@ def init_config():
     # os.environ['CXX'] = 'C:/Program Files/LLVM/bin/clang.exe'
     os.environ['THREADING'] = '1'
     os.environ['AQUERY_ITC_USE_SEMPH'] = '1'
-
+    if 'AQ_DEBUG' not in os.environ:
+        os.environ['AQ_DEBUG'] = '0'
     if  ('__config_initialized__' not in globals() or 
             not __config_initialized__):
         import sys
@@ -50,6 +51,7 @@ def init_config():
         if os_platform == 'win':
             add_dll_dir(cygroot)  
             add_dll_dir(os.path.abspath('./msc-plugin'))
+            add_dll_dir(os.path.abspath('./deps'))
             if build_driver == 'Auto':
                 try:
                     import vswhere

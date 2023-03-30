@@ -75,7 +75,8 @@ class projection(ast_node):
                 ):
         self.force_use_spgb = ( 
             force_use_spgb | 
-            context.system_state.cfg.backend_type == Backend_Type.BACKEND_AQuery.value
+            (context.system_state.cfg.backend_type == 
+             Backend_Type.BACKEND_AQuery.value)
         )
         self.subq_type = subq_type
         super().__init__(parent, node, context)
@@ -1444,10 +1445,10 @@ class outfile(ast_node):
         file_pointer = 'fp_' + base62uuid(6)
         self.addc(f'FILE* {file_pointer} = fopen("{filename}", "wb");')
         self.addc(f'{self.parent.out_table.contextname_cpp}->printall("{sep}", "\\n", nullptr, {file_pointer});')
-        if self.context.use_gc:
-            self.addc(f'GC::gc_handle->reg({file_pointer}, 65536, [](void* fp){{fclose((FILE*)fp);}});')
-        else:
-            self.addc(f'fclose({file_pointer});')  
+        # if self.context.use_gc:
+        #     self.addc(f'GC::gc_handle->reg({file_pointer}, 65536, fclose_gc);')
+        # else:
+        self.addc(f'fclose({file_pointer});')  
             
         self.context.ccode += self.ccode
 

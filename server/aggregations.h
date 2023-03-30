@@ -20,7 +20,7 @@ template<class T, template<typename ...> class VT>
 types::GetLongType<T>
 sum(const VT<T>& v) {
 	types::GetLongType<T> ret = 0;
-	for (const auto& _v : v)
+	for (auto _v : v)
 		ret += _v;
 	return ret;
 }
@@ -362,6 +362,32 @@ inline decayed_t<VT, types::GetFPType<types::GetLongType<T>>> vars(const VT<T>& 
 	vars<T, VT, decayed_t<VT, types::GetFPType<types::GetLongType<T>>>, sd>(arr, ret);
 	return ret;
 }
+
+template<class T, template<typename ...> class VT, 
+	class T2, template<typename ...> class VT2 
+>
+auto corr(const VT<T>& x, const VT2<T2>&y) {
+	typedef types::Coercion<decays<T>, decays<T2>> InnerType;
+	typedef types::GetLongType<InnerType> LongType;
+	typedef types::GetFPType<LongType> FPType;
+	// assert(x.size == y.size);
+	const uint32_t& len = x.size;
+	LongType sx{0}, sy{0}, sxy{0}, sx2{0}, sy2{0};
+	for (uint32_t i = 0; i < len; ++i){
+		sx += x[i];
+		sx2 += x[i] * x[i];
+		sy += y[i];
+		sxy += x[i] * y[i];
+		sy2 += y[i] * y[i];
+	}
+	return (sxy - FPType(sx*sy)) 
+		/ 
+	(len * sqrt(
+			(sx2 - FPType(sx*sx)/len) * (sy2 - FPType(sy*sy)/len)
+		)
+	);
+}
+
 
 template<class T, template<typename ...> class VT>
 inline types::GetFPType<types::GetLongType<decays<T>>> stddev(const VT<T>& arr) {

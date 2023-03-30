@@ -635,3 +635,4 @@ get_procedure(Context* cxt, const char* name) {
 }
 
 void* CreateNULLServer(Context*) { return nullptr; }
+void fclose_gc(void* fp) { fclose((FILE*)fp); }
