@@ -49,7 +49,6 @@
     <Compile Include="..\engine\orderby.py" />
     <Compile Include="..\engine\projection.py" />
     <Compile Include="..\engine\scan.py" />
-    <Compile Include="..\engine\types.py" />
     <Compile Include="..\reconstruct\storage.py" />
     <Compile Include="..\reconstruct\expr.py" />
     <Compile Include="..\reconstruct\__init__.py" />

@@ -380,14 +380,17 @@ auto corr(const VT<T>& x, const VT2<T2>&y) {
 		sxy += x[i] * y[i];
 		sy2 += y[i] * y[i];
 	}
-	return (sxy - FPType(sx*sy)) 
+	return (len*sxy - FPType(sx*sy)) 
 		/ 
-	(len * sqrt(
-			(sx2 - FPType(sx*sx)/len) * (sy2 - FPType(sy*sy)/len)
+	(sqrt(
+			(len*sx2 - FPType(sx*sx)) * (len*sy2 - FPType(sy*sy))
 		)
 	);
 }
 
+void pow(auto x, auto y, auto& z) {
+	z = pow(x, y);
+}
 
 template<class T, template<typename ...> class VT>
 inline types::GetFPType<types::GetLongType<decays<T>>> stddev(const VT<T>& arr) {

@@ -1,3 +1,4 @@
+duckdb.dll
 *.swp
 tests/datagen_jose/histgen
 tests/datagen_jose/tickgen

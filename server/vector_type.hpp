@@ -27,13 +27,19 @@ template <typename _Ty>
 class vector_type : public vector_base<_Ty>{
 public:
 	typedef vector_type<_Ty> Decayed_t;
+	void inline _ref(vector_type<_Ty>& vt) {
+		// make a reference of vt
+		this->size = vt.size;
+		this->capacity = 0;
+		this->container = vt.container;
+	}
 	void inline _copy(const vector_type<_Ty>& vt) {
 		// quick init while using malloc
 		//if (capacity > 0) free(container);
 		this->size = vt.size;
 		this->capacity = vt.capacity;
 		if (capacity) {
-			//puts("copy");
+			puts("copy");
 			this->container = (_Ty*)malloc(size * sizeof(_Ty));
 			memcpy(container, vt.container, sizeof(_Ty) * size);
 		}
@@ -63,7 +69,7 @@ public:
 			container = (_Ty*)GC::scratch_space->alloc(size * sizeof(_Ty));
 			this->capacity = 0;
 		}
-		else{
+		else {
 			container = (_Ty*)malloc(size * sizeof(_Ty));
 		}
 		// TODO: calloc for objects. 
@@ -84,7 +90,7 @@ public:
 		_copy(vt);
 	}
 	constexpr vector_type(vector_type<_Ty>& vt) noexcept : capacity(0) {
-		_move(std::move(vt));
+		_ref(vt);
 	}
 	constexpr vector_type(vector_type<_Ty>&& vt) noexcept : capacity(0) {
 		_move(std::move(vt));

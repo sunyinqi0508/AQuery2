@@ -289,6 +289,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir)\..\monetdb\msvc</AdditionalIncludeDirectories>
       <PrecompiledHeaderOutputFile>$(SolutionDir)..\msc-plugin\pch_msc.pch</PrecompiledHeaderOutputFile>
       <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+      <FloatingPointModel>Fast</FloatingPointModel>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

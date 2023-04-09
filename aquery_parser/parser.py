@@ -7,7 +7,6 @@
 # Contact: Kyle Lahnakoski (kyle@lahnakoski.com)
 # Bill Sun  2022 - 2023
 
-from sre_parse import WHITESPACE
 
 from mo_parsing.helpers import restOfLine
 from mo_parsing.infix import delimited_list

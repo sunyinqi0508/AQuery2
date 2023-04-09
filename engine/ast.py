@@ -591,7 +591,9 @@ class groupby_c(ast_node):
 
     def consume(self, _):
         self.scanner.finalize()
+        self.context.emitc('printf("ht_construct: %lld\\n", (chrono::high_resolution_clock::now() - timer).count()); timer = chrono::high_resolution_clock::now();')
         self.context.emitc(f'auto {self.vecs} = {self.group}.ht_postproc({self.total_sz});')
+        self.context.emitc('printf("ht_postproc: %lld\\n", (chrono::high_resolution_clock::now() - timer).count()); timer = chrono::high_resolution_clock::now();')
     # def deal_with_assumptions(self, assumption:assumption, out:TableInfo):
     #     gscanner = scan(self, self.group)
     #     val_var = 'val_'+base62uuid(7)
@@ -694,7 +696,7 @@ class groupby_c(ast_node):
                 gscanner.add(f'{ce[0]}[{gscanner.it_var}] = ({get_var_names_ex(ex)});\n')
         
         gscanner.add(f'GC::scratch_space->release();')
-        self.context.emitc('printf("ht_construct: %lld\\n", (chrono::high_resolution_clock::now() - timer).count());timer = chrono::high_resolution_clock::now();')
+        self.context.emitc('printf("ht_initfrom: %lld\\n", (chrono::high_resolution_clock::now() - timer).count());timer = chrono::high_resolution_clock::now();')
         
         gscanner.finalize()
         self.context.emitc(f'GC::scratch_space = nullptr;')

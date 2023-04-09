@@ -300,4 +300,21 @@ inline _This_Type* AQ_DupObject(_This_Type* __val) {
 
 void print_monetdb_results(void* _srv, const char* sep, const char* end, uint32_t limit);
 StoredProcedure get_procedure(Context* cxt, const char* name);
+
+#define AQTIMER(x) auto __timer##x = std::chrono::high_resolution_clock::now();
+
+#define __AQTIMERLAP__IMPL(x, y) \
+	printf(#y": %llu\n", (unsigned long long)( \
+        std::chrono::high_resolution_clock::now() - __timer##x \
+    ).count()); \
+	__timer##x = std::chrono::high_resolution_clock::now();
+
+#define __AQTIMERLAP_STRIP(X, Y, IMPL, ...) IMPL
+
+#define AQTIMERLAP(...) \
+		__AQTIMERLAP_STRIP(__VA_ARGS__, \
+							__AQTIMERLAP__IMPL(__VA_ARGS__), \
+							__AQTIMERLAP__IMPL(, __VA_ARGS__), \
+							__AQTIMERLAP__IMPL(,) \
+						)
 #endif

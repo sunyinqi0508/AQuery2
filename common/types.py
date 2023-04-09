@@ -298,7 +298,7 @@ def subvec_behavior(op: OperatorBase, c_code, *x):
     if not c_code:
         return f'{op.sqlname}({", ".join([f"{xx}" for xx in x])})'
     else:
-        return f'{x[0]}.subvec({x[1]}{f", {x[2]}" if len(x) == 2 else ""})'
+        return f'{x[0]}.subvec({x[1]}{f", {x[2]}" if len(x) == 3 else ""})'
     
 # arithmetic 
 opadd = OperatorBase('add', 2, auto_extension, cname = '+', sqlname = '+', call = binary_op_behavior)
@@ -346,7 +346,7 @@ fnvars = OperatorBase('vars', [1, 2], fp(ext(ty_clamp(auto_extension, -1))), cna
 fnstds = OperatorBase('stddevs', [1, 2], fp(ext(ty_clamp(auto_extension, -1))), cname = 'stddevs', sqlname = 'STDDEVS', call = windowed_fn_behavor)
 fncnt = OperatorBase('count', 1, int_return, cname = 'count', sqlname = 'COUNT', call = count_behavior)
 fnpack = OperatorBase('pack', -1, pack_return, cname = 'pack', sqlname = 'PACK', call = pack_behavior)
-fnsubvec = OperatorBase('subvec', [1, 2, 3], as_is, cname = 'subvec', sqlname = 'SUBVEC', call = subvec_behavior)
+fnsubvec = OperatorBase('subvec', [1, 2, 3], ty_clamp(as_is, 0, 1), cname = 'subvec', sqlname = 'SUBVEC', call = subvec_behavior)
 # special
 def is_null_call_behavior(op:OperatorBase, c_code : bool, x : str):
     if c_code : 

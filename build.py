@@ -187,7 +187,7 @@ class build_manager:
     def __init__(self) -> None:
         self.method = 'make'
         self.cxx = ''
-        self.OptimizationLv = '0' # [O0, O1, O2, O3, Ofast]
+        self.OptimizationLv = '4' # [O0, O1, O2, O3, Ofast]
         self.Platform = 'amd64'
         self.PCH = os.environ['PCH'] if 'PCH' in os.environ else 1
         self.StaticLib = 1

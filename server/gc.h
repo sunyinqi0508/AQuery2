@@ -85,7 +85,8 @@ public:
 
 		start_deamon();
 		GC::gc_handle = this;
-		this->scratch.init(1);
+		this->scratch.init(65536);
+		GC::scratch_space = &this->scratch;
 	} // 256 MB
 
 	~GC(){

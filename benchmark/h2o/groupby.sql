@@ -14,9 +14,10 @@ SELECT id6, sum(v1) AS v1, sum(v2) AS v2, sum(v3) AS v3 FROM source GROUP BY id6
 SELECT id3, max(v1) - min(v2) AS range_v1_v2 FROM source GROUP BY id3; -- 0.857 |  0.467 | 2.236
 
 -- select top 2 from each grp
--- SELECT id6, subvec(v3,0,2) AS v3 FROM source GROUP BY id6 order by v3;
+SELECT id6, subvec(v3,0,2) AS v3 FROM source GROUP BY id6 order by v3;
 
 -- implement corr
---SELECT id2, id4, pow(corr(v1, v2), 2) AS r2 FROM source GROUP BY id2, id4;
+SELECT id2, id4, pow(corr(v1, v2), 2) AS r2 FROM source GROUP BY id2, id4; 
+-- NA | 0.240 | 0.6
 
 SELECT id1, id2, id3, id4, id5, id6, sum(v3) AS v3, count(*) AS cnt FROM source GROUP BY id1, id2, id3, id4, id5, id6; -- 2.669 | 1.232 | 2.221(1.8)

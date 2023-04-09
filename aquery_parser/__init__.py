@@ -13,7 +13,7 @@ import json
 from threading import Lock
 
 from aquery_parser.parser import scrub
-from aquery_parser.utils import ansi_string, simple_op, normal_op
+from aquery_parser.utils import simple_op, normal_op
 import aquery_parser.parser
 parse_locker = Lock()  # ENSURE ONLY ONE PARSING AT A TIME
 common_parser = None
