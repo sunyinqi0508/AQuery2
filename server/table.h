@@ -21,6 +21,8 @@ template <>
 class vector_type<void>;
 
 #ifdef _MSC_VER
+#include <intrin.h>
+#define __builtin_popcount __popcnt
 namespace types {
 	enum Type_t;
 	template <typename T>
@@ -54,6 +56,13 @@ std::ostream& operator<<(std::ostream& os, uint8_t& v);
 std::ostream& operator<<(std::ostream& os, types::date_t& v);
 std::ostream& operator<<(std::ostream& os, types::time_t& v);
 std::ostream& operator<<(std::ostream& os, types::timestamp_t& v);
+
+template<class T>
+struct TableStats {
+	T minima = 0;
+	unsigned char bits = 255;
+};
+
 template<typename _Ty>
 class ColView;
 template<typename _Ty>
@@ -63,6 +72,23 @@ public:
 	typedef ColRef<_Ty> Decayed_t;
 	const char* name;
 	types::Type_t ty = types::Type_t::ERROR;
+	TableStats<_Ty> stats;
+	bool populate_stats() {
+		if constexpr (std::is_integral_v<_Ty>) {
+			if (stats.bits <= 128) return true;
+			stats.minima = std::numeric_limits<_Ty>::max();
+			_Ty maxima = std::numeric_limits<_Ty>::min();
+			for (uint32_t i = 0; i < this->size; ++i) {
+				if (this->container[i] < stats.minima) 
+					stats.minima = this->container[i];
+				else if (this->container[i] > maxima) 
+					maxima = this->container[i];
+			}
+			stats.bits = ceil(log2(maxima - stats.minima));
+			return true;
+		}
+		return false;
+	}
 	ColRef(const ColRef<_Ty>& vt) : vector_type<_Ty>(vt) {}
 	ColRef(ColRef<_Ty>&& vt) : vector_type<_Ty>(std::move(vt)) {}
 	ColRef() : vector_type<_Ty>(0), name("") {}

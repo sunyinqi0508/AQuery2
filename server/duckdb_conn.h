@@ -6,7 +6,8 @@ struct DuckdbServer : DataSource {
     explicit DuckdbServer(Context* cxt);
     void connect(Context* cxt);
     void exec(const char* q);
-    void* getCol(int col_idx, int type);
+    void* getCol(int col_idx, int type) override;
+    void getDSTable(const char* name, void* tbl) override;
     long long getFirstElement();
     void close();
     bool haserror();

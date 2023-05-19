@@ -73,6 +73,7 @@ class TableInfo:
         self.columns : List[ColRef] = []
         self.triggers : Set[create_trigger] = set()
         self.cxt = cxt
+        self.cached = False
         # keep track of temp vars
         self.rec = None 
         self.add_cols(cols)
@@ -186,7 +187,7 @@ class Context:
         self.force_compiled = False
         self.use_gc = compile_use_gc 
         self.system_state: Optional[PromptState] = state 
-
+        self.use_cached_tables = True
         # self.new() called everytime new query batch is started
 
     def get_scan_var(self):
@@ -267,9 +268,10 @@ class Context:
         self.finalize_query()
     
     def direct_output(self, limit = -1, sep = ' ', end = '\n'):
+        from common.utils import encode_integral
         if type(limit) is not int or limit > 2**32 - 1 or limit < 0:
             limit = 2**32 - 1
-        limit = limit.to_bytes(4, 'little').decode('latin-1')
+        limit = encode_integral(limit)
         self.queries.append(
             'O' + limit + sep + end)
         

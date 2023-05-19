@@ -549,6 +549,37 @@ start:
                             }
                         }
                         break;
+                        case 'C': //Caching 
+                        {
+                            char* cached_table = n_recvd[i] + 1;
+                            char *lazy = (cached_table + 1);
+                            cached_table = AQ_DupString(cached_table);
+                            while(*lazy++);
+                            // get schema
+                            int* n_cols = reinterpret_cast<int *>(lazy + 2);
+                            char* col_schema = reinterpret_cast<char *>(n_cols + 1);
+                            TableInfo<void> *tbl = new TableInfo<void>;
+                            tbl->name = cached_table;//AQ_DupString(cached_table);
+                            tbl->n_cols = *n_cols;
+                            
+                            for (int i = 0; i < *n_cols; ++i) {
+                                char* col_name = col_schema;
+                                char* mem_coltype = col_name + 1;
+                                while(*mem_coltype++);
+                                int coltype = *(reinterpret_cast<int*>(mem_coltype));
+                                // 
+                                tbl->colrefs[i].name = AQ_DupString(col_name);
+                                tbl->colrefs[i].ty = static_cast<types::Type_t>(coltype);    
+                            }
+                            
+                            server->getDSTable(cached_table, tbl);
+                            // server->exec( (
+                            //     std::string("SELECT * FROM ") + cached_table + std::string(";")
+                            // ).c_str() );
+                            // server->getCol()
+                            // free(cached_table);
+                            break;
+                        }
                         }
                     }
                     

@@ -7,6 +7,7 @@
 #include "types.h"
 // #include "robin_hood.h"
 #include "unordered_dense.h"
+
 template<typename Key, typename Val>
 using aq_map = ankerl::unordered_dense::map<Key, Val>;
 
@@ -137,3 +138,66 @@ namespace ankerl::unordered_dense{
 	struct hash<std::tuple<Types...>> : public hasher<Types...>{ };
 }
 
+template <
+	typename ValueType = bool, 
+	int PerfectHashingThreshold = 12
+>
+struct PerfectHashTable {
+	// static int m_PerfectHashingThreshold = 12;
+	using key_t = std::conditional_t<PerfectHashingThreshold <= 8, uint8_t, 
+					std::conditional_t<PerfectHashingThreshold <= 16, uint16_t, 
+					std::conditional_t<PerfectHashingThreshold <= 32, uint32_t, 
+					uint64_t
+		>>>;
+
+	int n_cols, n_rows = 0;
+	// char bits[32];
+	ValueType table[1 << PerfectHashingThreshold];
+	// PerfectHashTable(int n_cols, char* bits) {
+	// 	this->n_cols = n_cols;
+	// 	memcpy(this->bits, bits, 32);
+	// }
+	// template<typename ... Types, template <typename> class VT> 
+	// PerfectHashTable(VT<Types> ... args) {
+		
+	// }
+	template <typename ... Types, template <typename> class VT>
+	void construct(VT<Types>&... args) {
+		((this->n_cols = args.size), ...);
+		static_assert(
+			(sizeof...(Types) < PerfectHashingThreshold) &&
+			//(sizeof(Types) + ...) < PerfectHashingThreshold && 
+			(std::is_integral_v<Types> && ...),
+			"Types must be integral and less than 12 wide in total."
+			);
+		// this should be an attrib of VT.
+		key_t* // this better be automatically determined by Threshould 
+			hash_values = static_cast<key_t*>(
+					calloc(this->n_cols, sizeof(key_t))
+				);
+		//new short[this->n_cols] {0}; // use calloc/delete
+		auto get_hash = [&hash_values](auto& arg, int idx) {
+			uint32_t i = 0;
+			if(idx > 0)
+				for (auto& a : arg) {
+					hash_values[i] =
+						(hash_values[i] << arg.stats.bits) +
+						(a - arg.stats.minima);
+					++i;
+				}
+			else 
+				for (auto& a : arg) {
+					hash_values[i] = a - arg.stats.minima;
+					++i;
+				}
+		};
+		int idx = 0;
+		(get_hash(args, idx++), ...);
+		for (uint32_t i = 0; i < this->n_cols; ++i) {
+			this->table[hash_values[i]] = true;
+			// problem: random memory access
+		}
+		// delete[] hash_values;
+		free(hash_values);
+	}
+};

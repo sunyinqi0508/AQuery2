@@ -122,23 +122,23 @@ class build_manager:
                 os.environ['AQ_DEBUG'] = ('0' if mgr.OptimizationLv != '0' else '1')
 
         def libaquery_a(self):
-            self.build_cmd = [['rm', 'libaquery.a'],['make', 'libaquery']]
+            self.build_cmd = [['rm', 'libaquery.a'],['make', 'libaquery', '-j']]
             return self.build()
         def pch(self):
-            self.build_cmd = [['rm', 'server/pch.hpp.gch'], ['make', 'pch']]
+            self.build_cmd = [['rm', 'server/pch.hpp.gch'], ['make', 'pch', '-j']]
             return self.build()
         def server(self):
             if self.mgr.StaticLib:
-                self.build_cmd = [['rm', '*.o'],['rm', 'server.so'], ['make', 'server_uselib']]
+                self.build_cmd = [['rm', '*.o'],['rm', 'server.so'], ['make', 'server_uselib', '-j']]
             else:
-                self.build_cmd = [['rm', 'server.so'], ['make', 'server.so']]
+                self.build_cmd = [['rm', 'server.so'], ['make', 'server.so', '-j']]
             return self.build()
             
         def snippet(self):
             if self.mgr.StaticLib:
-                self.build_cmd = [['make', 'snippet_uselib']]
+                self.build_cmd = [['make', 'snippet_uselib', '-j']]
             else:
-                self.build_cmd = [['rm', 'dll.so'], ['make', 'snippet']]
+                self.build_cmd = [['rm', 'dll.so'], ['make', 'snippet', '-j']]
             return self.build()
 
     class MSBuildDriver(DriverBase):

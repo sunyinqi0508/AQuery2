@@ -44,6 +44,7 @@ struct DataSource {
     virtual void connect(Context* cxt) = 0;
     virtual void exec(const char* q) = 0;
     virtual void* getCol(int col_idx, int type) = 0;
+    virtual void getDSTable(const char* name, void* tbl) = 0;
     // virtual long long getFirstElement() = 0;
     virtual void close() = 0;
     virtual bool haserror() = 0;

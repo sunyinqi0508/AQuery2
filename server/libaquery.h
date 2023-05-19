@@ -235,6 +235,13 @@ inline _This_Type* AQ_DupObject(_This_Type* __val) {
 	return ret;
 }
 
+inline char* AQ_DupString(const char* __val) {
+	auto __len = strlen(__val) + 1;
+	auto ret = (char*)malloc(__len);
+	memcpy(ret, __val, __len);
+	return ret;
+}
+
 #ifdef __USE_STD_SEMAPHORE__
 	#include <semaphore>
 	class A_Semaphore {

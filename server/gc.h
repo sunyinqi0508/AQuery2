@@ -104,6 +104,7 @@ public:
 	} 
     constexpr static void(*_free) (void*) = free;
 };
+
 #else
 class GC {
 public:

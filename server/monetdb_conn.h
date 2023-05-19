@@ -7,6 +7,7 @@ struct MonetdbServer : DataSource {
     void connect(Context* cxt) override;
     void exec(const char* q) override;
     void *getCol(int col_idx, int) override;
+    void getDSTable(const char* name, void* tbl) override;
     long long getFirstElement();
     void close() override;
     bool haserror() override;
@@ -24,8 +25,12 @@ struct monetdbe_table_data{
 };
 
 extern "C" size_t 
-monetdbe_get_size(void* dbhdl, const char *table_name);
+monetdbe_get_size(void* dbhdl, const char *table_name, void*);
 
 extern "C" void* 
 monetdbe_get_col(void* dbhdl, const char *table_name, uint32_t col_id);
+
+extern "C" void
+monetdbe_get_cols(void* dbhdl, const char* table_name, void*** cols, int i);
+
 #endif

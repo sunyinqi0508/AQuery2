@@ -1,6 +1,6 @@
 #include "pch_msc.hpp"
 #include "duckdb_conn.h"
-#include "../deps/duckdb.hpp"
+#include "duckdb.hpp"
 #include "libaquery.h"
 #include "types.h"
 #include <cstdio>
@@ -73,6 +73,10 @@ void* DuckdbServer::getCol(int col_idx, int ty) {
 	}
 }
 
+void DuckdbServer::getDSTable(const char* name, void* tbl) { 
+	// not implemented. 
+	puts("NOT IMPLEMENTED ERROR: DuckdbServer::getDSTable");
+}
 bool DuckdbServer::haserror() {
 	if (last_error) {
 		puts(last_error);

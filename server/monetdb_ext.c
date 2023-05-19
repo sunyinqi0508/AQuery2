@@ -80,6 +80,19 @@ monetdbe_get_size(monetdbe_database dbhdl, const char *table_name)
 	return sz; 
 }
 
+void *
+monetdbe_list_fetch(list *l, int pos)
+{
+	node *n = NULL;
+	int i;
+
+	for (n = l->h, i=0; n && i<pos; n = n->next, i++)
+		;
+	if (n)
+		return n->data;
+	return NULL;
+}
+
 void* 
 monetdbe_get_col(monetdbe_database dbhdl, const char *table_name, uint32_t col_id) {
     monetdbe_database_internal* hdl = (monetdbe_database_internal*)dbhdl;
@@ -94,4 +107,25 @@ monetdbe_get_col(monetdbe_database dbhdl, const char *table_name, uint32_t col_i
 	BATiter iter = bat_iterator(b);
 	//mvc_cancel_session(m); 
     return iter.base;
+}
+
+void monetdbe_get_cols(
+	monetdbe_database dbhdl, 
+	const char* table_name, 
+	void*** cols, 
+	int i
+) {
+	monetdbe_database_internal* hdl = (monetdbe_database_internal*)dbhdl;
+	backend* be = ((backend *)(((monetdbe_database_internal*)dbhdl)->c->sqlcontext));
+	mvc *m = be->mvc;
+	sql_table *t = find_table_or_view_on_scope(m, NULL, "sys", table_name, "CATALOG", false);
+	if (!i || !t) return;
+	node *n = t->columns->l->h;
+	sqlstore* store = m->store;
+	while(n && i-- > 0) {
+		BAT *b = store->storage_api.bind_col(m->session->tr, n->data, QUICK);
+		BATiter iter = bat_iterator(b);
+		*(cols++) = iter.base;
+		n = n->next;
+	}
 }

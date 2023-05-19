@@ -7,7 +7,7 @@ add_path_to_ldpath = True
 rebuild_backend = False
 run_backend = True
 have_hge = False
-cygroot = 'c:/msys64/usr/bin'
+cygroot = 'c:/mingw64/usr/bin'
 msbuildroot = ''
 os_platform = 'unknown'
 build_driver = 'Auto'
@@ -49,9 +49,9 @@ def init_config():
                 os_platform = 'cygwin'
         # deal with msys dependencies:
         if os_platform == 'win':
-            add_dll_dir(cygroot)  
             add_dll_dir(os.path.abspath('./msc-plugin'))
             add_dll_dir(os.path.abspath('./deps'))
+            add_dll_dir(cygroot)  
             if build_driver == 'Auto':
                 try:
                     import vswhere
@@ -72,6 +72,8 @@ def init_config():
                 print("Warning: Readline module not present")
             if build_driver == 'Auto':
                 build_driver = 'Makefile'
+            if os_platform == 'linux':
+                os.environ['PATH'] = os.environ['PATH'] + os.pathsep + '/usr/lib'
             if os_platform == 'cygwin':
                 add_dll_dir('./lib')
         __config_initialized__ = True

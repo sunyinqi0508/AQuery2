@@ -4,14 +4,22 @@ from typing import Dict, List
 from aquery_config import have_hge
 from common.utils import base62uuid, defval
 
+aquery_types: Dict[str, int] = {}
 type_table: Dict[str, "Types"] = {}
+
+with open('server/aquery_types.h', 'r') as f:
+    f.readline()
+    types = f.read()
+    import re
+    types = re.compile(r'(\s|\\)+').sub('', types).split(',')
+    aquery_types = { t : i for i, t in enumerate(types)}
 
 class Types:
     def init_any(self):
         self.name : str = 'Any'
         self.sqlname : str = 'Int'
         self.cname : str = 'void*'
-        self.ctype_name : str = "types::NONE"
+        self.ctype_name : str = "None"
         self.null_value = 0
         self.priority : int= 0
         self.cast_to_dict = dict()
@@ -31,7 +39,7 @@ class Types:
             self.name = name
             self.cname = defval(cname, name.lower() + '_t')
             self.sqlname = defval(sqlname, name.upper())
-            self.ctype_name = defval(ctype_name, f'types::A{name.upper()}') 
+            self.ctype_name = defval(ctype_name, f'A{name.upper()}') 
             self.null_value = defval(null_value, 0)
             self.cast_to_dict = defval(cast_to, dict())
             self.cast_from_dict = defval(cast_from, dict())
@@ -89,8 +97,8 @@ class TypeCollection:
 type_table = dict()
 AnyT = Types(-1)
 LazyT = Types(240, name = 'Lazy', cname = '', sqlname = '', ctype_name = '')
-DateT = Types(200, name = 'DATE', cname = 'types::date_t', sqlname = 'DATE', ctype_name = 'types::ADATE')
-TimeT = Types(201, name = 'TIME', cname = 'types::time_t', sqlname = 'TIME', ctype_name = 'types::ATIME')
+DateT = Types(200, name = 'DATE', cname = 'types::date_t', sqlname = 'DATE', ctype_name = 'ADATE')
+TimeT = Types(201, name = 'TIME', cname = 'types::time_t', sqlname = 'TIME', ctype_name = 'ATIME')
 TimeStampT = Types(202, name = 'TIMESTAMP', cname = 'types::timestamp_t', sqlname = 'TIMESTAMP', ctype_name = 'ATIMESTAMP')
 DoubleT = Types(17, name = 'double', cname='double', sqlname = 'DOUBLE', is_fp = True)
 LDoubleT = Types(18, name = 'long double', cname='long double', sqlname = 'LDOUBLE', is_fp = True)
@@ -102,15 +110,15 @@ LongT = Types(4, name = 'int64', sqlname = 'BIGINT', fp_type = DoubleT)
 BoolT = Types(0, name = 'bool', cname='bool', sqlname = 'BOOL', long_type=LongT, fp_type=FloatT)
 ByteT = Types(1, name = 'int8', sqlname = 'TINYINT', long_type=LongT, fp_type=FloatT)
 ShortT = Types(2, name = 'int16', sqlname='SMALLINT', long_type=LongT, fp_type=FloatT)
-IntT = Types(3, name = 'int', cname = 'int', long_type=LongT, ctype_name = 'types::AINT32', fp_type=FloatT)
+IntT = Types(3, name = 'int', cname = 'int', long_type=LongT, ctype_name = 'AINT32', fp_type=FloatT)
 ULongT = Types(8, name = 'uint64', sqlname = 'UINT64', fp_type=DoubleT)
 UIntT = Types(7, name = 'uint32', sqlname = 'UINT32', long_type=ULongT, fp_type=FloatT)
 UShortT = Types(6, name = 'uint16', sqlname = 'UINT16', long_type=ULongT, fp_type=FloatT)
 UByteT = Types(5, name = 'uint8', sqlname = 'UINT8', long_type=ULongT, fp_type=FloatT)
-StrT = Types(200, name = 'str', cname = 'string_view', sqlname='TEXT', ctype_name = 'types::ASTR')
-TextT = Types(200, name = 'text', cname = 'string_view', sqlname='TEXT', ctype_name = 'types::ASTR')
-VarcharT = Types(200, name = 'varchar', cname = 'string_view', sqlname='VARCHAR', ctype_name = 'types::ASTR')
-VoidT = Types(200, name = 'void', cname = 'void', sqlname='Null', ctype_name = 'types::None')
+StrT = Types(200, name = 'str', cname = 'string_view', sqlname='TEXT', ctype_name = 'ASTR')
+TextT = Types(200, name = 'text', cname = 'string_view', sqlname='TEXT', ctype_name = 'ASTR')
+VarcharT = Types(200, name = 'varchar', cname = 'string_view', sqlname='VARCHAR', ctype_name = 'ASTR')
+VoidT = Types(200, name = 'void', cname = 'void', sqlname='Null', ctype_name = 'None')
 
 class VectorT(Types):
     def __init__(self, inner_type : Types, vector_type:str = 'vector_type'):

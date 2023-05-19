@@ -591,24 +591,12 @@ def parser(literal_string, ident):
         
         drop_trigger = (keyword("drop trigger") + var_name("name")) ("drop_trigger")
         
-        cache_options = Optional((
-            keyword("options").suppress()
-            + LB
-            + Dict(delimited_list(Group(
-                literal_string / (lambda tokens: tokens[0]["literal"])
-                + Optional(EQ)
-                + var_name
-            )))
-            + RB
-        )("options"))
-
         create_cache = (
             keyword("cache").suppress()
             + Optional(flag("lazy"))
             + TABLE
-            + var_name("name")
-            + cache_options
-            + Optional(AS + query("query"))
+            + FROM
+            + var_name("source") # AQuery, MonetDB, DuckDB ...
         )("cache")
 
         drop_table = (

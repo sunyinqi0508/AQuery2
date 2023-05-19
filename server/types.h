@@ -6,6 +6,7 @@
 #include <string_view>
 #include <string>
 #include <utility>
+#include "aquery_types.h"
 using std::size_t;
 
 #if  defined(__SIZEOF_INT128__) and not defined(_WIN32)
@@ -68,8 +69,7 @@ constexpr bool aqis_same<T1, T2> = aqis_same_impl<T1, T2>::value;
 
 namespace types {
 	enum Type_t {
-		AINT32, AFLOAT, ASTR, ADOUBLE, ALDOUBLE, AINT64, AINT128, AINT16, ADATE, ATIME, AINT8,
-		AUINT32, AUINT64, AUINT128, AUINT16, AUINT8, ABOOL, VECTOR, ATIMESTAMP, ACHAR, ASV, NONE, ERROR
+		__AQUERY_TYPES__
 	};
 	static constexpr const char* printf_str[] = { "%d", "%f", "%s", "%lf", "%Lf", "%ld", "%s", "%hi", "%s", "%s", "%hhd",
 		"%u", "%lu", "%s", "%hu", "%hhu", "%s", "Vector<%s>", "%s", "%c", "%s", "NULL", "ERROR" };

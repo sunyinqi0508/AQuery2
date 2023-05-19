@@ -4,13 +4,11 @@ MonetDB_INC =
 Defines = 
 CC = $(CXX) -xc 
 CXXFLAGS = --std=c++2a
-ifeq ($(AQ_DEBUG), 1)
-	OPTFLAGS = -g3 #-static-libsan -fsanitize=address 
-	LINKFLAGS = 
-else
-	OPTFLAGS = -Ofast -DNDEBUG -fno-stack-protector 
-	LINKFLAGS = -flto -s
+
+ifdef AQ_LINKER
+	CXX += -fuse-ld=$(AQ_LINKER)
 endif
+
 SHAREDFLAGS = -shared  
 FPIC = -fPIC
 _COMPILER = $(shell $(CXX) --version | grep -q clang && echo clang|| echo gcc) 
@@ -47,7 +45,7 @@ else
 		LIBTOOL = gcc-ar rcs
 	endif
 endif
-LINKFLAGS += $(SEMANTIC_INTERPOSITION)
+LINKFLAGS = $(SEMANTIC_INTERPOSITION)
 
 ifeq ($(PCH), 1)
 	PCHFLAGS = -include server/pch.hpp
@@ -79,15 +77,24 @@ else
 			LIBTOOL = libtool -static -o
 		endif
 		ifneq ($(UNAME_M),arm64)
-			OPTFLAGS += -march=native
+			OPTFLAGS = -march=native
 		endif
 	else
-		OPTFLAGS += -march=native
+		OPTFLAGS = -march=native
 		MonetDB_LIB += $(AQ_MONETDB_LIB)
 		MonetDB_INC += $(AQ_MONETDB_INC)
 		MonetDB_INC += -I/usr/local/include/monetdb -I/usr/include/monetdb 
 	endif
 	MonetDB_LIB += -lmonetdbe -lmonetdbsql -lbat
+endif
+
+
+ifeq ($(AQ_DEBUG), 1)
+	OPTFLAGS = -g3 #-static-libsan -fsanitize=address 
+#	LINKFLAGS = 
+else
+	OPTFLAGS += -Ofast -DNDEBUG -fno-stack-protector 
+	LINKFLAGS += -flto -s
 endif
 
 ifeq ($(THREADING),1)
@@ -133,7 +140,7 @@ pch:
 	$(CXX) -x c++-header server/pch.hpp $(FPIC) $(CXXFLAGS)
 libaquery:
 	$(CXX) -c $(FPIC) $(PCHFLAGS) $(LIBAQ_SRC) $(OS_SUPPORT) $(CXXFLAGS) &&\
-	$(CC) -c server/monetdb_ext.c $(OPTFLAGS) $(MonetDB_INC) &&\
+	$(CC) -c $(FPIC) server/monetdb_ext.c $(OPTFLAGS) $(MonetDB_INC) &&\
 	$(LIBTOOL) libaquery.a $(LIBAQ_OBJ) &&\
 	$(RANLIB) libaquery.a
 

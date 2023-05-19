@@ -11,7 +11,7 @@
     <Name>msvs-py</Name>
     <RootNamespace>msvs-py</RootNamespace>
     <IsWindowsApplication>False</IsWindowsApplication>
-    <InterpreterId>Global|PythonCore|3.10</InterpreterId>
+    <InterpreterId>Global|PythonCore|3.9</InterpreterId>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
     <EnableNativeCodeDebugging>True</EnableNativeCodeDebugging>
     <Environment>AQ_DEBUG=1</Environment>
@@ -32,7 +32,6 @@
   <ItemGroup>
     <Folder Include="..\aquery_parser\" />
     <Folder Include="..\engine\" />
-    <Folder Include="parser\" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\aquery_parser\keywords.py" />

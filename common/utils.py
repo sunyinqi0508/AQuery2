@@ -130,16 +130,21 @@ class _Counter:
 import re
 
 ws = re.compile(r'\s+')
-import os
+def encode_integral(val : int):
+    return val.to_bytes(4, 'little').decode('latin-1')
 
+import os
 
 def add_dll_dir(dll: str):
     import sys
-    if sys.version_info.major >= 3 and sys.version_info.minor >7 and os.name == 'nt':
-        os.add_dll_directory(dll)
-    else:
-        os.environ['PATH'] = os.path.abspath(dll) + os.pathsep + os.environ['PATH']
-        
+    try:
+        if sys.version_info.major >= 3 and sys.version_info.minor >7 and os.name == 'nt':
+            os.add_dll_directory(dll)
+        else:
+            os.environ['PATH'] = os.path.abspath(dll) + os.pathsep + os.environ['PATH']
+    except FileNotFoundError:
+        print(f"Error: path not found")
+
 nullstream = open(os.devnull, 'w')
 
 

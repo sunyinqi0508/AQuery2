@@ -267,6 +267,20 @@ long long MonetdbServer::getFirstElement() {
     return 0;
 }
 
+void MonetdbServer::getDSTable(const char* name, void* tbl) {
+    TableInfo<void> *table = static_cast<TableInfo<void>*>(tbl);
+    void*** cols = static_cast<void***>(alloca(table->n_cols * sizeof(void**)));
+    printf("\tncols: %d\n", table->n_cols);
+    for (int i = 0; i < table->n_cols; ++i) {
+        cols[i] = static_cast<void**>(
+            static_cast<void*>(
+                &(table->colrefs[i].container)
+            )
+        );
+    }
+    monetdbe_get_cols(*(void**)(this->server), name, cols, table->n_cols);
+} 
+
 MonetdbServer::~MonetdbServer(){
     close();
 }

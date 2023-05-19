@@ -1746,13 +1746,35 @@ class user_module_function(OperatorBase):
         # builtin_operators[name] = self
         udf.try_init_udf(context)
         
+class cache(ast_node):
+    name = 'cache'
+    first_order = name
+    def init(self, node):
+        source = node['cache']['source']
+        # lazy = node['cache']['lazy']
+        lazy = 0
+        try:
+            tbl : TableInfo = self.context.tables_byname[source]
+        except KeyError:
+            raise ValueError(f'Cannot find table {source}.')
+        from common.utils import encode_integral
+        
+        tbl.cached = True
+        schema_string = encode_integral(len(tbl.columns))
+        for t in tbl.columns:
+            schema_string += t.name + '\0' + \
+            encode_integral(aquery_types[t.type.ctype_name])
+            
+        from common.utils import send_to_server
+        send_to_server(f'C{source}\0{"l" if lazy else "e"}\0{schema_string}\0')
+
 def include(objs):
     import inspect
     for _, cls in inspect.getmembers(objs):
         if inspect.isclass(cls) and issubclass(cls, ast_node) and type(cls.first_order) is str:
             ast_node.types[cls.first_order] = cls
-            
-            
+
+
 import sys
 
 include(sys.modules[__name__])
