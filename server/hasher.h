@@ -162,7 +162,9 @@ struct PerfectHashTable {
 		
 	// }
 	template <typename ... Types, template <typename> class VT>
-	void construct(VT<Types>&... args) {
+	// std::enable_if_t<std::is_same_v<ValueType, bool>, void>
+	void
+	construct(VT<Types>&... args) { // construct a hash set
 		((this->n_cols = args.size), ...);
 		static_assert(
 			(sizeof...(Types) < PerfectHashingThreshold) &&
@@ -198,6 +200,6 @@ struct PerfectHashTable {
 			// problem: random memory access
 		}
 		// delete[] hash_values;
-		free(hash_values);
+		free(hash_values); // dispatch to gc
 	}
 };

@@ -505,9 +505,16 @@ public:
 		ht_base =  static_cast<uint32_t *>(calloc(sz, sizeof(uint32_t)));
 	}
 
+	template<typename... Keys_t>
+	inline void hashtable_push_all(Keys_t& ... keys, uint32_t len) {
+		for(uint32_t i = 0; i < len; ++i) 
+			reversemap[i] = ankerl::unordered_dense::set<Key, Hash>::hashtable_push(keys[i]...);
+		for(uint32_t i = 0; i < len; ++i) 
+			++ht_base[reversemap[i]]; 
+	}
 	inline void hashtable_push(Key&& k, uint32_t i){
-		reversemap[i] = ankerl::unordered_dense::set<Key, Hash>::hashtable_push(std::move(k));
-		++ht_base[reversemap[i]];
+		reversemap[i] = ankerl::unordered_dense::set<Key, Hash>::hashtable_push(k);
+		++ht_base[reversemap[i]]; // do this seperately?
 	}
 
 	auto ht_postproc(uint32_t sz) {
