@@ -9,3 +9,7 @@
 ## 2. ColRef supports multiple objects
    - A.a = B.b then in projection A.a B.b will refer to same projection
    - Colref::ProjEq(ColRef v) => this == v or v in this.proj_eqs
+
+## 3. External Optimizing Tools
+   - mold/sold instead of builtin linker will boost linker speed
+   - bolt that have binary optimizer

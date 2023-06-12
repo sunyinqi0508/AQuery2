@@ -1,3 +1,7 @@
+/*
+* (C) Bill Sun 2022 - 2023
+*/
+
 #pragma once
 
 #include <type_traits>
@@ -5,6 +9,7 @@
 #include <functional>
 #include <string_view>
 #include "types.h"
+#include "vector_type.hpp"
 // #include "robin_hood.h"
 #include "unordered_dense.h"
 
@@ -138,68 +143,145 @@ namespace ankerl::unordered_dense{
 	struct hash<std::tuple<Types...>> : public hasher<Types...>{ };
 }
 
+template <class Key, class Hash>
+class AQHashTable : public ankerl::unordered_dense::set<Key, Hash> {
+public:
+	uint32_t* reversemap, *mapbase, *ht_base;
+	AQHashTable() = default;
+	explicit AQHashTable(uint32_t sz) 
+		: ankerl::unordered_dense::set<Key, Hash>{} {
+		this->reserve(sz);
+		this->m_values.reserve(sz);
+		reversemap = static_cast<uint32_t *>(malloc(sizeof(uint32_t) * sz * 2));
+		mapbase = reversemap + sz;
+		ht_base =  static_cast<uint32_t *>(calloc(sz, sizeof(uint32_t)));
+	}
+
+	void init(uint32_t sz) {
+		ankerl::unordered_dense::set<Key, Hash>::reserve(sz);
+		reversemap = static_cast<uint32_t *>(malloc(sizeof(uint32_t) * sz * 2));
+		mapbase = reversemap + sz;
+		ht_base =  static_cast<uint32_t *>(calloc(sz, sizeof(uint32_t)));
+	}
+
+	template<typename... Keys_t>
+	inline void hashtable_push_all(Keys_t& ... keys, uint32_t len) {
+		for(uint32_t i = 0; i < len; ++i) 
+			reversemap[i] = ankerl::unordered_dense::set<Key, Hash>::hashtable_push(keys[i]...);
+		for(uint32_t i = 0; i < len; ++i) 
+			++ht_base[reversemap[i]]; 
+	}
+	inline void hashtable_push(Key&& k, uint32_t i){
+		reversemap[i] = ankerl::unordered_dense::set<Key, Hash>::hashtable_push(k);
+		++ht_base[reversemap[i]]; // do this seperately?
+	}
+
+	auto ht_postproc(uint32_t sz) {
+		auto& arr_values = this->values();
+		const auto& len = this->size();
+
+		auto vecs = static_cast<vector_type<uint32_t>*>(malloc(sizeof(vector_type<uint32_t>) * len));
+		vecs[0].init_from(ht_base[0], mapbase);
+		for (uint32_t i = 1; i < len; ++i) {
+			vecs[i].init_from(ht_base[i], mapbase + ht_base[i - 1]);
+			ht_base[i] += ht_base[i - 1];
+		}
+		for (uint32_t i = 0; i < sz; ++i) {
+			auto id = reversemap[i];
+			mapbase[--ht_base[id]] = i;    
+		}
+		return vecs;
+	}
+};
+
+
 template <
-	typename ValueType = bool, 
+	typename ValueType = uint32_t,
 	int PerfectHashingThreshold = 12
 >
 struct PerfectHashTable {
-	// static int m_PerfectHashingThreshold = 12;
-	using key_t = std::conditional_t<PerfectHashingThreshold <= 8, uint8_t, 
-					std::conditional_t<PerfectHashingThreshold <= 16, uint16_t, 
-					std::conditional_t<PerfectHashingThreshold <= 32, uint32_t, 
-					uint64_t
+	using key_t = std::conditional_t<PerfectHashingThreshold <= 8, uint8_t,
+		std::conditional_t<PerfectHashingThreshold <= 16, uint16_t,
+		std::conditional_t<PerfectHashingThreshold <= 32, uint32_t,
+		uint64_t
 		>>>;
-
-	int n_cols, n_rows = 0;
-	// char bits[32];
-	ValueType table[1 << PerfectHashingThreshold];
-	// PerfectHashTable(int n_cols, char* bits) {
-	// 	this->n_cols = n_cols;
-	// 	memcpy(this->bits, bits, 32);
-	// }
-	// template<typename ... Types, template <typename> class VT> 
-	// PerfectHashTable(VT<Types> ... args) {
-		
-	// }
+	constexpr static uint32_t tbl_sz = 1 << PerfectHashingThreshold;
 	template <typename ... Types, template <typename> class VT>
-	// std::enable_if_t<std::is_same_v<ValueType, bool>, void>
-	void
+	static vector_type<uint32_t>*
 	construct(VT<Types>&... args) { // construct a hash set
-		((this->n_cols = args.size), ...);
+		AQTmr();
+		int n_cols, n_rows = 0;
+
+		((n_cols = args.size), ...);
 		static_assert(
 			(sizeof...(Types) < PerfectHashingThreshold) &&
-			//(sizeof(Types) + ...) < PerfectHashingThreshold && 
 			(std::is_integral_v<Types> && ...),
 			"Types must be integral and less than 12 wide in total."
 			);
-		// this should be an attrib of VT.
-		key_t* // this better be automatically determined by Threshould 
-			hash_values = static_cast<key_t*>(
-					calloc(this->n_cols, sizeof(key_t))
-				);
-		//new short[this->n_cols] {0}; // use calloc/delete
+		key_t* 
+		hash_values = static_cast<key_t*>(
+				calloc(n_cols, sizeof(key_t))
+		);
 		auto get_hash = [&hash_values](auto& arg, int idx) {
-			uint32_t i = 0;
-			if(idx > 0)
-				for (auto& a : arg) {
+			
+			if (idx > 0) {
+#pragma omp simd
+				for (uint32_t i = 0; i < arg.size; ++i) {
 					hash_values[i] =
 						(hash_values[i] << arg.stats.bits) +
-						(a - arg.stats.minima);
-					++i;
+						(arg.container[i] - arg.stats.minima);
 				}
-			else 
-				for (auto& a : arg) {
-					hash_values[i] = a - arg.stats.minima;
-					++i;
+			}
+			else {
+#pragma omp simd
+				for (uint32_t i = 0; i < arg.size; ++i) {
+						hash_values[i] = arg.container[i] - arg.stats.minima;
+					}
 				}
-		};
+			};
 		int idx = 0;
 		(get_hash(args, idx++), ...);
-		for (uint32_t i = 0; i < this->n_cols; ++i) {
-			this->table[hash_values[i]] = true;
-			// problem: random memory access
+		uint32_t cnt[tbl_sz];
+		uint32_t n_grps = 0;
+		memset(cnt, 0, tbl_sz * sizeof(tbl_sz));
+#pragma omp simd
+		for (uint32_t i = 0; i < n_cols; ++i) {
+			++cnt[hash_values[i]];
 		}
-		// delete[] hash_values;
-		free(hash_values); // dispatch to gc
+		ValueType grp_ids[tbl_sz];
+#pragma omp simd
+		for (ValueType i = 0; i < tbl_sz; ++i) {
+			if (cnt[i] != 0) {
+				cnt[n_grps] = cnt[i];
+				grp_ids[i] = n_grps++;
+			}
+		}
+		uint32_t* idxs = static_cast<uint32_t*>(
+			malloc(n_cols * sizeof(uint32_t))
+		);
+		uint32_t** idxs_ptr = static_cast<uint32_t**>(
+			malloc(n_grps * sizeof(uint32_t*))
+		);
+		idxs_ptr[0] = idxs;
+#ifdef _MSCVER
+#pragma omp simd
+#endif
+		for (int i = 1; i < n_grps; ++i) {
+			idxs_ptr[i] = idxs_ptr[i - 1] + cnt[i - 1];
+		}
+#pragma omp simd 
+		for (int i = 0; i < n_cols; ++i) {
+			*(idxs_ptr[grp_ids[hash_values[i]]]++) = i;
+		}
+		vector_type<uint32_t>* idxs_vec = static_cast<vector_type<uint32_t>*>(
+			malloc(n_grps * sizeof(vector_type<uint32_t>))
+		);
+#pragma omp simd
+		for (int i = 0; i < n_grps; ++i) {
+			idxs_vec[i].container = idxs_ptr[i];
+			idxs_vec[i].size = cnt[i];
+		}
+		free(hash_values);
+		return idxs_vec;
 	}
 };

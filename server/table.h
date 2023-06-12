@@ -35,7 +35,7 @@ struct ColRef_cstorage {
 	void* container;
 	unsigned int size, capacity;
 	const char* name;
-	int ty; // what if enum is not int?
+	int ty; 
 };
 
 template <template <class...> class VT, class T, 

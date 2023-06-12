@@ -566,6 +566,7 @@ class scan(ast_node):
         self.parent.context.scans.append(self)
         
     def produce(self, node):
+        self.start += '#pragma openmp simd\n'
         if self.loop_style == scan.LoopStyle.foreach:
             self.colref = node
             self.start += f'for ({self.const}auto& {self.it_var} : {node}) {{\n'
@@ -595,7 +596,7 @@ class scan(ast_node):
                     self.start + 
                     self.front + 
                     b + 
-                    '}'
+                    '\n}'
                 ) for b in self.body])
                 + 
                 self.end
@@ -606,7 +607,7 @@ class scan(ast_node):
                 self.start + 
                 self.front + 
                 '\n'.join(self.body) + 
-                '}' +
+                '\n}' +
                 self.end
             )
         self.context.remove_scan(self, scan_assembly) 
@@ -657,11 +658,13 @@ class groupby_c(ast_node):
         self.context.emitc(f'AQHashTable<{self.group_type}, '
             f'transTypes<{self.group_type}, hasher>> {self.group} {{{self.total_sz}}};')
         self.n_grps = len(self.glist)
-        self.scanner = scan(self, self.total_sz, it_name=scanner_itname)
-        self.scanner.add(f'{self.group}.hashtable_push(forward_as_tuple({g_contents}), {self.scanner.it_var});')
-
+        
+        # self.scanner = scan(self, self.total_sz, it_name=scanner_itname)
+        # self.scanner.add(f'{self.group}.hashtable_push(forward_as_tuple({g_contents}), {self.scanner.it_var});')
+        self.context.emitc(f'{self.group}.hashtable_push_all({g_contents}, {self.total_sz});')
+        
     def consume(self, _):
-        self.scanner.finalize()
+        # self.scanner.finalize()
         self.context.emitc('printf("ht_construct: %lld\\n", (chrono::high_resolution_clock::now() - timer).count()); timer = chrono::high_resolution_clock::now();')
         self.context.emitc(f'auto {self.vecs} = {self.group}.ht_postproc({self.total_sz});')
         self.context.emitc('printf("ht_postproc: %lld\\n", (chrono::high_resolution_clock::now() - timer).count()); timer = chrono::high_resolution_clock::now();')

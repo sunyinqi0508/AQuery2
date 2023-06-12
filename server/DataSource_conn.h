@@ -14,7 +14,7 @@ struct AQQueryResult {
 
 #ifndef __AQBACKEND_TYPE__
 #define __AQBACKEND_TYPE__ 1
-enum Backend_Type {
+enum Backend_Type : int {
 	BACKEND_AQuery,
 	BACKEND_MonetDB,
 	BACKEND_MariaDB, 

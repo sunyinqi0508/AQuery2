@@ -32,7 +32,7 @@ constexpr static bool is_vector_type = is_vector_impl<T>::value;
 template <class T>
 constexpr size_t aq_szof = sizeof(T);
 template <>
-inline constexpr size_t aq_szof<void> = 0;
+constexpr size_t aq_szof<void> = 0;
 template <class T1, class T2>
 struct aqis_same_impl {
 	constexpr static bool value = 
@@ -68,7 +68,7 @@ template <class T1, class T2>
 constexpr bool aqis_same<T1, T2> = aqis_same_impl<T1, T2>::value;
 
 namespace types {
-	enum Type_t {
+	enum Type_t : int {
 		__AQUERY_TYPES__
 	};
 	static constexpr const char* printf_str[] = { "%d", "%f", "%s", "%lf", "%Lf", "%ld", "%s", "%hi", "%s", "%s", "%hhd",

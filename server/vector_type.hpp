@@ -1,5 +1,5 @@
 /*
-* Bill Sun 2022
+* (C) Bill Sun 2022 - 2023
 */
 
 
@@ -13,7 +13,11 @@
 #include <initializer_list>
 #include <unordered_set>
 #include <iostream>
-#include "hasher.h"
+
+template <typename _Ty>
+class vector_type;
+
+// #include "hasher.h"
 #include "types.h"
 #include "gc.h"
 #pragma pack(push, 1)
@@ -484,56 +488,6 @@ public:
 };
 #pragma pack(pop)
 
-template <class Key, class Hash>
-class AQHashTable : public ankerl::unordered_dense::set<Key, Hash> {
-public:
-	uint32_t* reversemap, *mapbase, *ht_base;
-	AQHashTable() = default;
-	explicit AQHashTable(uint32_t sz) 
-		: ankerl::unordered_dense::set<Key, Hash>{} {
-		this->reserve(sz);
-		this->m_values.reserve(sz);
-		reversemap = static_cast<uint32_t *>(malloc(sizeof(uint32_t) * sz * 2));
-		mapbase = reversemap + sz;
-		ht_base =  static_cast<uint32_t *>(calloc(sz, sizeof(uint32_t)));
-	}
-
-	void init(uint32_t sz) {
-		ankerl::unordered_dense::set<Key, Hash>::reserve(sz);
-		reversemap = static_cast<uint32_t *>(malloc(sizeof(uint32_t) * sz * 2));
-		mapbase = reversemap + sz;
-		ht_base =  static_cast<uint32_t *>(calloc(sz, sizeof(uint32_t)));
-	}
-
-	template<typename... Keys_t>
-	inline void hashtable_push_all(Keys_t& ... keys, uint32_t len) {
-		for(uint32_t i = 0; i < len; ++i) 
-			reversemap[i] = ankerl::unordered_dense::set<Key, Hash>::hashtable_push(keys[i]...);
-		for(uint32_t i = 0; i < len; ++i) 
-			++ht_base[reversemap[i]]; 
-	}
-	inline void hashtable_push(Key&& k, uint32_t i){
-		reversemap[i] = ankerl::unordered_dense::set<Key, Hash>::hashtable_push(k);
-		++ht_base[reversemap[i]]; // do this seperately?
-	}
-
-	auto ht_postproc(uint32_t sz) {
-		auto& arr_values = this->values();
-		const auto& len = this->size();
-
-		auto vecs = static_cast<vector_type<uint32_t>*>(malloc(sizeof(vector_type<uint32_t>) * len));
-		vecs[0].init_from(ht_base[0], mapbase);
-		for (uint32_t i = 1; i < len; ++i) {
-			vecs[i].init_from(ht_base[i], mapbase + ht_base[i - 1]);
-			ht_base[i] += ht_base[i - 1];
-		}
-		for (uint32_t i = 0; i < sz; ++i) {
-			auto id = reversemap[i];
-			mapbase[--ht_base[id]] = i;    
-		}
-		return vecs;
-	}
-};
 
 template<>
 vector_type<std::string_view>::vector_type(const uint32_t size, void* data);

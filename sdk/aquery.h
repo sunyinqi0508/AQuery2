@@ -1,13 +1,13 @@
 #ifndef _AQUERY_H
 #define _AQUERY_H
 
-enum Log_level {
+enum Log_level : int {
 	LOG_INFO,
 	LOG_ERROR,
 	LOG_SILENT
 };
 
-enum Backend_Type {
+enum Backend_Type : int {
 	BACKEND_AQuery,
 	BACKEND_MonetDB,
 	BACKEND_MariaDB

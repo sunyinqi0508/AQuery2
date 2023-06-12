@@ -93,7 +93,7 @@ ifeq ($(AQ_DEBUG), 1)
 	OPTFLAGS = -g3 #-static-libsan -fsanitize=address 
 #	LINKFLAGS = 
 else
-	OPTFLAGS += -Ofast -DNDEBUG -fno-stack-protector 
+	OPTFLAGS += -Ofast -DNDEBUG -fno-stack-protector -fopenmp
 	LINKFLAGS += -flto -s
 endif
 

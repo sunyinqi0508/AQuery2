@@ -1,3 +1,7 @@
+/*
+* (C) Bill Sun 2022 - 2023
+*/
+
 #include "pch_msc.hpp"
 // Non-standard Extensions for MonetDBe, may break concurrency control!
 

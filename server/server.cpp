@@ -80,7 +80,7 @@ extern "C" void __DLLEXPORT__ receive_args(int argc, char**argv){
     n_recvd = argv;
 }
 
-enum BinaryInfo_t {
+enum BinaryInfo_t : int { // For ABI consistency between compiler
 	MSVC, MSYS, GCC, CLANG, AppleClang
 };
 
