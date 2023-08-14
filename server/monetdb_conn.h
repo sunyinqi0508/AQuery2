@@ -30,7 +30,7 @@ monetdbe_get_size(void* dbhdl, const char *table_name, void*);
 extern "C" void* 
 monetdbe_get_col(void* dbhdl, const char *table_name, uint32_t col_id);
 
-extern "C" void
+extern "C" unsigned int
 monetdbe_get_cols(void* dbhdl, const char* table_name, void*** cols, int i);
 
 #endif

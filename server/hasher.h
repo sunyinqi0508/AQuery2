@@ -209,7 +209,7 @@ struct PerfectHashTable {
 	template <typename ... Types, template <typename> class VT>
 	static vector_type<uint32_t>*
 	construct(VT<Types>&... args) { // construct a hash set
-		AQTmr();
+		// AQTmr();
 		int n_cols, n_rows = 0;
 
 		((n_cols = args.size), ...);

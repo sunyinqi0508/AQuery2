@@ -573,6 +573,7 @@ start:
                             }
                             
                             server->getDSTable(cached_table, tbl);
+                            cxt->tables[cached_table] = tbl;
                             // server->exec( (
                             //     std::string("SELECT * FROM ") + cached_table + std::string(";")
                             // ).c_str() );

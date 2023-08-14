@@ -1,0 +1,6 @@
+create table t(a int);
+insert into t(a) values (1), (2), (3), (4)
+
+LOAD DATA INFILE "1m.csv"
+INTO TABLE t
+FIELDS TERMINATED BY ","

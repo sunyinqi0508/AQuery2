@@ -441,6 +441,7 @@ def prompt(running = lambda:True, next = lambda:input('> '), state : Optional[Pr
             #     time.sleep(.00001)
             while state.get_ready():
                 state.wait_engine()
+                state.server_ready = True
                 if state.need_print:
                     print(f'MonetDB Time: {state.cfg.monetdb_time/10**9}, '
                           f'PostProc Time: {state.cfg.postproc_time/10**9}')
@@ -489,7 +490,7 @@ def prompt(running = lambda:True, next = lambda:input('> '), state : Optional[Pr
                     with open('udf.hpp', 'wb') as outfile:
                         outfile.write(this_udf.encode('utf-8'))
                         
-                if state.server_mode == RunType.Threaded:
+                if state.server_mode == RunType.Threaded and cxt.has_payload:
                     # assignment to avoid auto gc
                     # sqls =  [s.strip() for s in cxt.sql.split(';')]
                     qs = [ctypes.c_char_p(bytes(q, 'utf-8')) for q in cxt.queries if len(q)]
@@ -517,7 +518,7 @@ def prompt(running = lambda:True, next = lambda:input('> '), state : Optional[Pr
                     state.cfg.has_dll = 0
                 state.currstats.compile_time = state.currstats.stop()
                 cxt.post_exec_triggers()
-                if build_this:
+                if build_this and cxt.has_payload:
                     state.set_ready()
                     # while state.get_ready():
                     #     state.wait_engine()

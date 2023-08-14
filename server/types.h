@@ -32,7 +32,8 @@ constexpr static bool is_vector_type = is_vector_impl<T>::value;
 template <class T>
 constexpr size_t aq_szof = sizeof(T);
 template <>
-constexpr size_t aq_szof<void> = 0;
+inline constexpr size_t aq_szof<void> = 0;
+
 template <class T1, class T2>
 struct aqis_same_impl {
 	constexpr static bool value = 

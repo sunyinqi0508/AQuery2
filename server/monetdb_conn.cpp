@@ -278,7 +278,9 @@ void MonetdbServer::getDSTable(const char* name, void* tbl) {
             )
         );
     }
-    monetdbe_get_cols(*(void**)(this->server), name, cols, table->n_cols);
+    auto sz = monetdbe_get_cols(*(void**)(this->server), name, cols, table->n_cols);
+    for (int i = 0; i < table->n_cols; ++i) 
+        table->colrefs[i].size = sz;
 } 
 
 MonetdbServer::~MonetdbServer(){

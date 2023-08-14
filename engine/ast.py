@@ -135,7 +135,7 @@ class projection(ast_node):
             self.has_preproc = (
                 self.has_preproc and 
                 not self.datasource.no_join and 
-                not self.datasource.tables[0].cached
+                self.datasource.tables[0].cached
             )
             self.datasource_changed = True
             self.prev_datasource = self.context.datasource
@@ -351,7 +351,10 @@ class projection(ast_node):
             col_types = [c.type.cname for c in obj_input_table.columns]
             self.input_table_type = f'TableInfo<{", ".join(col_types)}>'
             self.context.emitc(f'{self.input_table_type}* {self.input_table_name}'
-                                    f' = cxt->tables["{obj_input_table.table_name}"];')
+                                    f' = static_cast<{self.input_table_type}*>('
+                                    f'cxt->tables["{obj_input_table.table_name}"]);')
+        # if not self.has_preproc:
+        #     col_idxs = {col.name : i for i, col in enumerate(self.datasource.all_cols())}
         
         for v, idx in self.var_table.items():
             vname = get_legal_name(v) + '_' + base62uuid(3)
@@ -359,7 +362,7 @@ class projection(ast_node):
             if not self.has_preproc:
                 # TODO: verify/ensure that idx is the same as cid in the table.
                 self.context.emitc(f'decltype(auto) {vname} = '
-                                        f'{self.input_table_name}->get_col<{idx}>();')
+                                        f'{self.input_table_name}->get_col<{self.datasource.parse_col_names(v).id}>();')
             else:
                 self.context.emitc(f'auto {vname} = ColRef<{typenames[idx].cname}>('
                                     f'{length_name}, '
@@ -462,8 +465,9 @@ class projection(ast_node):
     def finalize(self, node):
         self.deal_with_into(node)
         self.context.emitc(f'puts("done.");')
-        self.context.emitc('printf("done: %lld\\n", (chrono::high_resolution_clock::now() - timer).count());timer = chrono::high_resolution_clock::now();')
-
+        ## self.context.emitc('printf("done: %lld\\n", (chrono::high_resolution_clock::now() - timer).count());timer = chrono::high_resolution_clock::now();')
+        if not self.has_preproc:
+            self.context.sql = ''
         if self.parent is None:
             self.context.sql_end()
             if self.has_postproc:
@@ -566,12 +570,12 @@ class scan(ast_node):
         self.parent.context.scans.append(self)
         
     def produce(self, node):
-        self.start += '#pragma openmp simd\n'
+        self.start += self.context.omp_simd
         if self.loop_style == scan.LoopStyle.foreach:
             self.colref = node
             self.start += f'for ({self.const}auto& {self.it_var} : {node}) {{\n'
         else:
-            self.start += f"for (uint32_t {self.it_var} = 0; {self.it_var} < {node}; ++{self.it_var}){{\n"
+            self.start += f"for (uint32_t {self.it_var} = 0; {self.it_var} < {node}; ++{self.it_var}) {{\n"
             
     def add(self, stmt, position = Position.body):
         if position == scan.Position.body:
@@ -596,7 +600,7 @@ class scan(ast_node):
                     self.start + 
                     self.front + 
                     b + 
-                    '\n}'
+                    '\n}\n'
                 ) for b in self.body])
                 + 
                 self.end
@@ -607,7 +611,7 @@ class scan(ast_node):
                 self.start + 
                 self.front + 
                 '\n'.join(self.body) + 
-                '\n}' +
+                '\n}\n' +
                 self.end
             )
         self.context.remove_scan(self, scan_assembly) 
@@ -649,11 +653,12 @@ class groupby_c(ast_node):
         first_col = g_contents_list[0]
         self.total_sz = 'len_' + base62uuid(4)
         self.context.emitc(f'uint32_t {self.total_sz} = {first_col}.size;')
-        g_contents_decltype = [f'decays<decltype({c})::value_t>' for c in g_contents_list]
+        g_contents_decltype = [f'decays<decltype({c})>::value_t' for c in g_contents_list]
         g_contents = ', '.join(
-            [f'{c}[{scanner_itname}]' for c in g_contents_list]
+            # [f'{c}[{scanner_itname}]' for c in g_contents_list]
+            g_contents_list
         )
-        self.context.emitc('printf("init_time: %lld\\n", (chrono::high_resolution_clock::now() - timer).count()); timer = chrono::high_resolution_clock::now();')
+        ## self.context.emitc('printf("init_time: %lld\\n", (chrono::high_resolution_clock::now() - timer).count()); timer = chrono::high_resolution_clock::now();')
         self.context.emitc(f'typedef record<{",".join(g_contents_decltype)}> {self.group_type};')
         self.context.emitc(f'AQHashTable<{self.group_type}, '
             f'transTypes<{self.group_type}, hasher>> {self.group} {{{self.total_sz}}};')
@@ -661,13 +666,13 @@ class groupby_c(ast_node):
         
         # self.scanner = scan(self, self.total_sz, it_name=scanner_itname)
         # self.scanner.add(f'{self.group}.hashtable_push(forward_as_tuple({g_contents}), {self.scanner.it_var});')
-        self.context.emitc(f'{self.group}.hashtable_push_all({g_contents}, {self.total_sz});')
+        self.context.emitc(f'{self.group}.hashtable_push_all<{", ".join([f"decays<decltype({c})>" for c in g_contents_list])}>({g_contents}, {self.total_sz});')
         
     def consume(self, _):
         # self.scanner.finalize()
-        self.context.emitc('printf("ht_construct: %lld\\n", (chrono::high_resolution_clock::now() - timer).count()); timer = chrono::high_resolution_clock::now();')
+        ## self.context.emitc('printf("ht_construct: %lld\\n", (chrono::high_resolution_clock::now() - timer).count()); timer = chrono::high_resolution_clock::now();')
         self.context.emitc(f'auto {self.vecs} = {self.group}.ht_postproc({self.total_sz});')
-        self.context.emitc('printf("ht_postproc: %lld\\n", (chrono::high_resolution_clock::now() - timer).count()); timer = chrono::high_resolution_clock::now();')
+        ## self.context.emitc('printf("ht_postproc: %lld\\n", (chrono::high_resolution_clock::now() - timer).count()); timer = chrono::high_resolution_clock::now();')
     # def deal_with_assumptions(self, assumption:assumption, out:TableInfo):
     #     gscanner = scan(self, self.group)
     #     val_var = 'val_'+base62uuid(7)
@@ -771,11 +776,11 @@ class groupby_c(ast_node):
                 gscanner.add(f'{ce[0]}[{gscanner.it_var}] = ({get_var_names_ex(ex)});\n')
         
         gscanner.add(f'GC::scratch_space->release();')
-        self.context.emitc('printf("ht_initfrom: %lld\\n", (chrono::high_resolution_clock::now() - timer).count());timer = chrono::high_resolution_clock::now();')
+        ## self.context.emitc('printf("ht_initfrom: %lld\\n", (chrono::high_resolution_clock::now() - timer).count());timer = chrono::high_resolution_clock::now();')
         
         gscanner.finalize()
         self.context.emitc(f'GC::scratch_space = nullptr;')
-        self.context.emitc('printf("agg: %lld\\n", (chrono::high_resolution_clock::now() - timer).count());timer = chrono::high_resolution_clock::now();')
+        ## self.context.emitc('printf("agg: %lld\\n", (chrono::high_resolution_clock::now() - timer).count());timer = chrono::high_resolution_clock::now();')
         
         self.datasource.groupinfo = None
 
@@ -1831,6 +1836,7 @@ class cache(ast_node):
     name = 'cache'
     first_order = name
     def init(self, node):
+        self.context.has_payload = False
         source = node['cache']['source']
         # lazy = node['cache']['lazy']
         lazy = 0

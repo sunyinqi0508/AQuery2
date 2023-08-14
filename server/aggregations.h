@@ -20,6 +20,7 @@ template<class T, template<typename ...> class VT>
 types::GetLongType<T>
 sum(const VT<T>& v) {
 	types::GetLongType<T> ret = 0;
+#pragma omp simd
 	for (auto _v : v)
 		ret += _v;
 	return ret;
@@ -32,6 +33,7 @@ double avg(const VT<T>& v) {
 
 template<class T, template<typename ...> class VT, class Ret>
 void sqrt(const VT<T>& v, Ret& ret) {
+#pragma omp simd
 	for (uint32_t i = 0; i < v.size; ++i) 
 		ret[i] = sqrt(v[i]);
 }
@@ -59,6 +61,7 @@ VT<T> truncate(const VT<T>& v, const uint32_t precision) {
 	auto multiplier = pow(10, precision);
 	auto max_truncate = std::numeric_limits<T>::max()/multiplier;
 	VT<T> ret(v.size);
+#pragma omp simd
 	for (uint32_t i = 0; i < v.size; ++i) { // round or trunc??
 		ret[i] = v[i] < max_truncate ? round(v[i] * multiplier)/multiplier : v[i];
 	}
@@ -68,6 +71,7 @@ VT<T> truncate(const VT<T>& v, const uint32_t precision) {
 template <class T, template<typename ...> class VT>
 T max(const VT<T>& v) {
 	T max_v = std::numeric_limits<T>::min();
+#pragma omp simd
 	for (const auto& _v : v)
 		max_v = max_v > _v ? max_v : _v;
 	return max_v;
@@ -75,6 +79,7 @@ T max(const VT<T>& v) {
 template <class T, template<typename ...> class VT>
 T min(const VT<T>& v) {
 	T min_v = std::numeric_limits<T>::max();
+#pragma omp simd
 	for (const auto& _v : v)
 		min_v = min_v < _v ? min_v : _v;
 	return min_v;
@@ -85,6 +90,7 @@ template<class T, template<typename ...> class VT, class Ret>
 void mins(const VT<T>& arr, Ret& ret) {
 	const uint32_t& len = arr.size;
 	T min = std::numeric_limits<T>::max();
+#pragma omp simd
 	for (int i = 0; i < len; ++i) {
 		if (arr[i] < min)
 			min = arr[i];
@@ -103,6 +109,7 @@ template<class T, template<typename ...> class VT, class Ret>
 void maxs(const VT<T>& arr, Ret& ret) {
 	const uint32_t& len = arr.size;
 	T max = std::numeric_limits<T>::min();
+#pragma omp simd
 	for (int i = 0; i < len; ++i) {
 		if (arr[i] > max)
 			max = arr[i];
@@ -121,9 +128,10 @@ template<class T, template<typename ...> class VT, class Ret>
 void minw(uint32_t w, const VT<T>& arr, Ret& ret) {
 	const uint32_t& len = arr.size;
 	std::deque<std::pair<T, uint32_t>> cache;
+#pragma omp simd
 	for (int i = 0; i < len; ++i) {
 		if (!cache.empty() && cache.front().second == i - w) cache.pop_front();
-		
+#pragma clang loop vectorize(enable) interleave(enable)
 		while (!cache.empty() && cache.back().first > arr[i]) cache.pop_back();
 		cache.push_back({ arr[i], i });
 		ret[i] = cache.front().first;
@@ -131,7 +139,7 @@ void minw(uint32_t w, const VT<T>& arr, Ret& ret) {
 }
 
 template<class T, template<typename ...> class VT>
-decayed_t<VT, T> minw(uint32_t w, const VT<T>& arr) {
+inline decayed_t<VT, T> minw(uint32_t w, const VT<T>& arr) {
 	decayed_t<VT, T> ret(arr.size);
 	minw(w, arr, ret);
 	return ret;
@@ -141,8 +149,10 @@ template<class T, template<typename ...> class VT, class Ret>
 void maxw(uint32_t w, const VT<T>& arr, Ret& ret) {
 	const uint32_t& len = arr.size;
 	std::deque<std::pair<T, uint32_t>> cache;
+#pragma omp simd
 	for (int i = 0; i < len; ++i) {
 		if (!cache.empty() && cache.front().second == i - w) cache.pop_front();
+#pragma clang loop vectorize(enable) interleave(enable)
 		while (!cache.empty() && cache.back().first < arr[i]) cache.pop_back();
 		cache.push_back({ arr[i], i });
 		ret[i] = cache.front().first;
@@ -164,8 +174,10 @@ void ratiow(uint32_t w, const VT<T>& arr, Ret& ret) {
 		len = 1;
 	w = w > len ? len : w;
 	ret[0] = 0;
+#pragma omp simd
 	for (uint32_t i = 0; i < w; ++i) 
 		ret[i] = arr[i] / (FPType)arr[0];
+#pragma omp simd
 	for (uint32_t i = w; i < arr.size; ++i) 
 		ret[i] = arr[i] / (FPType) arr[i - w];
 }
@@ -191,9 +203,9 @@ inline void ratios(const VT<T>& arr, Ret& ret) {
 template<class T, template<typename ...> class VT, class Ret>
 void sums(const VT<T>& arr, Ret& ret) {
 	const uint32_t& len = arr.size;
-	uint32_t i = 0;
-	if (len) ret[i++] = arr[0];
-	for (; i < len; ++i)
+	if (len) ret[0] = arr[0];
+#pragma omp simd
+	for (uint32_t i = 1; i < len; ++i)
 		ret[i] = ret[i - 1] + arr[i];
 }
 
@@ -208,10 +220,10 @@ template<class T, template<typename ...> class VT, class Ret>
 void avgs(const VT<T>& arr, Ret& ret) {
 	const uint32_t& len = arr.size;
 	typedef types::GetFPType<types::GetLongType<T>> FPType;
-	uint32_t i = 0;
 	types::GetLongType<T> s;
-	if (len) s = ret[i++] = arr[0];
-	for (; i < len; ++i)
+	if (len) s = ret[0] = arr[0];
+#pragma omp simd
+	for (uint32_t i = 1; i < len; ++i)
 		ret[i] = (s += arr[i]) / (FPType)(i + 1);
 }
 
@@ -226,12 +238,13 @@ inline decayed_t<VT, types::GetFPType<types::GetLongType<T>>> avgs(const VT<T>& 
 template<class T, template<typename ...> class VT, class Ret>
 void sumw(uint32_t w, const VT<T>& arr, Ret& ret) {
 	const uint32_t& len = arr.size;
-	uint32_t i = 0;
 	w = w > len ? len : w;
-	if (len) ret[i++] = arr[0];
-	for (; i < w; ++i)
+	if (len) ret[0] = arr[0];
+#pragma omp simd
+	for (uint32_t i = 1; i < w; ++i)
 		ret[i] = ret[i - 1] + arr[i];
-	for (; i < len; ++i)
+#pragma omp simd	
+	for (uint32_t i = w; i < len; ++i)
 		ret[i] = ret[i - 1] + arr[i] - arr[i - w];
 }
 
@@ -246,13 +259,15 @@ template<class T, template<typename ...> class VT, class Ret>
 void avgw(uint32_t w, const VT<T>& arr, Ret& ret) {
 	typedef types::GetFPType<types::GetLongType<T>> FPType;
 	const uint32_t& len = arr.size;
-	uint32_t i = 0;
+	
 	types::GetLongType<T> s{};
 	w = w > len ? len : w;
-	if (len) s = ret[i++] = arr[0];
-	for (; i < w; ++i)
+	if (len) s = ret[0] = arr[0];
+#pragma omp simd
+	for (uint32_t i = 1; i < w; ++i)
 		ret[i] = (s += arr[i]) / (FPType)(i + 1);
-	for (; i < len; ++i)
+#pragma omp simd
+	for (uint32_t i = w; i < len; ++i)
 		ret[i] = ret[i - 1] + (arr[i] - arr[i - w]) / (FPType)w;
 }
 
@@ -270,7 +285,7 @@ void varw(uint32_t w, const VT<T>& arr,
 	Ret& ret) {
 	using FPType = types::GetFPType<types::GetLongType<T>>;
 	const uint32_t& len = arr.size;
-	uint32_t i = 0;
+	
 	types::GetLongType<T> s{};
 	w = w > len ? len : w;
 	FPType EnX {},  MnX{};
@@ -278,9 +293,10 @@ void varw(uint32_t w, const VT<T>& arr,
 		s = arr[0];
 		MnX = 0;
 		EnX = arr[0];
-		ret[i++] = 0;
+		ret[0] = 0;
 	}
-	for (; i < len; ++i){
+#pragma omp simd
+	for (uint32_t i = 1; i < w; ++i) {
 		s += arr[i];
 		FPType _EnX = s / (FPType)(i + 1);
 		MnX += (arr[i] - EnX) * (arr[i] - _EnX);
@@ -290,7 +306,8 @@ void varw(uint32_t w, const VT<T>& arr,
 	}
 	const float rw = 1.f / (float)w;
 	s *= rw;	
-	for (; i < len; ++i){
+#pragma omp simd
+	for (uint32_t i = w; i < len; ++i) {
 		const auto dw = arr[i] - arr[i - w - 1];
 		const auto sw = arr[i] + arr[i - w - 1];
 		const auto dex = dw * rw;
@@ -299,8 +316,8 @@ void varw(uint32_t w, const VT<T>& arr,
 		s += dex;
 	}
 	if constexpr(sd) 
-		if(i)
-			ret[i-1] = sqrt(ret[i-1]);
+		if(len)
+			ret[len-1] = sqrt(ret[len-1]);
 }
 
 
@@ -316,14 +333,14 @@ template<class T, template<typename ...> class VT>
 types::GetFPType<types::GetLongType<decays<T>>> var(const VT<T>& arr) {
 	typedef types::GetFPType<types::GetLongType<decays<T>>> FPType;
 	const uint32_t& len = arr.size;
-	uint32_t i = 0;
 	types::GetLongType<T> s{0};
 	types::GetLongType<T> ssq{0};
 	if (len) {
 		s = arr[0];
 		ssq = arr[0] * arr[0];
 	}
-	for (; i < len; ++i){
+#pragma omp simd
+	for (uint32_t i = 1; i < len; ++i){
 		s += arr[i];
 		ssq += arr[i] * arr[i];
 	}
@@ -334,7 +351,6 @@ template<class T, template<typename ...> class VT, class Ret, bool sd = false>
 void vars(const VT<T>& arr, Ret& ret) {
 	typedef types::GetFPType<types::GetLongType<T>> FPType;
 	const uint32_t& len = arr.size;
-	uint32_t i = 0;
 	types::GetLongType<T> s{};
 	FPType MnX{};
 	FPType EnX {};
@@ -342,9 +358,10 @@ void vars(const VT<T>& arr, Ret& ret) {
 		s = arr[0];
 		MnX = 0;
 		EnX = arr[0];
-		ret[i++] = 0;
+		ret[0] = 0;
 	}
-	for (; i < len; ++i){
+#pragma omp simd
+	for (uint32_t i = 1; i < len; ++i){
 		s += arr[i];
 		FPType _EnX = s / (FPType)(i + 1);
 		MnX += (arr[i] - EnX) * (arr[i] - _EnX);
@@ -373,7 +390,8 @@ auto corr(const VT<T>& x, const VT2<T2>&y) {
 	// assert(x.size == y.size);
 	const uint32_t& len = x.size;
 	LongType sx{0}, sy{0}, sxy{0}, sx2{0}, sy2{0};
-	for (uint32_t i = 0; i < len; ++i){
+#pragma omp simd
+	for (uint32_t i = 0; i < len; ++i) {
 		sx += x[i];
 		sx2 += x[i] * x[i];
 		sy += y[i];
@@ -417,14 +435,13 @@ inline auto stddevw(uint32_t w, const VT<T>& arr, Ret& ret) {
 	return varw<T, VT, Ret, true>(w, arr, ret);
 }
 
-
 // use getSignedType
 template<class T, template<typename ...> class VT, class Ret>
 void deltas(const VT<T>& arr, Ret& ret) {
 	const uint32_t& len = arr.size;
-	uint32_t i = 0;
-	if (len) ret[i++] = 0;
-	for (; i < len; ++i)
+	if (len) ret[0] = 0;
+#pragma omp simd
+	for (uint32_t i = 1; i < len; ++i)
 		ret[i] = arr[i] - arr[i - 1];
 }
 
@@ -438,9 +455,9 @@ inline decayed_t<VT, T> deltas(const VT<T>& arr) {
 template<class T, template<typename ...> class VT, class Ret>
 void prev(const VT<T>& arr, Ret& ret) {
 	const uint32_t& len = arr.size;
-	uint32_t i = 0;
-	if (len) ret[i++] = arr[0];
-	for (; i < len; ++i)
+	if (len) ret[0] = arr[0];
+#pragma omp simd
+	for (uint32_t i = 1; i < len; ++i)
 		ret[i] = arr[i - 1];
 }
 
@@ -454,8 +471,8 @@ inline decayed_t<VT, T> prev(const VT<T>& arr) {
 template<class T, template<typename ...> class VT, class Ret>
 void aggnext(const VT<T>& arr, Ret& ret) {
 	const uint32_t& len = arr.size;
-	uint32_t i = 1;
-	for (; i < len; ++i)
+#pragma omp simd
+	for (uint32_t i = 1; i < len; ++i)
 		ret[i - 1] = arr[i];
 	if (len > 0) ret[len - 1] = arr[len - 1];
 }

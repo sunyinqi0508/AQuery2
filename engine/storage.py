@@ -161,6 +161,7 @@ class Context:
         self.special_gb = False
         self.has_dll = False
         self.triggers_active.clear()
+        self.has_payload = True
         
     def __init__(self, state = None):
         from prompt import PromptState
@@ -188,6 +189,7 @@ class Context:
         self.use_gc = compile_use_gc 
         self.system_state: Optional[PromptState] = state 
         self.use_cached_tables = True
+        self.use_omp_simd = True
         # self.new() called everytime new query batch is started
 
     def get_scan_var(self):
@@ -327,3 +329,10 @@ class Context:
             self.ccode += headers + '\n'.join(self.procs)
             self.headers = set()
         return self.ccode
+
+    @property
+    def omp_simd(self):
+        if self.use_omp_simd: 
+            return '#pragma omp simd\n'
+        else: 
+            return ''

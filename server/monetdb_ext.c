@@ -113,7 +113,7 @@ monetdbe_get_col(monetdbe_database dbhdl, const char *table_name, uint32_t col_i
     return iter.base;
 }
 
-void monetdbe_get_cols(
+unsigned int monetdbe_get_cols(
 	monetdbe_database dbhdl, 
 	const char* table_name, 
 	void*** cols, 
@@ -123,13 +123,17 @@ void monetdbe_get_cols(
 	backend* be = ((backend *)(((monetdbe_database_internal*)dbhdl)->c->sqlcontext));
 	mvc *m = be->mvc;
 	sql_table *t = find_table_or_view_on_scope(m, NULL, "sys", table_name, "CATALOG", false);
-	if (!i || !t) return;
+	if (!i || !t) return 0;
 	node *n = t->columns->l->h;
 	sqlstore* store = m->store;
+	size_t sz = 0;
+	if (n && i > 0)
+		sz = store->storage_api.count_col(m->session->tr, n->data, QUICK);
 	while(n && i-- > 0) {
 		BAT *b = store->storage_api.bind_col(m->session->tr, n->data, QUICK);
 		BATiter iter = bat_iterator(b);
-		*(cols++) = iter.base;
+		**(cols++) = iter.base;
 		n = n->next;
 	}
+	return sz;
 }
