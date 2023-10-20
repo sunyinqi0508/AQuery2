@@ -166,8 +166,10 @@ public:
 
 	template<typename... Keys_t>
 	inline void hashtable_push_all(Keys_t& ... keys, uint32_t len) {
+#pragma omp simd
 		for(uint32_t i = 0; i < len; ++i) 
 			reversemap[i] = ankerl::unordered_dense::set<Key, Hash>::hashtable_push(keys[i]...);
+#pragma omp simd
 		for(uint32_t i = 0; i < len; ++i) 
 			++ht_base[reversemap[i]]; 
 	}
@@ -182,10 +184,12 @@ public:
 
 		auto vecs = static_cast<vector_type<uint32_t>*>(malloc(sizeof(vector_type<uint32_t>) * len));
 		vecs[0].init_from(ht_base[0], mapbase);
+#pragma omp simd
 		for (uint32_t i = 1; i < len; ++i) {
 			vecs[i].init_from(ht_base[i], mapbase + ht_base[i - 1]);
 			ht_base[i] += ht_base[i - 1];
 		}
+#pragma omp simd
 		for (uint32_t i = 0; i < sz; ++i) {
 			auto id = reversemap[i];
 			mapbase[--ht_base[id]] = i;    
@@ -194,11 +198,18 @@ public:
 	}
 };
 
+template <class ... Ty>
+struct HashTableComponents {
+	uint32_t size;
+	std::vector<std::tuple<Ty...>>* keys;
+	vector_type<uint32_t>* values; 
+	uint32_t* offsets;
+};
 
 template <
 	typename ValueType = uint32_t,
-	int PerfectHashingThreshold = 12
->
+	int PerfectHashingThreshold = 18
+> // default < 1M table size
 struct PerfectHashTable {
 	using key_t = std::conditional_t<PerfectHashingThreshold <= 8, uint8_t,
 		std::conditional_t<PerfectHashingThreshold <= 16, uint16_t,
@@ -207,7 +218,7 @@ struct PerfectHashTable {
 		>>>;
 	constexpr static uint32_t tbl_sz = 1 << PerfectHashingThreshold;
 	template <typename ... Types, template <typename> class VT>
-	static vector_type<uint32_t>*
+	static HashTableComponents<Types ...> //vector_type<uint32_t>*
 	construct(VT<Types>&... args) { // construct a hash set
 		// AQTmr();
 		int n_cols, n_rows = 0;
@@ -216,7 +227,7 @@ struct PerfectHashTable {
 		static_assert(
 			(sizeof...(Types) < PerfectHashingThreshold) &&
 			(std::is_integral_v<Types> && ...),
-			"Types must be integral and less than 12 wide in total."
+			"Types must be integral and less than \"PerfectHashingThreshold\" wide in total."
 			);
 		key_t* 
 		hash_values = static_cast<key_t*>(
@@ -241,9 +252,10 @@ struct PerfectHashTable {
 			};
 		int idx = 0;
 		(get_hash(args, idx++), ...);
-		uint32_t cnt[tbl_sz];
+		uint32_t *cnt_ext = static_cast<uint32_t*>(
+			calloc(tbl_sz, sizeof(uint32_t))
+		), *cnt = cnt_ext + 1;
 		uint32_t n_grps = 0;
-		memset(cnt, 0, tbl_sz * sizeof(tbl_sz));
 #pragma omp simd
 		for (uint32_t i = 0; i < n_cols; ++i) {
 			++cnt[hash_values[i]];
@@ -255,6 +267,24 @@ struct PerfectHashTable {
 				cnt[n_grps] = cnt[i];
 				grp_ids[i] = n_grps++;
 			}
+		}
+		std::vector<std::tuple<Types ...>>* keys = new std::vector<std::tuple<Types ...>>(n_grps); // Memory leak here, cleanup after module is done.
+		
+		const char bits[] = {0, args.stats.bits ... };
+		auto decode = []<typename Ret>(auto &val, const char prev, const char curr) -> Ret {
+			val >>= prev;
+			const auto mask = (1 << curr) - 1;
+			return val & mask;
+		};
+#pragma omp simd
+		for (ValueType i = 0; i < n_grps; ++ i) {
+			int idx2 = 1;
+			ValueType curr_val = grp_ids[i];
+			keys[i] = std::make_tuple((
+				decode.template operator()<Types>(
+					curr_val, bits[idx2 - 1], bits[idx2++]
+				), ...)
+			); // require C++20 for the calls to be executed sequentially.
 		}
 		uint32_t* idxs = static_cast<uint32_t*>(
 			malloc(n_cols * sizeof(uint32_t))
@@ -281,7 +311,47 @@ struct PerfectHashTable {
 			idxs_vec[i].container = idxs_ptr[i];
 			idxs_vec[i].size = cnt[i];
 		}
-		free(hash_values);
-		return idxs_vec;
+		GC::gc_handle->reg(hash_values);
+
+#pragma omp simd
+		for(int i = 1; i < n_grps; ++ i) 
+			cnt[i] += cnt[i - 1];
+		cnt_ext[0] = 0;
+		return {.size = n_grps, .keys = keys, .values = idxs_vec, .offset = cnt_ext};
 	}
+};
+
+template <class>
+class ColRef;
+
+template <
+	class Key, 
+	class Hash, 
+	int PerfectHashingThreshold = 18
+>
+class HashTableFactory {
+public:
+	template <class ... Ty> 
+	static HashTableComponents<Ty ...>
+	get(ColRef<Ty>& ... cols) {
+// To use Perfect Hash Table
+		if constexpr ((std::is_integral_v<Ty> && ...)) {
+			if ((cols.stats.bits + ...) <= PerfectHashingThreshold) {
+				return PerfectHashTable<
+					uint32_t, 
+					PerfectHashingThreshold
+				>::construct(cols ...);
+			}
+		}
+
+// Fallback to regular hash table
+		int n_rows = 0;
+		((n_rows = cols.size), ...);
+
+		AQHashTable<Key, Hash> ht{n_rows};
+		ht.template hashtable_push_all<decays<decltype(cols)> ...>(cols ..., n_rows);
+		auto vals = ht.ht_postproc(n_rows);
+
+		return {.size = ht.size(), .keys = ht.values(), .values = vals, .offset = ht.ht_base};
+	}	
 };

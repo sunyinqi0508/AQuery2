@@ -20,7 +20,7 @@ __AQEXPORT__(int) action(Context* cxt) {
     if (fit_inc == nullptr)
         fit_inc = (decltype(fit_inc))(cxt->get_module_function("fit_inc"));
 
-	auto server = static_cast<DataSource*>(cxt->alt_server);
+	auto server = reinterpret_cast<DataSource*>(cxt->alt_server);
     auto len = uint32_t(monetdbe_get_size(*((void**)server->server), "source"));
     auto x_1bN = ColRef<vector_type<double>>(len, monetdbe_get_col(*((void**)(server->server)), "source", 0));
     auto y_6uX = ColRef<int64_t>(len, monetdbe_get_col(*((void**)(server->server)), "source", 1));

@@ -47,6 +47,7 @@ def init_config():
                 os_platform = 'bsd'
             elif sys.platform == 'cygwin' or sys.platform == 'msys':
                 os_platform = 'cygwin'
+
         # deal with msys dependencies:
         if os_platform == 'win':
             add_dll_dir(os.path.abspath('./msc-plugin'))
@@ -73,8 +74,9 @@ def init_config():
             if build_driver == 'Auto':
                 build_driver = 'Makefile'
             if os_platform == 'linux':
-                os.environ['PATH'] = os.environ['PATH'] + os.pathsep + '/usr/lib'
+                os.environ['PATH'] += os.pathsep + '/usr/lib'
             if os_platform == 'cygwin':
                 add_dll_dir('./lib')
+            os.environ['LD_LIBRARY_PATH'] += os.pathsep + os.getcwd()+ os.sep + 'deps'
         __config_initialized__ = True
         

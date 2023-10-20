@@ -629,6 +629,7 @@ class groupby_c(ast_node):
         self.context.headers.add('"./server/hasher.h"')
         # self.context.headers.add('unordered_map')
         self.group = 'g' + base62uuid(7)
+        self.group_size = 'sz_' + self.group
         self.group_type = 'record_type' + base62uuid(7)
         self.datasource = self.proj.datasource
         self.scanner = None
@@ -660,18 +661,25 @@ class groupby_c(ast_node):
         )
         ## self.context.emitc('printf("init_time: %lld\\n", (chrono::high_resolution_clock::now() - timer).count()); timer = chrono::high_resolution_clock::now();')
         self.context.emitc(f'typedef record<{",".join(g_contents_decltype)}> {self.group_type};')
-        self.context.emitc(f'AQHashTable<{self.group_type}, '
-            f'transTypes<{self.group_type}, hasher>> {self.group} {{{self.total_sz}}};')
+        # self.context.emitc(f'AQHashTable<{self.group_type}, '
+        #     f'transTypes<{self.group_type}, hasher>> {self.group} {{{self.total_sz}}};')
         self.n_grps = len(self.glist)
+
+        self.context.emitc(f'auto {self.group} = '
+                           f'HashTableFactory<{self.group_type}, transTypes<{self.group_type}, hasher>>::'
+                           f'get<{", ".join([f"decays<decltype({c})>" for c in g_contents_list])}>({g_contents});')
+        
+        
         
         # self.scanner = scan(self, self.total_sz, it_name=scanner_itname)
         # self.scanner.add(f'{self.group}.hashtable_push(forward_as_tuple({g_contents}), {self.scanner.it_var});')
-        self.context.emitc(f'{self.group}.hashtable_push_all<{", ".join([f"decays<decltype({c})>" for c in g_contents_list])}>({g_contents}, {self.total_sz});')
+        # self.context.emitc(f'{self.group}.hashtable_push_all<{", ".join([f"decays<decltype({c})>" for c in g_contents_list])}>({g_contents}, {self.total_sz});')
         
     def consume(self, _):
         # self.scanner.finalize()
         ## self.context.emitc('printf("ht_construct: %lld\\n", (chrono::high_resolution_clock::now() - timer).count()); timer = chrono::high_resolution_clock::now();')
-        self.context.emitc(f'auto {self.vecs} = {self.group}.ht_postproc({self.total_sz});')
+        self.context.emitc(f'auto {self.group_size} = {self.group}.size;')
+        self.context.emitc(f'auto {self.vecs} = {self.group}.values;')#{self.group}.ht_postproc({self.total_sz});')
         ## self.context.emitc('printf("ht_postproc: %lld\\n", (chrono::high_resolution_clock::now() - timer).count()); timer = chrono::high_resolution_clock::now();')
     # def deal_with_assumptions(self, assumption:assumption, out:TableInfo):
     #     gscanner = scan(self, self.group)
@@ -685,33 +693,33 @@ class groupby_c(ast_node):
         tovec_columns = set()
         for i, c in enumerate(col_names):
             if col_tovec[i]: # and type(col_types[i]) is VectorT:
-                self.context.emitc(f'{c}.resize({self.group}.size());')
+                self.context.emitc(f'{c}.resize({self.group_size});')
                 typename : Types = col_types[i] # .inner_type
                 self.context.emitc(f'auto buf_{c} = static_cast<{typename.cname} *>(calloc({self.total_sz}, sizeof({typename.cname})));')
                 tovec_columns.add(c)
             else:
-                self.context.emitc(f'{c}.resize({self.group}.size());')
+                self.context.emitc(f'{c}.resize({self.group_size});')
                 
-        self.arr_len = 'arrlen_' + base62uuid(3)
-        self.arr_values = 'arrvals_' + base62uuid(3)
+        # self.arr_len = 'arrlen_' + base62uuid(3)
+        self.arr_values = {self.group.keys}#'arrvals_' + base62uuid(3)
         
-        self.context.emitc(f'auto {self.arr_len} = {self.group}.size();')
-        self.context.emitc(f'auto {self.arr_values} = {self.group}.values();')
+        # self.context.emitc(f'auto {self.arr_len} = {self.group_size};')
+        # self.context.emitc(f'auto {self.arr_values} = {self.group}.values();')
         
-        if len(tovec_columns):
-            preproc_scanner = scan(self, self.arr_len)
+        if len(tovec_columns): # do this in seperate loops.
+            preproc_scanner = scan(self, self.group_size)
             preproc_scanner_it = preproc_scanner.it_var
             for c in tovec_columns:
                 preproc_scanner.add(f'{c}[{preproc_scanner_it}].init_from'
                                     f'({self.vecs}[{preproc_scanner_it}].size,'
-                                    f' {"buf_" + c} + {self.group}.ht_base'
+                                    f' {"buf_" + c} + {self.group}.offsets'
                                     f'[{preproc_scanner_it}]);'
                 )
             preproc_scanner.finalize()
         
         self.context.emitc('GC::scratch_space = GC::gc_handle ? &(GC::gc_handle->scratch) : nullptr;')
         # gscanner = scan(self, self.group, loop_style = scan.LoopStyle.foreach)
-        gscanner = scan(self, self.arr_len)
+        gscanner = scan(self, self.group_size)
         key_var = 'key_'+base62uuid(7)
         val_var = 'val_'+base62uuid(7)
         
