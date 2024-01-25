@@ -1,4 +1,5 @@
 # put environment specific configuration here
+import os
 
 ## GLOBAL CONFIGURATION FLAGS
 
@@ -23,7 +24,6 @@ def init_config():
     # __config_initialized__ = False
     #os_platform = 'unkown'
     #msbuildroot = 'd:/gg/vs22/MSBuild/Current/Bin'
-    import os
     from common.utils import add_dll_dir
     # os.environ['CXX'] = 'C:/Program Files/LLVM/bin/clang.exe'
     os.environ['THREADING'] = '1'
@@ -77,6 +77,16 @@ def init_config():
                 os.environ['PATH'] += os.pathsep + '/usr/lib'
             if os_platform == 'cygwin':
                 add_dll_dir('./lib')
-            os.environ['LD_LIBRARY_PATH'] += os.pathsep + os.getcwd()+ os.sep + 'deps'
+            key_ld_library_path = 'LD_LIBRARY_PATH'
+            patch_ld_library_path = os.getcwd()+ os.sep + 'deps'
+            if key_ld_library_path not in os.environ or patch_ld_library_path not in os.environ[key_ld_library_path]:
+                if key_ld_library_path not in os.environ:
+                    os.environ[key_ld_library_path] = patch_ld_library_path
+                else:
+                    os.environ[key_ld_library_path] += os.pathsep + patch_ld_library_path
+                import subprocess, sys
+                subprocess.run([sys.executable,  *sys.argv])    
+                sys.exit(0)
+        
         __config_initialized__ = True
         

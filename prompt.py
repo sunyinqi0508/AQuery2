@@ -395,6 +395,7 @@ def init_prompt() -> PromptState:
             state.server_status = lambda : not state.th.is_alive()
         else:
             state.server_status = lambda : True
+    # print(os.environ['LD_LIBRARY_PATH'])
     state.init(state)
     return state
 
