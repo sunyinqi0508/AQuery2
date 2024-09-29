@@ -4,7 +4,7 @@
 
 ## Introduction
 
-AQuery++ Database is a cross-platform, In-Memory Column-Store Database that incorporates compiled query execution. (**Note**: If you encounter any problems, feel free to contact me via ys3540@nyu.edu)
+AQuery++ Database is a cross-platform, In-Memory Column-Store Database that incorporates compiled query execution. (**Note**: If you encounter any problems, feel free to contact me via sunyinqi0508@gmail.com)
 # Architecture 
 ![Architecture](./docs/arch-hybrid.svg)
 
