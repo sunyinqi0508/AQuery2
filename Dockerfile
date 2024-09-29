@@ -1,4 +1,4 @@
-FROM ubuntu:latest
+FROM ubuntu:24.04
 
 # RUN cp /bin/bash /bin/sh
 
@@ -14,7 +14,7 @@ RUN apt update && apt install -y python3 python3-pip clang-14 libmonetdbe-dev li
 
 RUN git clone https://github.com/sunyinqi0508/AQuery2 
 
-RUN python3 -m pip install -r AQuery2/requirements.txt
+RUN python3 -m pip install -r AQuery2/requirements.txt --break-system-packages
 
 ENV IS_DOCKER_IMAGE=1 CXX=clang++-14
 
