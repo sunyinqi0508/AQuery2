@@ -3,7 +3,7 @@ MonetDB_LIB =
 MonetDB_INC = 
 Defines = 
 CC = $(CXX) -xc 
-CXXFLAGS = --std=c++2a
+CXXFLAGS = --std=c++20 --stdlib=libstdc++
 
 ifdef AQ_LINKER
 	CXX += -fuse-ld=$(AQ_LINKER)
@@ -85,7 +85,7 @@ else
 		MonetDB_INC += $(AQ_MONETDB_INC)
 		MonetDB_INC += -I/usr/local/include/monetdb -I/usr/include/monetdb 
 	endif
-	MonetDB_LIB += -lmonetdbe -lmonetdbsql -lbat
+	MonetDB_LIB += -lmonetdbe
 endif
 
 
