@@ -1,6 +1,6 @@
 FROM ubuntu:24.04
 
-# RUN cp /bin/bash /bin/sh
+WORKDIR /AQuery2
 
 RUN apt update && apt install -y wget
 
@@ -10,17 +10,18 @@ RUN export OS_VER=`cat /etc/os-release | grep VERSION_CODENAME` &&\
 
 RUN wget --output-document=/etc/apt/trusted.gpg.d/monetdb.gpg https://dev.monetdb.org/downloads/MonetDB-GPG-KEY.gpg
 
-RUN apt update && apt install -y python3 python3-pip clang-14 libmonetdbe-dev libmonetdb-client-dev monetdb5-sql-dev git 
+RUN apt update && apt install -y python3 python3-pip clang-18 libmonetdbe-dev libmonetdb-client-dev monetdb5-sql-dev git monetdb5-sql monetdb-client libssl-dev libomp-dev
 
-RUN git clone https://github.com/sunyinqi0508/AQuery2 
+COPY . . 
 
-RUN python3 -m pip install -r AQuery2/requirements.txt --break-system-packages
+RUN python3 -m pip install -r requirements.txt --break-system-packages
+RUN python3 duckdb_install.py
 
-ENV IS_DOCKER_IMAGE=1 CXX=clang++-14
+ENV IS_DOCKER_IMAGE=1 CXX=clang++-18
 
 # First run will build cache into image
-RUN cd AQuery2 && python3 prompt.py
+RUN python3 prompt.py 
 
 # CMD cd AQuery2 && python3 prompt.py
-CMD echo "Welcome. Type python3 prompt.py to start AQuery." && cd AQuery2 && bash
+CMD echo "Welcome. Type python3 prompt.py to start AQuery." && bash
 
