@@ -337,7 +337,7 @@ fnmin = OperatorBase('min', 1, as_is, cname = 'min', sqlname = 'MIN', call = fn_
 fndeltas = OperatorBase('deltas', 1, as_is, cname = 'deltas', sqlname = 'DELTAS', call = fn_behavior)
 fnratios = OperatorBase('ratios', [1, 2], fp(ty_clamp(as_is, -1)), cname = 'ratios', sqlname = 'RATIOS', call = windowed_fn_behavor)
 fnlast = OperatorBase('last', 1, as_is, cname = 'last', sqlname = 'LAST', call = fn_behavior)
-fnfirst = OperatorBase('first', 1, as_is, cname = 'frist', sqlname = 'FRIST', call = fn_behavior)
+fnfirst = OperatorBase('first', 1, as_is, cname = 'first', sqlname = 'FIRST', call = fn_behavior)
 #fnsum = OperatorBase('sum', 1, ext(auto_extension), cname = 'sum', sqlname = 'SUM', call = fn_behavior)
 #fnavg = OperatorBase('avg', 1, fp(ext(auto_extension)), cname = 'avg', sqlname = 'AVG', call = fn_behavior)
 fnmedian = OperatorBase('median', 1, as_is, cname = 'median', sqlname = 'MEDIAN', call = fn_behavior)
